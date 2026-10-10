@@ -1,4 +1,4 @@
-# python3 -I va_count.py data/raw/telegram/VA_Kyiv.jsonl   (Kyiv-city alerts per Kyiv month from T0)
+# python3 -I va_count.py data/bronze/telegram/VA_Kyiv.jsonl   (Kyiv-city alerts per Kyiv month from T0)
 import json, re, sys, collections
 from datetime import datetime, timedelta
 S = re.compile(r"(м\.\s*Київ\s*[-–]\s*)?[Пп]овітряна тривога|(Червоний|Жовтий) рівень небезпеки|(У Києві |У столиці )?[Оо]голошено повітряну тривогу")

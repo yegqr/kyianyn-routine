@@ -56,8 +56,11 @@ tests/                             тест на витік
 
 ## Як запустити
 
-1. bronze: `scripts/bronze/tg_backfill.sh A`, `B`, `C` і збирачі з PARSING.md.
-2. silver: `.venv/bin/python -I -m airalerts.silver.<модуль>`.
+1. bronze (`python3 -I scripts/bronze/<збирач>`, журнал запусків у `data/bronze/MANIFEST.md`):
+   - Telegram: `scripts/bronze/tg_backfill.sh A`, `B`, `C`; довгий канал ділиться на частини (`tg_fetch.py` з `before stop_id`) і зливається `tg_fetch.py merge`; `etryvoga_patch.py` для відбою без старту;
+   - погода і астрономія: `wx_backfill.py`, `kyiv_astro.py build data/bronze/astro`;
+   - календар і події: `calendar_dates.py`, `kremlin_fetch.py`, `wiki_fetch.py`, `president_fetch.py` (зараз 403).
+2. silver: `.venv/bin/python -I -m airalerts.silver.<модуль>` у порядку `alerts`, `telegram_posts`, `threat_hourly classify`, потім `threat_hourly`, `signals`, `rf_strikes`, `weather`, `astro`, `calendar_dates`, `political_events`. Відповіді Jev беруться з кешу, тож повтор безкоштовний.
 3. gold: `.venv/bin/python -I -m airalerts.gold.kyiv_hourly`.
 
 ## Рішення
