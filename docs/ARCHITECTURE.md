@@ -61,7 +61,8 @@ tests/                             тест на витік
    - погода і астрономія: `wx_backfill.py`, `kyiv_astro.py build data/bronze/astro`;
    - календар і події: `calendar_dates.py`, `kremlin_fetch.py`, `wiki_fetch.py`, `president_fetch.py` (зараз 403).
 2. silver: `.venv/bin/python -I -m airalerts.silver.<модуль>` у порядку `alerts`, `telegram_posts`, `threat_hourly classify`, потім `threat_hourly`, `signals`, `rf_strikes`, `weather`, `astro`, `calendar_dates`, `political_events`. Відповіді Jev беруться з кешу, тож повтор безкоштовний.
-3. gold: `.venv/bin/python -I -m airalerts.gold.kyiv_hourly`.
+3. gold: `.venv/bin/python -I -m airalerts.gold.kyiv_hourly`, потім `.venv/bin/python -I -m airalerts.db` (view у `data/airalerts.duckdb`).
+4. тест на витік: `.venv/bin/python -I -m unittest discover -s tests -v`.
 
 ## Рішення
 
