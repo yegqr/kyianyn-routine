@@ -8,10 +8,10 @@ Gold: features(con, t_table). Documentation: docs/data/silver/rf_strikes.md
 
 Run (from the project root):
   .venv/bin/python -I -m airalerts.silver.rf_strikes                      build the three tables (Jev answers are cached)
-  .venv/bin/python -I -m airalerts.silver.rf_strikes checks               counts straight from bronze, no Jev
+  .venv/bin/python -I -m airalerts.silver.rf_strikes checks               first and last post per channel, counts straight from bronze, no Jev
   .venv/bin/python -I -m airalerts.silver.rf_strikes score-sample --n 60  anchors and a sample scored by Jev, no tables written
   .venv/bin/python -I -m airalerts.silver.rf_strikes report --out DIR     anchors, top 20 and 10 low events from the table
-  .venv/bin/python -I -m airalerts.silver.rf_strikes features-check       hourly features, nulls, ASOF test
+  .venv/bin/python -I -m airalerts.silver.rf_strikes features-check       hourly features, nulls, direct computation, ASOF test
   .venv/bin/python -I -m airalerts.silver.rf_strikes states-check         strip_dates cases and dates left in the Jev states, no Jev
 """
 import argparse
@@ -570,6 +570,11 @@ def month_table(rows, key="published_at"):
 
 
 def cmd_checks():
+    for ch in ("mod_russia", "GeneralStaffZSU", "mos_sobyanin", "favt_info"):
+        ps = sorted((p for p in load(ch) if p["published_at"] >= FETCH_FROM), key=lambda p: p["published_at"])
+        gap = max((utc(b["published_at"]) - utc(a["published_at"]), a["published_at"]) for a, b in zip(ps, ps[1:]))
+        print(f"bronze {ch}: posts from FETCH_FROM {len(ps)}, first {ps[0]['published_at']} (id {ps[0]['post_id']}), "
+              f"last {ps[-1]['published_at']} (id {ps[-1]['post_id']}), longest silence {gap[0].total_seconds() / 3600:.1f} h after {gap[1]}")
     rows, info, posts = build_mod()
     print(f"MoD: posts {len(posts)}, reports {len(rows)}, unparsed {len(info['unparsed'])} {info['unparsed']}, "
           f"loose regexes without a verb {info['loose_only']}")
@@ -697,6 +702,17 @@ def cmd_states_check():
     print("left in states, day.month-like tokens:", dict(tok), "not on the list of known non-dates:", [t for t in tok if t not in NOT_DATES])
 
 
+def direct_features(ev, mod, t):
+    """The four gold columns for one t in plain Python from the table rows (a check of features(), not used by gold)."""
+    def within(r, hours):
+        return t - timedelta(hours=hours) <= r["available_at"] < t
+    hi = [e["available_at"] for e in ev if e["importance"] >= IMP_HIGH and e["available_at"] < t]
+    return {"rf_imp_max_24h": max([e["importance"] for e in ev if within(e, 24)], default=0.0),
+            "rf_imp_max_72h": max([e["importance"] for e in ev if within(e, 72)], default=0.0),
+            "rf_drones_downed_24h": sum(r["drones_n"] for r in mod if within(r, 24)),
+            "hours_since_rf_imp4": min(CAP_HOURS, (t - max(hi)).total_seconds() / 3600.0) if hi else CAP_HOURS}
+
+
 def cmd_features_check():
     con = register_layers(connect())
     last = last_full_hour()
@@ -711,7 +727,21 @@ def cmd_features_check():
         v = ft[c].to_pylist()
         print(f"  {c}: min {min(v):.2f} max {max(v):.2f} mean {sum(v) / len(v):.2f}")
     rows = ft.to_pylist()
-    for i in sorted(random.Random().sample(range(n), 3)):
+    ev = pq.read_table(SILVER / f"{EVENTS}.parquet").to_pylist()
+    mod = pq.read_table(SILVER / f"{MOD}.parquet").to_pylist()
+    pre = [e for e in ev if e["available_at"] < t0]
+    hi0 = sorted((e["available_at"], e["source"], e["post_id"], e["importance"]) for e in pre if e["importance"] >= IMP_HIGH)
+    last_hi = f"{hi0[-1][1]}/{hi0[-1][2]} at {hi0[-1][0]:%Y-%m-%dT%H:%M:%SZ}, importance {hi0[-1][3]:.2f}" if hi0 else "none"
+    print(f"events before {t0:%Y-%m-%dT%H}Z: {len(pre)}, the earliest at {min(e['available_at'] for e in pre):%Y-%m-%dT%H:%M:%SZ} "
+          f"(FETCH_FROM {FETCH_FROM}); with importance >= {IMP_HIGH}: {len(hi0)}, the last one {last_hi}")
+    d0 = direct_features(ev, mod, t0)
+    print(f"hours_since_rf_imp4 at {t0:%Y-%m-%dT%H}Z: features {rows[0]['hours_since_rf_imp4']:.4f}, direct {d0['hours_since_rf_imp4']:.4f}, "
+          f"row 0 is that hour {rows[0]['t_utc'] == t0}, equal {abs(rows[0]['hours_since_rf_imp4'] - d0['hours_since_rf_imp4']) < 1e-9}")
+    bad = [i for i in range(n) if any(abs(rows[i][k] - v) > 1e-9 for k, v in direct_features(ev, mod, t0 + timedelta(hours=i)).items())]
+    print(f"all four features equal a direct computation from the tables, hours {n}, different {len(bad)} {bad[:5]}")
+    early = int((datetime(2026, 5, 7, 21) - t0) / timedelta(hours=1))  # 2026-05-07T21:00Z = 2026-04-23T21:00Z, the old data start, plus 14 days
+    rng = random.Random()
+    for i in [rng.randrange(early)] + sorted(rng.sample(range(early, n), 2)):
         t = t0 + timedelta(hours=i)
         lit = f"TIMESTAMP '{t:%Y-%m-%d %H:%M:%S}'"
         c2 = connect()
@@ -719,7 +749,7 @@ def cmd_features_check():
             c2.register(name, _arrow(con.execute(sql.format(t=lit))))
         c2.execute(f"CREATE TABLE t1 AS SELECT {lit} AS t_utc")
         got = features(c2, "t1").to_pylist()
-        print(f"ASOF t={t:%Y-%m-%dT%H}Z identical to the full computation: {got == [rows[i]]} {got[0]}")
+        print(f"ASOF t={t:%Y-%m-%dT%H}Z ({'before 2026-05-07T21Z' if i < early else 'later'}) identical to the full computation: {got == [rows[i]]} {got[0]}")
 
 
 def cli():
