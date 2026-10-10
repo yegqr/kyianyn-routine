@@ -14,7 +14,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from ..db import connect, register_layers
-from ..paths import ROOT, SILVER, T0
+from ..paths import FETCH_FROM, ROOT, SILVER, T0
 from ..telegram import TG, load
 
 TABLE = SILVER / "kyiv_alerts.parquet"
@@ -86,18 +86,24 @@ def etryvoga_kyiv_start(text):
     return None
 
 
-def build():
-    """Alert rows from the bronze posts and the end of the data (last VA_Kyiv post time)."""
-    va = load("VA_Kyiv")
-    patch = TG / "UkraineAlarmSignal.jsonl"
-    starts = sorted((r["published_at"], r["post_id"], lvl) for r in (load("UkraineAlarmSignal") if patch.exists() else [])
-                    if (lvl := etryvoga_kyiv_start(r["text"])))
-    alerts, cur, prev_end = [], None, None
+def build(va=None, etryvoga=None):
+    """Alert rows, the end of the data (last VA_Kyiv post time) and the ids of dropped ends, from the bronze posts
+    (the self-test passes its own). An end without a start takes the last Kyiv start of eTryvoga after the previous end
+    (PARSING 1). The data starts at FETCH_FROM: the first end of the data without a start closes an alert that began
+    before it, so it is not an alert of our period and is dropped, unless eTryvoga has a Kyiv start after FETCH_FROM."""
+    va = load("VA_Kyiv") if va is None else va
+    if etryvoga is None:
+        etryvoga = load("UkraineAlarmSignal") if (TG / "UkraineAlarmSignal.jsonl").exists() else []
+    starts = sorted((r["published_at"], r["post_id"], lvl) for r in etryvoga if (lvl := etryvoga_kyiv_start(r["text"])))
+    alerts, cur, prev_end, dropped = [], None, FETCH_FROM, []  # prev_end is FETCH_FROM until the first alert ends
     for r in va:
         h, t = head(r["text"]), r["published_at"]
         if END.match(h):
-            if cur is None:  # end without a start: the last Kyiv start of eTryvoga before it (PARSING 1)
-                c = [s for s in starts if s[0] < t and (prev_end is None or s[0] > prev_end)]
+            if cur is None:  # end without a start
+                c = [s for s in starts if prev_end < s[0] < t]
+                if not c and not alerts and not dropped:  # the first end of the data: its start is before FETCH_FROM
+                    dropped.append(r["post_id"])
+                    continue
                 if not c:
                     sys.exit(f"VA_Kyiv {r['post_id']}: end without a start and no Kyiv start in UkraineAlarmSignal "
                              "(run scripts/bronze/etryvoga_patch.py)")
@@ -119,18 +125,19 @@ def build():
                          max_level=a["level"], start_source=a["src"], start_post_id=a["sid"], end_post_id=a["eid"],
                          gap_from_prev_min=(s - prev).total_seconds() / 60 if prev else None, available_at=s))
         prev = e
-    return rows, max(r["published_at"] for r in va)
+    return rows, max(r["published_at"] for r in va), dropped
 
 
 def main():
-    rows, until = build()
+    rows, until, dropped = build()
     table = pa.Table.from_pylist(rows, schema=SCHEMA).replace_schema_metadata({"data_until": until})
     tmp = TABLE.with_suffix(".tmp")
     pq.write_table(table, tmp, compression="zstd")
     os.replace(tmp, TABLE)
     print({"rows": len(rows), "first_start": str(rows[0]["start_utc"]), "last_start": str(rows[-1]["start_utc"]),
            "open": sum(r["end_utc"] is None for r in rows), "data_until": until,
-           "patched_alert_ids": [r["alert_id"] for r in rows if r["start_source"] != "VA_Kyiv"]})
+           "patched_alert_ids": [r["alert_id"] for r in rows if r["start_source"] != "VA_Kyiv"],
+           "dropped_end_post_ids": dropped})
 
 
 def arrow(con, sql):
@@ -187,6 +194,38 @@ def check():
     patched = dict(con.execute(f"SELECT {month}, COUNT(*) FROM kyiv_alerts WHERE start_source <> 'VA_Kyiv' GROUP BY 1").fetchall())
     ok("alerts per Kyiv month from T0 = va_count + patched", got == {m: n + patched.get(m, 0) for m, n in exp.items()},
        f"silver {dict(sorted(got.items()))} va_count {exp} patched {patched}")
+    src = (ROOT / "scripts/bronze/va_count.py").read_text(encoding="utf-8")  # the same count with its start at FETCH_FROM
+    out0 = subprocess.run([sys.executable, "-I", "-c", src.replace(T0, FETCH_FROM), str(TG / "VA_Kyiv.jsonl")],
+                          capture_output=True, text=True, check=True).stdout
+    exp0 = ast.literal_eval(re.search(r"\{.*?\}", out0).group())
+    orphans = ast.literal_eval(re.search(r"orphan ends: (\[[^\]]*\])", out0).group(1))
+    got0 = dict(con.execute(f"SELECT {month}, COUNT(*) FROM kyiv_alerts GROUP BY 1").fetchall())
+    ok("alerts per Kyiv month from FETCH_FROM = va_count with its start moved to FETCH_FROM + patched",
+       T0 in src and got0 == {m: n + patched.get(m, 0) for m, n in exp0.items()}, f"silver {dict(sorted(got0.items()))} va_count {exp0}")
+    fresh, _, dropped = build()
+    ok("table = a fresh build() from bronze", pq.read_table(TABLE).to_pylist() == fresh, f"{len(fresh)} rows")
+    handled = [r[0] for r in con.execute("SELECT end_post_id FROM kyiv_alerts WHERE start_source <> 'VA_Kyiv'").fetchall()]
+    ok("every orphan end from FETCH_FROM is a patched alert or a dropped first end", orphans == sorted(handled + dropped),
+       f"orphan ends {orphans} patched {sorted(handled)} dropped {dropped}")
+
+    def run(posts, patch=()):  # (id, time, text) posts -> (alerts as (start, source), dropped ids), or "exit"
+        mk = lambda p: dict(post_id=p[0], published_at=p[1], text=p[2])
+        try:
+            r, _, d = build([mk(p) for p in posts], [mk(p) for p in patch])
+        except SystemExit:
+            return "exit"
+        return [(str(x["start_utc"]), x["start_source"]) for x in r], d
+
+    st, en, a, b, c = "🔴 м. Київ - повітряна тривога!", "🟢 м. Київ - відбій повітряної тривоги!", \
+        "2026-04-16T22:00:00Z", "2026-04-17T10:00:00Z", "2026-04-17T10:30:00Z"
+    ek = lambda t: (900, t, "Київ\nЖовтий рівень тривоги")  # a Kyiv start in eTryvoga
+    first_end, one = [(1, a, en), (2, b, st), (3, c, en)], ("2026-04-17 10:00:00", "VA_Kyiv")
+    ok("first end of the data without a start is dropped", run(first_end) == ([one], [1]))
+    ok("... unless eTryvoga has a start after FETCH_FROM", run(first_end, [ek("2026-04-16T21:30:00Z")])
+       == ([("2026-04-16 21:30:00", "UkraineAlarmSignal"), one], []))
+    ok("... a start before FETCH_FROM does not count", run(first_end, [ek("2026-04-16T20:30:00Z")]) == ([one], [1]))
+    ok("a later end without a start stops the build", run([(1, b, st), (2, c, en), (3, "2026-04-17T11:00:00Z", en)]) == "exit")
+    ok("a second end at the data start stops the build", run([(1, a, en), (2, b, en)]) == "exit")
     ok("alert_id unique", q("SELECT COUNT(DISTINCT alert_id) = COUNT(*) FROM kyiv_alerts"))
     ok("intervals do not overlap, end >= start, only the last may be open", q("""SELECT COUNT(*) = 0 FROM (
         SELECT start_utc, end_utc, LAG(end_utc) OVER w AS pe, ROW_NUMBER() OVER w AS rn
@@ -207,6 +246,9 @@ def check():
     close = lambda a, b: a == b or (isinstance(a, float) and b is not None and abs(a - b) < 1e-6)
     diff = [r["t_utc"] for r in rows if not all(close(r[k], v) for k, v in reference(alerts, r["t_utc"]).items())]
     ok("features = plain Python reference on every hour", not diff, f"{len(diff)} differ")
+    n14 = q(f"SELECT COUNT(*) FROM kyiv_alerts WHERE start_utc >= {fmt(ts(FETCH_FROM))} AND start_utc < {fmt(ts(T0))}")
+    ok("alerts_14d at T0 = starts in [FETCH_FROM, T0) counted directly", by_t[ts(T0)]["alerts_14d"] == n14,
+       f"{n14} alerts, window {ts(FETCH_FROM)} .. {ts(T0)}")
 
     def trace(label, t):  # the alerts a person needs to recompute the features of hour t
         print(label, "t =", t, {k: v for k, v in by_t[t].items() if k != "t_utc"})
@@ -221,7 +263,8 @@ def check():
     trace("by hand B (farthest from the last alert end):", max(rows, key=lambda r: r["hours_since_alert_end"])["t_utc"])
     inside = [r[0] for r in con.execute("SELECT t_utc FROM hours h WHERE EXISTS (SELECT 1 FROM kyiv_alerts a "
                                         "WHERE a.start_utc < h.t_utc AND a.end_utc > h.t_utc) ORDER BY 1").fetchall()]
-    for t in random.Random(20261010).sample(inside, 3):
+    rnd, week1 = random.Random(20261010), [t for t in inside if t < ts(T0) + timedelta(days=7)]  # one of the 3 in week 1
+    for t in rnd.sample(week1, 1) + rnd.sample([t for t in inside if t not in week1], 2):
         asof = arrow(con, ASOF["kyiv_alerts"].format(t=fmt(t)))
         c2 = connect()
         c2.register("kyiv_alerts", asof)
@@ -232,6 +275,27 @@ def check():
         known = sum(1 for x in alerts if x[0] < t)
         ok(f"ASOF t={t}", fa == by_t[t] and hidden is None and asof.num_rows == known,
            f"alert {a[0]} .. {a[1]} (end after t), ASOF end {hidden}, ASOF rows {asof.num_rows} of {len(alerts)}, features equal {fa == by_t[t]}")
+    qa = lambda sql: con.execute(sql).fetchall()
+    print("stats Kyiv months:", dict(qa(f"SELECT {month}, COUNT(*) FROM kyiv_alerts GROUP BY 1 ORDER BY 1")))
+    print("stats duration_min mean/median/max:", qa("SELECT ROUND(AVG(duration_min), 1), ROUND(MEDIAN(duration_min), 2), ROUND(MAX(duration_min), 1) FROM kyiv_alerts")[0],
+          "longest:", qa("SELECT alert_id, start_utc, end_utc FROM kyiv_alerts ORDER BY duration_min DESC LIMIT 1")[0])
+    print("stats max_level:", dict(qa("SELECT max_level, COUNT(*) FROM kyiv_alerts GROUP BY 1 ORDER BY 1")))
+    print("stats longer than 3 h, 6 h:", qa("SELECT COUNT(*) FILTER (WHERE duration_min > 180), COUNT(*) FILTER (WHERE duration_min > 360) FROM kyiv_alerts")[0])
+    print("stats pauses <= 5 min (alert_id, minutes, level before -> level):", qa("""SELECT alert_id, ROUND(gap_from_prev_min, 3), pl || ' -> ' || max_level
+        FROM (SELECT *, LAG(max_level) OVER (ORDER BY start_utc) AS pl FROM kyiv_alerts) WHERE gap_from_prev_min <= 5 ORDER BY alert_id"""))
+    posts = [(r, head(r["text"])) for r in load("VA_Kyiv")]  # posts that the rule takes for neither start nor end
+    in_alert = lambda r: any(s <= ts(r["published_at"]) <= (e or datetime.max) for s, e in alerts)
+    for label, prefixes, word in (("Увага! У Києві оголошено повітряну тривогу", ("Увага! У Києві оголошено повітряну тривогу",), ""),
+                                  ("У Києві лунає повітряна тривога", ("У Києві лунає повітряна тривога",), ""),
+                                  ("Сили ППО працюють / продовжують працювати, з 'відбій'", ("Сили ППО працюють", "Сили ППО продовжують працювати"), "відбій"),
+                                  ("У столиці працюють сили ППО, з 'відбій'", ("У столиці працюють сили ППО",), "відбій")):
+        sel = [r for r, h in posts if h.startswith(prefixes) and word in r["text"].lower()]
+        print(f"stats posts '{label}':", len(sel), "inside an alert:", sum(in_alert(r) for r in sel), "ids:", [r["post_id"] for r in sel] if word else "")
+    for r, h in posts:
+        if h.startswith("У столиці оголошено відбій"):
+            t = ts(r["published_at"])
+            print("stats extra end post:", r["post_id"], r["published_at"], "seconds after the previous alert end:",
+                  (t - max(e for s, e in alerts if e and e < t)).total_seconds())
     print("ALL OK" if not bad else f"FAILED: {bad}")
     sys.exit(1 if bad else 0)
 
