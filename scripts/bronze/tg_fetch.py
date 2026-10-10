@@ -1,6 +1,10 @@
 """Public Telegram channel -> raw JSONL via https://t.me/s/<channel> (stdlib only).
-Usage: python3 -I tg_fetch.py <channel> <out.jsonl> [since] [delay]
+Usage: python3 -I tg_fetch.py <channel> <out.jsonl> [since] [delay] [before stop_id]
   since  default 2026-04-23T21:00:00Z, delay default 1.5 s between requests.
+  before stop_id: range mode, to split one long backfill across processes: only posts with
+  stop_id < post_id < before go to out (a part file); a rerun resumes from the part's oldest post.
+       python3 -I tg_fetch.py merge <out.jsonl> <part.jsonl>...
+  appends the part posts missing from out.
 Run 1 walks back from the newest post to `since`, appending page by page.
 Later runs append only posts newer than the file, then finish an interrupted backfill.
 A post_id already in the file is never rewritten (its first version is kept). Rows are not sorted.
@@ -93,16 +97,30 @@ def write(rows):
             have[r["post_id"]] = r
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and sys.argv[1] == "merge":
+    out, have, new = sys.argv[2], {}, {}
+    for line in open(out, encoding="utf-8"):
+        have.setdefault(json.loads(line)["post_id"], 1)
+    for part in sys.argv[3:]:
+        for line in open(part, encoding="utf-8"):
+            r = json.loads(line)
+            if r["post_id"] not in have:
+                new.setdefault(r["post_id"], r)
+    write(new.values())
+    print(json.dumps({"out": out, "added": len(new), "rows": len(have)}))
+elif __name__ == "__main__":
     ch, out = sys.argv[1], sys.argv[2]
     since = sys.argv[3] if len(sys.argv) > 3 else "2026-04-23T21:00:00Z"
     delay = float(sys.argv[4]) if len(sys.argv) > 4 else 1.5
+    before, stop_id = (int(sys.argv[5]), int(sys.argv[6])) if len(sys.argv) > 6 else (None, 0)
     have = {}
     if os.path.exists(out):
         for line in open(out, encoding="utf-8"):
             r = json.loads(line)
             have.setdefault(r["post_id"], r)
-    if not have:  # first run: append page by page, an interruption leaves a contiguous newest part
+    if before:  # range mode: page by page from the part's oldest post, or from `before`
+        pages = walk(min(have, default=before), stop_id, write)
+    elif not have:  # first run: append page by page, an interruption leaves a contiguous newest part
         pages = walk(None, 0, write)
     else:  # newer posts are buffered and written together, so a crash cannot leave a hole
         buf, top = [], max(have)
