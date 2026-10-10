@@ -159,11 +159,14 @@ CLASS_EXAMPLES = [("kyiv_airdef", 75885, "missile_threat", None, None), ("AerisR
                   ("vitaliy_klitschko", 7775, "impact_damage", None, True), ("VA_Kyiv", 21514, "missile_threat", None, None)]
 # views: K with 2 decimals, M, plain number, null (channel, post_id)
 VIEW_EXAMPLES = [("GeneralStaffZSU", 37672), ("V_Zelenskiy_official", 18768), ("VA_Kyiv", 21675), ("GeneralStaffZSU", 42097)]
+# id gaps over 30 (PARSING 2 reads such a gap as a pagination failure). This one lies inside one page response (both posts carry
+# the same fetched_at in bronze), so it is a run of ids deleted in the channel: docs/data/silver/tg_posts.md, section Пастки
+EXPLAINED_GAPS = {("truexakyiv", 79219, 79250)}
 DAY = ("2026-10-09 00:00:00", "2026-10-10 00:00:00")
-EXPECT_DAY = {  # PARSING 7: posts, S1, S2, S3, S4, S5, KYIV
-    "war_monitor": (37, 0, 0, 0, 32, 0, 28), "kpszsu": (455, 0, 0, 0, 398, 0, 113), "AerisRimor": (105, 0, 0, 0, 50, 0, 1),
-    "StrategicaviationT": (116, 3, 1, 0, 5, 0, 0), "monitorwarr": (97, 0, 0, 0, 75, 0, 38),
-    "vanek_nikolaev": (1, 0, 0, 0, 0, 0, 0), "kyiv_airdef": (791, 0, 0, 0, 30, 0, 1)}
+EXPECT_DAY = {  # posts, S1, S2, S3, S4, S5, KYIV counted on the stored text (no reply quote, PARSING 0.1); PARSING 7 carries the same
+    "war_monitor": (37, 0, 0, 0, 30, 0, 28), "kpszsu": (455, 0, 0, 0, 382, 0, 104), "AerisRimor": (105, 0, 0, 0, 39, 0, 1),
+    "StrategicaviationT": (116, 3, 1, 0, 14, 0, 1), "monitorwarr": (97, 0, 0, 0, 61, 0, 35),
+    "vanek_nikolaev": (1, 0, 0, 0, 0, 0, 0), "kyiv_airdef": (791, 0, 0, 0, 17, 0, 1)}
 
 
 def views_float(v):  # independent of parse_views: float arithmetic
@@ -206,20 +209,30 @@ def check():
     by = {r[0]: r for r in con.execute("""SELECT channel, count(*), count(DISTINCT post_id), min(published_at),
         max(published_at), min(post_id), max(post_id) FROM tg_posts GROUP BY channel ORDER BY channel""").fetchall()}
 
+    # largest difference between neighbouring post_id of a channel (1 = no hole) and how many differences exceed 30
+    idgap = {r[0]: r[1:] for r in con.execute("""SELECT channel, max(d), count(*) FILTER (WHERE d > 30) FROM (
+        SELECT channel, post_id - lag(post_id) OVER (PARTITION BY channel ORDER BY post_id) AS d FROM tg_posts)
+        GROUP BY channel""").fetchall()}
+
     print("\n1. rows per channel against the bronze files (unique post_id read again with plain json)")
-    print(f"{'channel':22}{'rows':>8}{'bronze':>8}  {'first published_at':21}{'last published_at':21}{'min_id':>8}{'max_id':>8}  complete")
+    print(f"{'channel':22}{'rows':>8}{'bronze':>8}  {'first published_at':21}{'last published_at':21}{'min_id':>8}{'max_id':>8}"
+          f"{'max_gap':>9}{'gaps>30':>9}  complete")
     for ch in sorted(ROLES):
         if ch not in by:
             print(f"{ch:22}{'':>8}{len(raw.get(ch, {})):>8}  no rows (no bronze file yet)" if ch not in raw else f"{ch:22} empty")
             continue
         _, n, nu, lo, hi, a, b = by[ch]
-        print(f"{ch:22}{n:>8}{len(raw[ch]):>8}  {lo.strftime(TIME_FMT):21}{hi.strftime(TIME_FMT):21}{a:>8}{b:>8}  "
-              f"{'yes' if ch in done else 'no'}")
+        print(f"{ch:22}{n:>8}{len(raw[ch]):>8}  {lo.strftime(TIME_FMT):21}{hi.strftime(TIME_FMT):21}{a:>8}{b:>8}"
+              f"{str(idgap[ch][0]):>9}{idgap[ch][1]:>9}  {'yes' if ch in done else 'no'}")
         say(n == nu, f"{ch}: post_id unique in the table")
         say(n == len(raw[ch]) if ch in done else n <= len(raw[ch]),
             f"{ch}: rows {'=' if ch in done else '<='} unique post_id in bronze ({n} vs {len(raw[ch])})")
     total = con.execute("SELECT count(*), count(DISTINCT (channel, post_id)) FROM tg_posts").fetchone()
     say(total[0] == total[1] == sum(v[2] for v in by.values()), f"rows {total[0]} = sum over channels of unique post_id")
+    over = [tuple(r) for r in con.execute("""SELECT channel, prev_id, post_id FROM (SELECT channel, post_id,
+        lag(post_id) OVER (PARTITION BY channel ORDER BY post_id) AS prev_id FROM tg_posts)
+        WHERE post_id - prev_id > 30 ORDER BY channel, post_id""").fetchall()]
+    say(all(r in EXPLAINED_GAPS for r in over), f"id gaps over 30 (PARSING 2) are all explained: {over}")
     print(f"     bronze files now: {sum(len(d) for d in raw.values())} unique posts (more than the table only if a download went on)")
 
     print("\n   same values as bronze (published_at, text, edited, forwarded_from, url, views)")
@@ -261,7 +274,7 @@ def check():
     c, k, e = classify("AerisRimor", "Пролунали вибухи.")  # text of AerisRimor/89451 (PARSING 2) through the function
     say("explosion" in c and k, f"classify('AerisRimor', 'Пролунали вибухи.') = {c}, {k}, {e}")
 
-    print("\n3. signals on 2026-10-09 UTC: posts S1 S2 S3 S4 S5 KYIV (PARSING 7 in brackets)")
+    print("\n3. signals on 2026-10-09 UTC: posts S1 S2 S3 S4 S5 KYIV (expected in brackets, counted on text without reply quote)")
     cnt = {}
     for ch, text, sg in con.execute(f"SELECT channel, text, rx_signals FROM tg_posts WHERE published_at >= TIMESTAMP '{DAY[0]}' "
                                     f"AND published_at < TIMESTAMP '{DAY[1]}'").fetchall():
@@ -275,13 +288,10 @@ def check():
             print(f"PEND {ch}: no bronze file yet")
             continue
         got = tuple(cnt.get(ch, [0] * 7))
-        covered = by[ch][3].strftime("%Y-%m-%d %H:%M:%S") <= DAY[0] and by[ch][4].strftime("%Y-%m-%d %H:%M:%S") >= DAY[1]
-        gap = (got[0] - exp[0]) / exp[0] * 100
-        print(f"{'OK   ' if abs(gap) <= 2 or not covered else 'GAP  '}{ch:20} {'/'.join(map(str, got))} "
-              f"[{'/'.join(map(str, exp))}] posts {gap:+.1f}% | channel {'complete' if ch in done else 'incomplete'}, "
-              f"day {'in the file' if covered else 'NOT in the file yet'}")
-
-    print("     S4 and KYIV below PARSING 7 are explained in docs/data/silver/tg_posts.md, section Пастки (reply quotes)")
+        covered = by[ch][3].strftime("%Y-%m-%d %H:%M:%S") <= DAY[0] and (
+            by[ch][4].strftime("%Y-%m-%d %H:%M:%S") >= DAY[1] or ch in done)  # a complete channel reaches its newest post
+        say(got == exp and covered and ch in done, f"{ch:20} {'/'.join(map(str, got))} [{'/'.join(map(str, exp))}] | channel "
+            f"{'complete' if ch in done else 'incomplete'}, day {'in the file' if covered else 'NOT in the file yet'}")
 
     print("\n4. views: 6.83K is 6830, 1.2M is 1200000, 55 is 55, null stays null; raw -> table")
     say([parse_views(v) for v in ("6.83K", "1.2M", "55", None)] == [6830, 1200000, 55, None], "parse_views on the four forms")
