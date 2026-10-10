@@ -20,3 +20,6 @@
 | `calendar/dates.csv` (з PARSING.md розділ 5, без мережі, `scripts/bronze/calendar_dates.py`) | 2026-10-10T17:38:53Z | 100 | 2026-01-01 | 2026-12-25 |
 | `calendar/dates_added.csv` (кожен рядок підтверджено збереженою сторінкою Вікіпедії) | 2026-10-10T17:43:42Z | 9 | 2026-01-25 | 2026-11-11 |
 | `calendar/sources/` (сторінки Вікіпедії en, uk, ru через MediaWiki API) | 2026-10-10T17:38:53Z | 16 | 2026-10-10T17:38:56Z | 2026-10-10T17:41:08Z |
+| `weather/ecmwf_ifs_runs.csv` (Open-Meteo single runs ECMWF IFS, `scripts/bronze/wx_backfill.py`; 681 сирих JSON, прогін 2026-06-10T12:00 дав HTTP 400, він у `ecmwf_ifs_missing_runs.csv`) | 2026-10-10T17:37:24Z | 114408 | прогін 2026-04-23T00:00Z | прогін 2026-10-10T06:00Z |
+| `astro/kyiv_astro_hourly.csv` (формули, без мережі, `scripts/bronze/kyiv_astro.py`) | 2026-10-10T17:37:16Z | 4608 | 2026-04-23T00:00:00Z | 2026-10-31T23:00:00Z |
+| `astro/kyiv_astro_daily.csv` (те саме) | 2026-10-10T17:37:16Z | 192 | 2026-04-23 | 2026-10-31 |
