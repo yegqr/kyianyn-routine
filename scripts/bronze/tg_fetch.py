@@ -1,6 +1,6 @@
 """Public Telegram channel -> raw JSONL via https://t.me/s/<channel> (stdlib only).
 Usage: python3 -I tg_fetch.py <channel> <out.jsonl> [since] [delay] [before stop_id]
-  since  default 2026-04-23T21:00:00Z, delay default 1.5 s between requests.
+  since  default 2026-04-16T21:00:00Z (FETCH_FROM in src/airalerts/paths.py), delay default 1.5 s between requests.
   before stop_id: range mode, to split one long backfill across processes: only posts with
   stop_id < post_id < before go to out (a part file); a rerun resumes from the part's oldest post.
        python3 -I tg_fetch.py merge <out.jsonl> <part.jsonl>...
@@ -110,7 +110,7 @@ if __name__ == "__main__" and sys.argv[1] == "merge":
     print(json.dumps({"out": out, "added": len(new), "rows": len(have)}))
 elif __name__ == "__main__":
     ch, out = sys.argv[1], sys.argv[2]
-    since = sys.argv[3] if len(sys.argv) > 3 else "2026-04-23T21:00:00Z"
+    since = sys.argv[3] if len(sys.argv) > 3 else "2026-04-16T21:00:00Z"
     delay = float(sys.argv[4]) if len(sys.argv) > 4 else 1.5
     before, stop_id = (int(sys.argv[5]), int(sys.argv[6])) if len(sys.argv) > 6 else (None, 0)
     have = {}

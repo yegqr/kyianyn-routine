@@ -30,7 +30,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "data" / "bronze" / "calendar"
-FETCH_FROM = "2026-04-23T21:00:00Z"  # T0 minus 7 days, see src/airalerts/paths.py
+FETCH_FROM = "2026-04-23T21:00:00Z"  # T0 minus 7 days: political features look forward, so the 14-day FETCH_FROM of src/airalerts/paths.py is not needed here
 BASE = "http://en.kremlin.ru"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
