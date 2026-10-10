@@ -4,3 +4,4 @@
 
 | Джерело | Запуск UTC | Записів | Перший | Останній |
 |---|---|---|---|---|
+| `telegram/UkraineAlarmSignal.jsonl` (латка eTryvoga, `scripts/bronze/etryvoga_patch.py`; перший запуск 17:37:03Z) | 2026-10-10T18:15:50Z | 180 | 2026-10-10T07:58:27Z | 2026-10-10T11:50:44Z |
