@@ -17,3 +17,6 @@
 | `calendar/wiki/Eastern_Economic_Forum` | 2026-10-10T17:44:05Z | 1 | 2026-09-03T14:53:18Z | 2026-09-03T14:53:18Z |
 | `strikes_rf/ukwiki_list_2026/` (ревізії, `scripts/bronze/wiki_fetch.py`) | 2026-10-10T17:44:06Z | 101 | 2026-07-10T20:10:31Z | 2026-10-10T10:41:24Z |
 | president.gov.ua (`scripts/bronze/president_fetch.py`): HTTP 403, нічого не збережено | 2026-10-10T17:38:31Z | 0 | | |
+| `calendar/dates.csv` (з PARSING.md розділ 5, без мережі, `scripts/bronze/calendar_dates.py`) | 2026-10-10T17:38:53Z | 100 | 2026-01-01 | 2026-12-25 |
+| `calendar/dates_added.csv` (кожен рядок підтверджено збереженою сторінкою Вікіпедії) | 2026-10-10T17:43:42Z | 9 | 2026-01-25 | 2026-11-11 |
+| `calendar/sources/` (сторінки Вікіпедії en, uk, ru через MediaWiki API) | 2026-10-10T17:38:53Z | 16 | 2026-10-10T17:38:56Z | 2026-10-10T17:41:08Z |
