@@ -4,23 +4,29 @@ Docs: docs/data/silver/kyiv_threat_hourly.md. Input: data/silver/tg_posts.parque
 Label of hour h = 1 when missiles (ballistic, cruise, hypersonic) exploded over, were shot down over, fell as debris on
 or hit Kyiv city in [h, h+1h). Drones alone, the Kyiv region outside the city and a warning alone do not count.
 
-What is here (S3b adds the silver build, ASOF, features and labels on top of it):
+Classifier and hour rule (S3a):
 - label_end(), label_hours(): the data end of the label and the hours that may be labelled;
 - build_requests(hours): one Jev request per hour (several for a busy hour), state = prefiltered posts of [h-1h, h+1h);
 - post_probabilities(hours): probabilities per post of hour h (strike, threat, drone, ballistic), from the Jev cache or Jev;
-- hour_labels(rows): the hour rule, post probabilities to four booleans;
-- regex_rules(): rules A and B of PARSING 2 per hour (reference);
-- commands: classify, check, pilot, stats, calibrate, label_end.
+- hour_labels(rows, prev_rows): the hour rule, post probabilities to four booleans;
+- regex_rules(): rules A and B of PARSING 2 per hour (reference).
+Silver (S3b), contract of docs/ARCHITECTURE.md:
+- main() / build(): kyiv_threat_posts and kyiv_threat_hourly from the Jev cache; makes no Jev call, a request that is not
+  cached stops the build with the missing hours;
+- ASOF, features(con, t_table), labels(con, t_table, horizon_h=3).
+Commands (no command = build): build, report, selftest, classify, check, pilot, stats, calibrate, label_end.
 """
 import argparse
 import bisect
 import datetime as dt
 import functools
 import json
+import os
 import random
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .. import telegram
@@ -53,12 +59,17 @@ STRIKE_P = 0.5              # post-level threshold used by the checks (the hour 
 #   one      a single post with p >= one
 #   official a post of VA_Kyiv or vitaliy_klitschko with p >= official
 #   two      original (not repost) posts of at least 2 different channels, each with p >= two
-# fresh (strike only): only posts that have a threat post (p_threat >= THREAT_GATE, any channel) in the FRESH_MINUTES up to them
-# (this and the previous hour) count. It keeps out reports of damage hours after an attack and hours with drones only.
+# fresh (strike only): only posts that follow a missile alarm count: in the FRESH_MINUTES up to the post (this and the previous
+# hour, the post itself included) posts with p_threat >= THREAT_GATE came from at least THREAT_CHANNELS different channels, or the
+# post is both an alarm and a strike report (p_threat >= THREAT_GATE and p_strike >= SELF_STRIKE). A gate of p_threat 0.5 from any
+# single post let through negated and general posts ("Бандеролі не спостерігаються" 0.52, a comment on Zircon flight times 0.76,
+# an overnight recap 0.67), so damage reports and drone hours became strike hours.
 # originals (strike only): reposts (forwarded_from set) do not count; KMVA reposts recaps of the president, DSNS and DTEK.
-THREAT_GATE = 0.5
+THREAT_GATE = 0.8
+THREAT_CHANNELS = 3
+SELF_STRIKE = 0.7
 FRESH_MINUTES = 90
-RULE = {"strike": dict(one=0.7, official=0.5, two=0.5, fresh=True, originals=True),
+RULE = {"strike": dict(one=0.7, fresh=True, originals=True),
         "threat": dict(one=0.8, official=0.5, two=0.5),
         "drone": dict(one=0.8, official=0.5, two=0.5),
         "ballistic": dict(one=0.8, official=0.5, two=0.5)}
@@ -77,6 +88,19 @@ CANDIDATES = {"any>=0.5": dict(one=0.5),
               "fresh, originals and (any>=0.7 or official>=0.5 or 2ch>=0.5)": dict(one=0.7, official=0.5, two=0.5, fresh=True, originals=True)}
 EXAMPLE_HOURS = ("2026-10-07T00:00:00Z", "2026-10-07T01:00:00Z", "2026-10-10T11:00:00Z", "2026-06-15T00:00:00Z", "2026-08-16T06:00:00Z",
                  "2026-05-14T10:00:00Z", "2026-05-24T09:00:00Z", "2026-09-15T13:00:00Z", "2026-09-28T17:00:00Z", "2026-10-07T14:00:00Z")
+# Hours read by hand (the posts and their texts), not a ground truth. Strike: 6 from the S3a pilot, 4 from the verification of S3b.
+# No strike: 18 from the S3a pilot; 6 that the verification of S3b read as drones only or damage reports after the attack; 10 threat
+# hours without a strike that the verification found right; 3 read in the fix of S3b (an overnight summary, a crater found
+# after the attack, a drone that fell).
+READ_TRUE = ("2026-06-02T01", "2026-06-15T00", "2026-08-16T06", "2026-10-07T00", "2026-10-07T01", "2026-10-10T11",
+             "2026-05-24T02", "2026-06-27T23", "2026-09-08T02", "2026-09-16T23")
+READ_FALSE = ("2026-05-14T10", "2026-05-24T09", "2026-06-02T09", "2026-08-19T09", "2026-08-20T09", "2026-05-24T07", "2026-06-10T09",
+              "2026-07-08T03", "2026-08-08T07", "2026-08-18T16", "2026-09-01T07", "2026-09-01T08", "2026-09-09T07", "2026-09-15T13",
+              "2026-09-28T04", "2026-09-28T17", "2026-10-01T19", "2026-10-04T14",
+              "2026-09-22T14", "2026-09-30T19", "2026-05-24T08", "2026-08-20T05", "2026-10-02T14", "2026-10-03T19",
+              "2026-04-17T16", "2026-04-21T08", "2026-05-06T23", "2026-05-07T19", "2026-05-13T17", "2026-06-30T11", "2026-08-11T16",
+              "2026-08-15T22", "2026-09-10T19", "2026-09-20T07",
+              "2026-06-02T03", "2026-07-13T22", "2026-09-25T01")
 
 # ---------------------------------------------------------------- questions (English, post texts stay as they are)
 _LEAD = ('Post "{pid}" (a post without a place name from a Kyiv channel is about the city of Kyiv; '
@@ -275,14 +299,17 @@ def hour_flag(rows, kind, one=None, two=None, official=None):
 
 
 def fresh_rows(rows, prev_rows=()):
-    """Posts of the hour that have a threat post (p_threat >= THREAT_GATE, any channel) in the FRESH_MINUTES up to them, looking
-    at this and the previous hour. A report of damage hours after the attack has none."""
-    times = sorted(r["published_at"] for r in list(prev_rows) + list(rows) if r["p_threat"] >= THREAT_GATE)
+    """Posts of the hour that follow a missile alarm: in the FRESH_MINUTES up to the post (looking at this and the previous hour,
+    the post itself included) posts with p_threat >= THREAT_GATE came from at least THREAT_CHANNELS different channels, or the post
+    is itself an alarm and a strike report (p_threat >= THREAT_GATE and p_strike >= SELF_STRIKE). A report of damage hours after
+    the attack, a general warning of one channel and an hour of drones have no such alarm."""
+    alarms = sorted((r["published_at"], r["channel"]) for r in list(prev_rows) + list(rows) if r["p_threat"] >= THREAT_GATE)
+    times = [t for t, _ in alarms]
     span = dt.timedelta(minutes=FRESH_MINUTES)
     out = []
     for r in rows:
-        i = bisect.bisect_right(times, r["published_at"])
-        if i and times[i - 1] >= r["published_at"] - span:
+        lo, hi = bisect.bisect_left(times, r["published_at"] - span), bisect.bisect_right(times, r["published_at"])
+        if len({c for _, c in alarms[lo:hi]}) >= THREAT_CHANNELS or (r["p_threat"] >= THREAT_GATE and r["p_strike"] >= SELF_STRIKE):
             out.append(r)
     return out
 
@@ -515,7 +542,7 @@ def pilot_hours(seed=20261010):
 
 
 def _txt(r, n=150):
-    return r["text"].replace("\n", " / ")[:n]
+    return r["text"].replace("\n", " / ").replace("\u2014", "-").replace("\u00b7", ".")[:n]  # no em dash or middle dot in any output file
 
 
 def pilot(workers=MAX_WORKERS, log=print):
@@ -590,10 +617,364 @@ def pilot(workers=MAX_WORKERS, log=print):
     return table
 
 
-def main(argv=None):
+# ---------------------------------------------------------------- silver build, ASOF, features and labels (S3b)
+HOURLY = SILVER / "kyiv_threat_hourly.parquet"
+POSTS = SILVER / "kyiv_threat_posts.parquet"
+BUILD_CHUNK_HOURS = 48      # hours read from the Jev cache at a time (memory)
+SINCE_CAP_H = 336           # hours_since_strike stops here: 14 days, the longest window of the features
+FEATURE_COLUMNS = ("threat_prev_1h", "threat_hours_6h", "threat_hours_24h", "ballistic_hours_3h", "ballistic_hours_6h",
+                   "ballistic_hours_24h", "drone_threat_prev_1h", "strikes_7d", "strikes_14d", "hours_since_strike")
+POSTS_SCHEMA = pa.schema([
+    ("channel", pa.string()), ("post_id", pa.int64()), ("published_at", pa.timestamp("us")), ("hour_utc", pa.timestamp("us")),
+    ("p_strike", pa.float64()), ("p_threat", pa.float64()), ("p_drone", pa.float64()), ("p_ballistic", pa.float64()),
+    ("jev_model", pa.string()), ("prompt_version", pa.string()), ("available_at", pa.timestamp("us"))])
+HOURLY_SCHEMA = pa.schema([
+    ("hour_utc", pa.timestamp("us")), ("n_posts", pa.int64()), ("n_posts_jev", pa.int64()), ("missile_strike", pa.bool_()),
+    ("missile_threat", pa.bool_()), ("drone_threat", pa.bool_()), ("ballistic", pa.bool_()), ("p_strike_max", pa.float64()),
+    ("first_strike_at", pa.timestamp("us")), ("evidence", pa.list_(pa.string())), ("rx_rule_a", pa.bool_()),
+    ("rx_rule_b", pa.bool_()), ("jev_model", pa.string()), ("prompt_version", pa.string()), ("available_at", pa.timestamp("us"))])
+
+# What was known before {t}. The row of hour h is known at h + 1h: all its posts were published before that instant. So the
+# test is `available_at <= {t}`; the generic `< {t}` would hide the hour that ends exactly at t, which features() reads.
+ASOF = {"kyiv_threat_posts": "SELECT * FROM kyiv_threat_posts WHERE available_at <= {t}",
+        "kyiv_threat_hourly": "SELECT * FROM kyiv_threat_hourly WHERE available_at <= {t}"}
+
+# Windows are whole hours before floor_hour(t): [tf - N h, tf). For t on the hour that is [t - N h, t). Only rows with
+# available_at <= t (h + 1h <= t) are joined; the longest window is 336 h.
+SQL_FEATURES = """
+WITH h AS (SELECT DISTINCT t_utc, CAST(t_utc AS TIMESTAMP) AS t FROM {t_table}),
+j AS (SELECT h.t_utc, h.t, date_trunc('hour', h.t) AS tf, k.hour_utc AS hr, k.missile_strike AS s, k.missile_threat AS m,
+             k.drone_threat AS d, k.ballistic AS b
+      FROM h LEFT JOIN kyiv_threat_hourly k
+        ON k.available_at <= h.t AND k.hour_utc >= date_trunc('hour', h.t) - INTERVAL 336 HOUR)
+SELECT t_utc,
+  COALESCE(bool_or(m) FILTER (WHERE hr = tf - INTERVAL 1 HOUR), FALSE) AS threat_prev_1h,
+  COUNT(*) FILTER (WHERE m AND hr >= tf - INTERVAL 6 HOUR) AS threat_hours_6h,
+  COUNT(*) FILTER (WHERE m AND hr >= tf - INTERVAL 24 HOUR) AS threat_hours_24h,
+  COUNT(*) FILTER (WHERE b AND hr >= tf - INTERVAL 3 HOUR) AS ballistic_hours_3h,
+  COUNT(*) FILTER (WHERE b AND hr >= tf - INTERVAL 6 HOUR) AS ballistic_hours_6h,
+  COUNT(*) FILTER (WHERE b AND hr >= tf - INTERVAL 24 HOUR) AS ballistic_hours_24h,
+  COALESCE(bool_or(d) FILTER (WHERE hr = tf - INTERVAL 1 HOUR), FALSE) AS drone_threat_prev_1h,
+  COUNT(*) FILTER (WHERE s AND hr >= tf - INTERVAL 168 HOUR) AS strikes_7d,
+  COUNT(*) FILTER (WHERE s) AS strikes_14d,
+  LEAST(CAST(336 AS DOUBLE), COALESCE(date_diff('microsecond', MAX(hr) FILTER (WHERE s) + INTERVAL 1 HOUR, t) / 3600000000.0,
+        CAST(336 AS DOUBLE))) AS hours_since_strike
+FROM j GROUP BY t_utc, t, tf ORDER BY t_utc"""
+
+
+def _arrow(con, sql):
+    r = con.execute(sql)
+    return (r.to_arrow_table if hasattr(r, "to_arrow_table") else r.fetch_arrow_table)()
+
+
+def _sql_ts(t):
+    return f"TIMESTAMP '{t:%Y-%m-%d %H:%M:%S}'"
+
+
+def _con():
+    """DuckDB with a view over each of the two silver tables."""
+    con = connect()
+    for name, path in (("kyiv_threat_hourly", HOURLY), ("kyiv_threat_posts", POSTS)):
+        con.execute(f"CREATE OR REPLACE VIEW {name} AS SELECT * FROM read_parquet('{path}')")
+    return con
+
+
+def _label_end_meta():
+    v = pq.read_metadata(HOURLY).metadata.get(b"label_end")
+    if not v:
+        raise ValueError(f"{HOURLY} has no label_end in its metadata: rebuild it")
+    return v.decode()
+
+
+def strike_evidence(rows, prev_rows=()):
+    """Posts that make an hour a strike hour: they pass the filters of RULE["strike"] (fresh, originals) and have
+    p_strike >= STRIKE_P, in time order. Use it for an hour whose missile_strike is true."""
+    rule = RULE["strike"]
+    use = fresh_rows(rows, prev_rows) if rule.get("fresh") else rows
+    if rule.get("originals"):
+        use = [r for r in use if r["is_original"]]
+    return sorted((r for r in use if r["p_strike"] >= STRIKE_P), key=lambda r: (r["published_at"], r["channel"], r["post_id"]))
+
+
+class _Miss(Exception):
+    """A Jev request that is not in the cache."""
+
+
+def _no_api(body, timeout=120):
+    raise _Miss
+
+
+def cached_rows(hours):
+    """post_probabilities(hours) that can only read the Jev cache: while it runs the API function of jev.py is replaced by one
+    that raises, so no call can be made. Returns (rows, []) or ([], the hours that have a request missing from the cache)."""
+    from .. import jev
+    real, jev._post = jev._post, _no_api
+    try:
+        try:
+            return post_probabilities(hours), []
+        except _Miss:
+            pass
+        missing = []
+        for r in build_requests(hours):
+            try:
+                jev.ask(r["state"], r["questions"], TABLE)
+            except _Miss:
+                missing.append(r["hour"])
+        return [], sorted(set(missing))
+    finally:
+        jev._post = real
+
+
+def _post_counts(hours):
+    """Posts of the 7 channels per hour in tg_posts, any text (before the prefilter)."""
+    t = pq.read_table(SILVER / "tg_posts.parquet", filters=[("channel", "in", list(CHANNELS))], columns=["published_at"])
+    c = Counter(floor_hour(x) for x in t.column("published_at").to_pylist())
+    return [c.get(h, 0) for h in hours]
+
+
+def build(log=print):
+    """Silver kyiv_threat_posts and kyiv_threat_hourly for every hour from FETCH_FROM to the last labelled hour, from the cached
+    Jev answers. It makes no Jev call; a request that is not cached stops it with the missing hours and nothing is written."""
+    hours = label_hours()
+    rows, missing = [], []
+    for i in range(0, len(hours), BUILD_CHUNK_HOURS):
+        part, miss = cached_rows(hours[i:i + BUILD_CHUNK_HOURS])
+        rows += part
+        missing += miss
+    if missing:
+        raise SystemExit(f"blocked: {len(missing)} hours have a Jev request that is not in the cache: " + ", ".join(iso(h) for h in missing))
+    rows.sort(key=lambda r: (r["published_at"], r["channel"], r["post_id"]))
+    log(f"label_end {label_end()}; {len(hours)} hours; answers of {len(rows)} posts read from the Jev cache")
+    posts = [{"channel": r["channel"], "post_id": r["post_id"], "published_at": r["published_at"], "hour_utc": r["hour"],
+              "p_strike": r["p_strike"], "p_threat": r["p_threat"], "p_drone": r["p_drone"], "p_ballistic": r["p_ballistic"],
+              "jev_model": r["jev_model"], "prompt_version": r["prompt_version"], "available_at": r["hour"] + HOUR} for r in rows]
+    if len({(p["channel"], p["post_id"]) for p in posts}) != len(posts):
+        raise SystemExit("duplicate posts in kyiv_threat_posts")
+    expect = sum(len(_by_hour().get(h, [])) for h in hours)
+    if len(posts) != expect:
+        raise SystemExit(f"{len(posts)} post rows but {expect} prefiltered posts in the hours")
+    by_h = defaultdict(list)
+    for r in rows:
+        by_h[r["hour"]].append(r)
+    rules, n_all = regex_rules(), dict(zip(hours, _post_counts(hours)))
+    hourly = []
+    for h in hours:
+        rs, prev = by_h.get(h, []), by_h.get(h - HOUR, [])
+        lab = hour_labels(rs, prev)
+        ev = strike_evidence(rs, prev) if lab["missile_strike"] else []
+        rx = rules.get(h, {})
+        hourly.append({"hour_utc": h, "n_posts": n_all[h], "n_posts_jev": len(rs), **lab,
+                       "p_strike_max": max((r["p_strike"] for r in rs), default=None),
+                       "first_strike_at": ev[0]["published_at"] if ev else None,
+                       "evidence": [f'{r["channel"]}/{r["post_id"]}' for r in ev],
+                       "rx_rule_a": bool(rx.get("A")), "rx_rule_b": bool(rx.get("B")),
+                       "jev_model": MODEL, "prompt_version": PROMPT_VERSION, "available_at": h + HOUR})
+    meta = {"label_end": label_end(), "jev_model": MODEL, "prompt_version": PROMPT_VERSION}
+    for path, schema, data in ((POSTS, POSTS_SCHEMA, posts), (HOURLY, HOURLY_SCHEMA, hourly)):
+        tmp = path.with_suffix(".tmp")
+        pq.write_table(pa.Table.from_pylist(data, schema=schema).replace_schema_metadata(meta), tmp, compression="zstd")
+        os.replace(tmp, path)
+    log({"kyiv_threat_posts rows": len(posts), "kyiv_threat_hourly rows": len(hourly), "first_hour": iso(hours[0]),
+         "last_hour": iso(hours[-1]), "label_end": label_end(), "strike_hours": sum(r["missile_strike"] for r in hourly),
+         "threat_hours": sum(r["missile_threat"] for r in hourly)})
+
+
+def features(con, t_table):
+    """Strike and threat features of Kyiv city for every t_utc of t_table, from the hours h with h + 1h <= t_utc.
+    Columns: FEATURE_COLUMNS, see docs/data/silver/kyiv_threat_hourly.md, "Ознаки для gold". t_utc must not be after the
+    last labelled hour + 1h (= floor_hour(label_end)): later hours are not in the table, the features would silently ignore them."""
+    limit = floor_hour(parse_utc(_label_end_meta()))
+    last = con.execute(f"SELECT MAX(CAST(t_utc AS TIMESTAMP)) FROM {t_table}").fetchone()[0]
+    if last is not None and last > limit:
+        raise ValueError(f"t_utc {last} is after the hour after the last labelled hour {iso(limit)} (label_end {_label_end_meta()})")
+    return _arrow(con, SQL_FEATURES.format(t_table=t_table))
+
+
+def labels(con, t_table, horizon_h=3):
+    """y_strike_<horizon_h>h for every t_utc of t_table (on the hour): true when any hour of [t, t + horizon_h h) has
+    missile_strike. Null when t + horizon_h h is after label_end (or t is before the first hour of the table)."""
+    n, end, bad = int(horizon_h), parse_utc(_label_end_meta()), con.execute(
+        f"SELECT COUNT(*) FROM {t_table} WHERE date_trunc('hour', CAST(t_utc AS TIMESTAMP)) <> CAST(t_utc AS TIMESTAMP)").fetchone()[0]
+    if bad:
+        raise ValueError(f"{bad} t_utc of {t_table} are not on the hour")
+    return _arrow(con, f"""
+WITH h AS (SELECT DISTINCT t_utc, CAST(t_utc AS TIMESTAMP) AS t FROM {t_table})
+SELECT h.t_utc,
+  CASE WHEN h.t + INTERVAL {n} HOUR > TIMESTAMP '{end:%Y-%m-%d %H:%M:%S}' OR h.t < (SELECT MIN(hour_utc) FROM kyiv_threat_hourly)
+       THEN NULL ELSE COALESCE(bool_or(k.missile_strike), FALSE) END AS y_strike_{n}h
+FROM h LEFT JOIN kyiv_threat_hourly k ON k.hour_utc >= h.t AND k.hour_utc < h.t + INTERVAL {n} HOUR
+GROUP BY h.t_utc, h.t ORDER BY h.t_utc""")
+
+
+def reference(flags, t):
+    """The features of t by plain loops, for the self-test. flags: {hour: row of kyiv_threat_hourly}; t a naive datetime."""
+    tf = floor_hour(t)
+
+    def count(col, k):
+        return sum(1 for i in range(1, k + 1) if flags.get(tf - i * HOUR, {}).get(col))
+
+    since = float(SINCE_CAP_H)
+    for i in range(1, SINCE_CAP_H + 1):
+        if flags.get(tf - i * HOUR, {}).get("missile_strike"):
+            since = min(since, (t - tf).total_seconds() / 3600 + i - 1)
+            break
+    prev = flags.get(tf - HOUR, {})
+    return {"threat_prev_1h": bool(prev.get("missile_threat")), "threat_hours_6h": count("missile_threat", 6),
+            "threat_hours_24h": count("missile_threat", 24), "ballistic_hours_3h": count("ballistic", 3),
+            "ballistic_hours_6h": count("ballistic", 6), "ballistic_hours_24h": count("ballistic", 24),
+            "drone_threat_prev_1h": bool(prev.get("drone_threat")), "strikes_7d": count("missile_strike", 168),
+            "strikes_14d": count("missile_strike", 336), "hours_since_strike": since}
+
+
+def selftest(log=print):
+    """Structure of the two tables; features() and labels() on every hour from T0 to the last usable t against plain loops;
+    the error after the last usable t; ASOF on 3 random t. Reads the two Parquet files only (no Jev, no API)."""
+    bad = []
+
+    def ok(name, cond, info=""):
+        log(f"{'ok  ' if cond else 'FAIL'} {name}" + (f": {info}" if info else ""))
+        if not cond:
+            bad.append(name)
+
+    con = _con()
+    end = parse_utc(_label_end_meta())
+    last_t = floor_hour(end)  # the last usable t: the end of the last labelled hour
+    rows = _arrow(con, "SELECT * FROM kyiv_threat_hourly ORDER BY hour_utc").to_pylist()
+    posts = _arrow(con, "SELECT * FROM kyiv_threat_posts ORDER BY published_at, channel, post_id").to_pylist()
+    flags = {r["hour_utc"]: r for r in rows}
+    first, last = rows[0]["hour_utc"], rows[-1]["hour_utc"]
+    ok("label_end in the Parquet metadata is label_end() of bronze", iso(end) == label_end(), iso(end))
+    ok("one row per hour, no gaps", len(rows) == int((last - first) / HOUR) + 1 and all(b["hour_utc"] - a["hour_utc"] == HOUR
+       for a, b in zip(rows, rows[1:])), f"{len(rows)} rows from {iso(first)} to {iso(last)}")
+    ok("first hour is FETCH_FROM, last hour ends at or before label_end", iso(first) == FETCH_FROM and last + HOUR <= end < last + 2 * HOUR)
+    ok("available_at = hour_utc + 1 h; post hour = floor(published_at)", all(r["available_at"] == r["hour_utc"] + HOUR for r in rows)
+       and all(p["available_at"] == p["hour_utc"] + HOUR and p["hour_utc"] == floor_hour(p["published_at"]) for p in posts))
+    per_hour = Counter(p["hour_utc"] for p in posts)
+    ok("n_posts_jev = posts of the hour in kyiv_threat_posts", all(r["n_posts_jev"] == per_hour.get(r["hour_utc"], 0) for r in rows),
+       f"{len(posts)} posts")
+    ok("posts unique by (channel, post_id)", len({(p["channel"], p["post_id"]) for p in posts}) == len(posts))
+    ok("jev_model and prompt_version", all(x["jev_model"] == MODEL and x["prompt_version"] == PROMPT_VERSION for x in rows + posts),
+       f"{MODEL} {PROMPT_VERSION}")
+    ok("evidence and first_strike_at exist exactly for strike hours, first_strike_at inside the hour",
+       all(bool(r["evidence"]) == r["missile_strike"] == (r["first_strike_at"] is not None) and
+           (r["first_strike_at"] is None or r["hour_utc"] <= r["first_strike_at"] < r["hour_utc"] + HOUR) for r in rows))
+    known = ("2026-10-07T00:00:00Z", "2026-10-07T01:00:00Z", "2026-10-10T11:00:00Z")
+    ok("known strike hours are missile_strike", all(flags[parse_utc(s)]["missile_strike"] for s in known), ", ".join(known))
+    for s in known:
+        r = flags[parse_utc(s)]
+        log(f"     {s} first_strike_at {r['first_strike_at']} evidence {len(r['evidence'])} posts, first {r['evidence'][:2]}")
+    ok("hand-read strike hours are missile_strike", all(flags[parse_utc(f"{x}:00:00Z")]["missile_strike"] for x in READ_TRUE),
+       f"{len(READ_TRUE)} hours")
+    ok("hand-read hours without a strike are not missile_strike", not any(flags[parse_utc(f"{x}:00:00Z")]["missile_strike"] for x in READ_FALSE),
+       f"{len(READ_FALSE)} hours")
+    ts = [parse_utc(T0) + i * HOUR for i in range(int((last_t - parse_utc(T0)) / HOUR) + 1)]
+    con.execute(f"CREATE OR REPLACE TEMP TABLE hours AS SELECT t_utc FROM generate_series({_sql_ts(ts[0])}, {_sql_ts(ts[-1])}, "
+                "INTERVAL 1 HOUR) AS g(t_utc)")
+    ft, lt = features(con, "hours"), labels(con, "hours")
+    feats, labs = ft.to_pylist(), lt.to_pylist()
+    ok("features: t_utc first, columns as documented, one row per t", ft.column_names == ["t_utc", *FEATURE_COLUMNS]
+       and [r["t_utc"] for r in feats] == ts, f"{ft.num_rows} rows, t from {iso(ts[0])} to {iso(ts[-1])}")
+    nulls = {c: ft.column(c).null_count for c in ft.column_names if ft.column(c).null_count}
+    ok("features: no nulls", not nulls, str(nulls or "none"))
+    diff = [r["t_utc"] for r in feats if any(abs(float(r[k]) - float(v)) > 1e-9 for k, v in reference(flags, r["t_utc"]).items())]
+    ok("features equal the plain loops on every t", not diff, f"{len(feats)} t, {len(diff)} differ {diff[:3]}")
+    want = [None if t + 3 * HOUR > end else any(flags[t + i * HOUR]["missile_strike"] for i in range(3)) for t in ts]
+    got = [r["y_strike_3h"] for r in labs]
+    ok("labels: t_utc first, y_strike_3h equals the plain loops", lt.column_names == ["t_utc", "y_strike_3h"] and got == want
+       and [r["t_utc"] for r in labs] == ts)
+    null_t = [r["t_utc"] for r in labs if r["y_strike_3h"] is None]
+    ok("labels: null only when t + 3 h is after label_end", null_t == [t for t in ts if t + 3 * HOUR > end],
+       f"{len(null_t)} null: " + ", ".join(iso(t) for t in null_t))
+    vals = [g for g in got if g is not None]
+    log(f"base rate of y_strike_3h = {sum(vals) / len(vals):.4f} ({sum(vals)} of {len(vals)} t with a label; {len(ts)} t in all)")
+    con.execute(f"CREATE OR REPLACE TEMP TABLE late AS SELECT {_sql_ts(last_t + HOUR)} AS t_utc")
+    try:
+        features(con, "late")
+        raised = False
+    except ValueError as e:
+        raised = True
+        log(f"     {e}")
+    ok(f"features() raises ValueError for t = {iso(last_t + HOUR)}", raised)
+    by_t = {r["t_utc"]: r for r in feats}
+    for t in sorted(random.Random(20261010).sample(ts, 3)):
+        h_asof = _arrow(con, ASOF["kyiv_threat_hourly"].format(t=_sql_ts(t)))
+        p_asof = _arrow(con, ASOF["kyiv_threat_posts"].format(t=_sql_ts(t)))
+        c2 = connect()
+        c2.register("kyiv_threat_hourly", h_asof)
+        c2.execute(f"CREATE TEMP TABLE one AS SELECT {_sql_ts(t)} AS t_utc")
+        fa = features(c2, "one").to_pylist()[0]
+        known_rows = sum(1 for r in rows if r["available_at"] <= t)
+        known_posts = sum(1 for p in posts if p["available_at"] <= t)
+        ok(f"ASOF t={iso(t)}", fa == by_t[t] and h_asof.num_rows == known_rows < len(rows) and p_asof.num_rows == known_posts < len(posts),
+           f"features equal {fa == by_t[t]}; hourly rows {h_asof.num_rows} of {len(rows)}, posts {p_asof.num_rows} of {len(posts)}")
+    log("ALL OK" if not bad else f"FAIL: {bad}")
+    return not bad
+
+
+def report(out, log=print):
+    """Confusion tables of missile_strike against rules A and B, monthly counts and the 30 largest disagreements with the post
+    texts (written to `out`): 15 hours with a strike label and neither A nor B (most evidence posts first) and 15 hours with A or B
+    and no strike label (most rx_evidence posts first); fewer of one kind give room to the other."""
+    con = _con()
+    log(f"label_end {_label_end_meta()}")
+    for scope, cond in (("all hours", "TRUE"), (f"hours from T0 {T0}", f"hour_utc >= {_sql_ts(parse_utc(T0))}")):
+        n = con.execute(f"SELECT COUNT(*) FROM kyiv_threat_hourly WHERE {cond}").fetchone()[0]
+        log(f"confusion of missile_strike with the regex rules, {scope}, {n} hours; cells: both | strike only | rule only | neither")
+        for name, expr in (("rx_rule_a", "rx_rule_a"), ("rx_rule_b", "rx_rule_b"), ("A or B", "(rx_rule_a OR rx_rule_b)")):
+            c = {(s, x): k for s, x, k in con.execute(
+                f"SELECT missile_strike, {expr}, COUNT(*) FROM kyiv_threat_hourly WHERE {cond} GROUP BY 1, 2").fetchall()}
+            log(f"  {name}: {c.get((True, True), 0)} | {c.get((True, False), 0)} | {c.get((False, True), 0)} | {c.get((False, False), 0)}")
+    log("monthly counts of hours (UTC month): month | hours | missile_strike | missile_threat | drone_threat | ballistic")
+    total = [0] * 5
+    for m, *v in con.execute(
+            "SELECT strftime(hour_utc, '%Y-%m'), COUNT(*), COUNT(*) FILTER (WHERE missile_strike), COUNT(*) FILTER (WHERE missile_threat), "
+            "COUNT(*) FILTER (WHERE drone_threat), COUNT(*) FILTER (WHERE ballistic) FROM kyiv_threat_hourly GROUP BY 1 ORDER BY 1").fetchall():
+        log(f"  {m} | " + " | ".join(str(x) for x in v))
+        total = [a + b for a, b in zip(total, v)]
+    log("  all | " + " | ".join(str(x) for x in total))
+    hourly = _arrow(con, "SELECT * FROM kyiv_threat_hourly ORDER BY hour_utc").to_pylist()
+    probs = defaultdict(list)
+    for p in _arrow(con, "SELECT * FROM kyiv_threat_posts ORDER BY published_at, channel, post_id").to_pylist():
+        probs[p["hour_utc"]].append(p)
+    texts, rules = {(p["channel"], p["post_id"]): p for ps in _by_hour().values() for p in ps}, regex_rules()
+    jev_only = sorted((r for r in hourly if r["missile_strike"] and not (r["rx_rule_a"] or r["rx_rule_b"])),
+                      key=lambda r: (-len(r["evidence"]), -r["p_strike_max"], r["hour_utc"]))
+    rx_only = sorted((r for r in hourly if not r["missile_strike"] and (r["rx_rule_a"] or r["rx_rule_b"])),
+                     key=lambda r: (-rules[r["hour_utc"]]["n_ev"], r["p_strike_max"] if r["p_strike_max"] is not None else 0, r["hour_utc"]))
+    k_rx = min(len(rx_only), max(15, 30 - len(jev_only)))
+    k_jev = min(len(jev_only), 30 - k_rx)
+    lines = [f"{len(jev_only)} hours with missile_strike and neither A nor B; {len(rx_only)} hours with A or B and no missile_strike. "
+             f"Below: the {k_jev} largest of the first kind (by number of evidence posts) and the {k_rx} largest of the second "
+             "(by number of rx_evidence posts). s strike, t threat, d drone, b ballistic; fwd repost; EV rx_evidence."]
+    for kind, picks in (("jev_only", jev_only[:k_jev]), ("rx_only", rx_only[:k_rx])):
+        for r in picks:
+            h = r["hour_utc"]
+            ps = probs.get(h, [])
+            lines.append(f"== {iso(h)} {kind} A={r['rx_rule_a']} B={r['rx_rule_b']} rx_evidence_posts={rules[h]['n_ev']} "
+                         f"jev_evidence_posts={len(r['evidence'])} p_strike_max={r['p_strike_max']} posts_to_jev={len(ps)} "
+                         f"missile_threat={r['missile_threat']} drone_threat={r['drone_threat']} ballistic={r['ballistic']}")
+            pool = [p for p in ps if f'{p["channel"]}/{p["post_id"]}' in r["evidence"]] if kind == "jev_only" else \
+                   [p for p in ps if texts[(p["channel"], p["post_id"])]["rx_evidence"]]
+            for p in sorted(sorted(pool, key=lambda p: -p["p_strike"])[:6], key=lambda p: p["published_at"]):
+                src = texts[(p["channel"], p["post_id"])]
+                lines.append(f"   s={p['p_strike']:.2f} t={p['p_threat']:.2f} d={p['p_drone']:.2f} b={p['p_ballistic']:.2f} "
+                             f"{p['published_at']:%H:%M:%S} {p['channel']}/{p['post_id']}{' fwd' if src['forwarded_from'] else ''}"
+                             f"{' EV' if src['rx_evidence'] else ''} | {_txt(src, 200)}")
+    with open(out, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    log(f"disagreements: {len(jev_only)} hours strike without A or B, {len(rx_only)} hours A or B without strike; "
+        f"{k_jev + k_rx} largest with texts written to the --out file")
+
+
+def main(argv=()):
     ap = argparse.ArgumentParser(prog="python -I -m airalerts.silver.threat_hourly",
-                                 description="Jev classifier of the Kyiv posts (S3a). The silver build is added by S3b.")
-    sub = ap.add_subparsers(dest="cmd", required=True)
+                                 description="Silver kyiv_threat_hourly and kyiv_threat_posts (S3b) and the Jev classifier of the "
+                                             "Kyiv posts (S3a). No command: build the two tables from the Jev cache.")
+    sub = ap.add_subparsers(dest="cmd")
+    sub.add_parser("build", help="build the two silver tables from the Jev cache, no Jev call (default)")
+    r = sub.add_parser("report", help="confusion with rules A and B, monthly counts, the 30 largest disagreements")
+    r.add_argument("--out", required=True, help="text file for the disagreements with the post texts")
+    sub.add_parser("selftest", help="tables, features() and labels() on every hour from T0, ASOF on 3 random t")
     c = sub.add_parser("classify", help="send every request of a range of hours to Jev (cached, resumable)")
     c.add_argument("--from", dest="start", help="first hour, ISO UTC (default: first hour of bronze, FETCH_FROM)")
     c.add_argument("--to", dest="end", help="end, exclusive, ISO UTC (default and limit: floor_hour(label_end))")
@@ -606,8 +987,14 @@ def main(argv=None):
     sub.add_parser("calibrate", help="characters per token Jev billed, from the cache")
     p = sub.add_parser("pilot", help="classify the pilot hours and print the report")
     p.add_argument("--workers", type=int, default=MAX_WORKERS)
-    a = ap.parse_args(argv)
-    if a.cmd == "classify":
+    a = ap.parse_args(list(argv))
+    if a.cmd in (None, "build"):
+        build()
+    elif a.cmd == "report":
+        report(a.out)
+    elif a.cmd == "selftest":
+        raise SystemExit(0 if selftest() else 1)
+    elif a.cmd == "classify":
         classify(a.start, a.end, a.workers)
     elif a.cmd == "check":
         raise SystemExit(0 if check() else 1)
@@ -623,4 +1010,5 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(sys.argv[1:])
