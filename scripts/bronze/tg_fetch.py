@@ -99,7 +99,7 @@ def write(rows):
 
 if __name__ == "__main__" and sys.argv[1] == "merge":
     out, have, new = sys.argv[2], {}, {}
-    for line in open(out, encoding="utf-8"):
+    for line in open(out, encoding="utf-8") if os.path.exists(out) else []:
         have.setdefault(json.loads(line)["post_id"], 1)
     for part in sys.argv[3:]:
         for line in open(part, encoding="utf-8"):
