@@ -1,8 +1,8 @@
 # Bronze: журнал завантажень
 
-Рядок на кожен запуск збирача: джерело, час запуску (UTC), записів у файлі після запуску, перший і останній час. Пише лише оркестратор.
+Рядок на джерело або запуск збирача: джерело, час (UTC: запуск збирача або, для Telegram, рядок `done` у лозі потоку), записів у файлі після запуску, перший і останній час. Пише лише оркестратор.
 
-| Джерело | Запуск UTC | Записів | Перший | Останній |
+| Джерело | Час UTC | Записів | Перший | Останній |
 |---|---|---|---|---|
 | `telegram/UkraineAlarmSignal.jsonl` (латка eTryvoga, `scripts/bronze/etryvoga_patch.py`; перший запуск 17:37:03Z) | 2026-10-10T18:15:50Z | 180 | 2026-10-10T07:58:27Z | 2026-10-10T11:50:44Z |
 | `calendar/kremlin_news.jsonl` (`scripts/bronze/kremlin_fetch.py`) | 2026-10-10T17:50:55Z | 580 | 2026-04-22T06:00:00Z | 2026-10-10T07:10:00Z |
@@ -23,3 +23,20 @@
 | `weather/ecmwf_ifs_runs.csv` (Open-Meteo single runs ECMWF IFS, `scripts/bronze/wx_backfill.py`; 681 сирих JSON, прогін 2026-06-10T12:00 дав HTTP 400, він у `ecmwf_ifs_missing_runs.csv`) | 2026-10-10T17:37:24Z | 114408 | прогін 2026-04-23T00:00Z | прогін 2026-10-10T06:00Z |
 | `astro/kyiv_astro_hourly.csv` (формули, без мережі, `scripts/bronze/kyiv_astro.py`) | 2026-10-10T17:37:16Z | 4608 | 2026-04-23T00:00:00Z | 2026-10-31T23:00:00Z |
 | `astro/kyiv_astro_daily.csv` (те саме) | 2026-10-10T17:37:16Z | 192 | 2026-04-23 | 2026-10-31 |
+| `telegram/VA_Kyiv.jsonl` (`tg_fetch.py`, потік A, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T17:12:21Z | 2762 | 2026-04-17T05:59:01Z | 2026-10-10T17:11:31Z |
+| `telegram/vitaliy_klitschko.jsonl` (`tg_fetch.py`, потік A, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T17:12:25Z | 840 | 2026-04-18T09:15:59Z | 2026-10-10T16:28:10Z |
+| `telegram/truexakyiv.jsonl` (`tg_fetch.py`, потік A, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T18:55:25Z | 13787 | 2026-04-17T02:17:55Z | 2026-10-10T17:34:47Z |
+| `telegram/war_monitor.jsonl` (`tg_fetch.py`, потік A, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T19:44:58Z | 8361 | 2026-04-16T21:01:15Z | 2026-10-10T11:36:43Z |
+| `telegram/AerisRimor.jsonl` (`tg_fetch.py`, потік A, 4 частини, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T19:45:00Z | 22729 | 2026-04-16T22:13:16Z | 2026-10-10T19:36:49Z |
+| `telegram/kyiv_nebo.jsonl` (`tg_fetch.py`, потік B, 3 частини, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T19:44:42Z | 8215 | 2026-04-17T16:51:31Z | 2026-10-10T18:13:59Z |
+| `telegram/kyiv_airdef.jsonl` (`tg_fetch.py`, потік B, 4 частини, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T19:39:21Z | 45341 | 2026-04-17T16:51:57Z | 2026-10-10T16:59:33Z |
+| `telegram/OP_UA.jsonl` (`tg_fetch.py`, потік A, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T17:23:19Z | 808 | 2026-04-17T11:30:23Z | 2026-10-10T15:03:01Z |
+| `telegram/V_Zelenskiy_official.jsonl` (`tg_fetch.py`, потік A, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T17:35:32Z | 1341 | 2026-04-17T10:59:55Z | 2026-10-10T16:54:31Z |
+| `telegram/StrategicaviationT.jsonl` (`tg_fetch.py`, потік B, 3 частини, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T19:40:21Z | 12786 | 2026-04-17T05:48:30Z | 2026-10-10T19:37:24Z |
+| `telegram/kpszsu.jsonl` (`tg_fetch.py`, потік C, 4 частини, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T20:11:16Z | 24792 | 2026-04-16T21:12:38Z | 2026-10-10T18:47:27Z |
+| `telegram/monitorwarr.jsonl` (`tg_fetch.py`, потік C, 3 частини, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T20:07:38Z | 6748 | 2026-04-16T23:03:30Z | 2026-10-10T19:33:49Z |
+| `telegram/vanek_nikolaev.jsonl` (`tg_fetch.py`, потік C, 2 частини, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T19:59:44Z | 3112 | 2026-04-16T22:26:03Z | 2026-10-09T20:16:48Z |
+| `telegram/mod_russia.jsonl` (`tg_fetch.py`, потік C, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T17:40:30Z | 4028 | 2026-04-16T22:02:48Z | 2026-10-10T15:51:01Z |
+| `telegram/GeneralStaffZSU.jsonl` (`tg_fetch.py`, потік C, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T18:05:34Z | 2009 | 2026-04-17T04:00:12Z | 2026-10-10T12:01:01Z |
+| `telegram/mos_sobyanin.jsonl` (`tg_fetch.py`, потік C, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T18:23:19Z | 1233 | 2026-04-17T08:00:14Z | 2026-10-10T12:30:44Z |
+| `telegram/favt_info.jsonl` (`tg_fetch.py`, потік C, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T18:49:24Z | 3970 | 2026-04-16T21:17:59Z | 2026-10-10T14:10:19Z |
