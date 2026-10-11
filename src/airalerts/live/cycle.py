@@ -2,8 +2,8 @@
 finalist reads, then publish api/*.json from the live features. The systemd timer kyianyn-routine-cycle runs it every 5 minutes.
 
 - DATA/cycle.lock keeps two cycles apart: a second one exits at once with code 0.
-- The silver steps run only when the fetch brought new posts (or a step failed last time); else only the JSON is
-  rewritten, so the hour rolls over and a stale page says so.
+- The silver steps run when the fetch brought new posts, when a new UTC hour began since the last rebuild (the check
+  times of quiet channels move the data end) or when a step failed last time; else only the JSON is rewritten.
 - New posts go to Jev through airalerts.jev (TYPESAFE_API_KEY from the service env file, else the vault). A failed step
   does not stop the cycle: the JSON is still written from what is there and now.json says it is stale.
 - DATA/cycle_state.json keeps the last state; meta.json shows it as "pipeline".
@@ -81,7 +81,8 @@ def run(out, data=None, do_fetch=True):
         if do_fetch and fetch.run_once(data):
             state["error"] = "частина каналів не відповіла"
         state["new_posts"] = new_posts(data) if do_fetch else 0
-        if state["new_posts"] or prev.get("ok") is False or not prev:
+        rolled = (prev.get("silver_at") or "")[:13] < state["last_cycle"][:13]  # a new UTC hour since the last rebuild
+        if state["new_posts"] or rolled or prev.get("ok") is False or not prev:
             state["steps"], err = silver(data)
             if err:
                 state.update(ok=False, error=err)
