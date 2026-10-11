@@ -9,7 +9,7 @@
 | bronze | `data/bronze/` | джерела як є, лише дописуємо | [PARSING.md](PARSING.md), `data/bronze/MANIFEST.md` |
 | silver | `data/silver/<таблиця>.parquet` | таблиця на клас даних: відфільтровано, UTC, без дублів, з часом доступності | `docs/data/silver/<таблиця>.md` |
 | gold | `data/gold/kyiv_hourly.parquet` | одна таблиця для моделі: рядок на годину t, ознаки до t, ціль після t | `docs/data/gold/kyiv_hourly.md` |
-| докази | `data/verification/` | результати зовнішньої перевірки мітки і сигналів (у git) | [VERIFICATION.md](data/VERIFICATION.md) |
+| докази | `data/verification/` | результати зовнішньої перевірки мітки і сигналів і аудиту перед моделюванням (у git) | [VERIFICATION.md](data/VERIFICATION.md) |
 
 `data/airalerts.duckdb` містить view на кожен Parquet: `.venv/bin/python -I -m airalerts.db`.
 
@@ -28,7 +28,7 @@ src/airalerts/                     спільне: paths, db, telegram, jev
 src/airalerts/silver/<клас>.py     будівник таблиць silver свого класу і features() для gold
 src/airalerts/gold/kyiv_hourly.py  gold з features() усіх класів і ціль
 tests/                             тест на витік
-scripts/verify/                    зовнішня перевірка мітки і сигналів, Workflow агентів, промпти еталонів
+scripts/verify/                    зовнішня перевірка мітки і сигналів, Workflow агентів, промпти еталонів, аудит gold
 ```
 
 ## Контракт silver і gold
@@ -66,7 +66,7 @@ scripts/verify/                    зовнішня перевірка мітк�
 2. silver: `.venv/bin/python -I -m airalerts.silver.<модуль>` у порядку `alerts`, `telegram_posts`, `threat_hourly classify`, потім `threat_hourly`, `signals`, `rf_strikes`, `weather`, `astro`, `calendar_dates`, `political_events`. Відповіді Jev беруться з кешу, тож повтор безкоштовний.
 3. gold: `.venv/bin/python -I -m airalerts.gold.kyiv_hourly`, потім `.venv/bin/python -I -m airalerts.db` (view у `data/airalerts.duckdb`).
 4. тест на витік: `.venv/bin/python -I -m unittest discover -s tests -v`.
-5. зовнішня перевірка (не перебудовує дані): `.venv/bin/python -I scripts/verify/label_check.py`; сигнали за docstring `scripts/verify/signals_check.py`.
+5. зовнішня перевірка (не перебудовує дані): `.venv/bin/python -I scripts/verify/label_check.py`; сигнали за docstring `scripts/verify/signals_check.py`; незалежний перерахунок усього gold: `.venv/bin/python -I scripts/verify/audit_recompute.py`.
 
 ## Рішення
 
@@ -75,3 +75,4 @@ scripts/verify/                    зовнішня перевірка мітк�
 - [ADR-0004](adr/0004-rf-strikes-dronestrikemap.md): удари по Росії з dronestrikemap.com, день відомий через 30 год.
 - [ADR-0005](adr/0005-political-events-without-world.md): політичні події лише Києва і Росії.
 - [ADR-0006](adr/0006-external-verification.md): зовнішня перевірка мітки і сигналів, виправлення мітки вручну.
+- [ADR-0007](adr/0007-audit-before-modelling.md): аудит перед моделюванням, 15 годин мітки, пости, переписані після публікації, невідоме як NULL.

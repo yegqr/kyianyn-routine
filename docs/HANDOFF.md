@@ -16,7 +16,7 @@
 
 ## Аудит 2026-10-11
 
-Оркестратор і 5 агентів лише з читанням перевірили gold і silver заново, не довіряючи документам. Деталі й числа: [VERIFICATION.md](data/VERIFICATION.md), розділ «Аудит перед моделюванням».
+Оркестратор і 5 агентів лише з читанням перевірили gold і silver заново, не довіряючи документам. Деталі й числа: [VERIFICATION.md](data/VERIFICATION.md), розділ «Аудит перед моделюванням»; рішення: [ADR-0007](adr/0007-audit-before-modelling.md); докази: `data/verification/audit_*`.
 
 - Агрегація правильна: усі 50 ознак gold перераховано простими циклами з silver (погоду з bronze) на всіх 3909 годинах, 0 розбіжностей; 561 тривогу заново розібрано з постів КМВА, збіг до секунди.
 - Витоку часу немає в тривогах, погоді, астрономії, датах, ударах по РФ (gold бачить атаку щонайменше через 19 год після її кінця). Проба логістичною регресією на останніх 42 днях: AUC 0.80, лише година і темрява 0.78.
@@ -62,6 +62,7 @@ mkdir -p /tmp/s4 && .venv/bin/python -I -m airalerts.silver.signals check /tmp/s
 .venv/bin/python -I -m airalerts.silver.political_events wiki-check
 .venv/bin/python -I -m airalerts.silver.political_events features-check
 .venv/bin/python -I scripts/verify/label_check.py          # пише data/verification/label_compare.txt
+.venv/bin/python -I scripts/verify/audit_recompute.py      # пише data/verification/audit_recompute.txt
 ```
 
 ## Відкрито
