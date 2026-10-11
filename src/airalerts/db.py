@@ -21,5 +21,8 @@ def register_layers(con):
 
 
 if __name__ == "__main__":  # python -m airalerts.db: (re)build data/airalerts.duckdb with views over all layers
-    con = register_layers(connect(DB))
+    con = connect(DB)
+    for (v,) in con.execute("SELECT view_name FROM duckdb_views() WHERE NOT internal").fetchall():
+        con.execute(f'DROP VIEW "{v}"')  # a view whose Parquet file is gone would stay behind otherwise
+    register_layers(con)
     print(con.execute("SELECT table_name FROM information_schema.tables ORDER BY 1").fetchall())

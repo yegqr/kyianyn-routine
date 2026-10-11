@@ -24,7 +24,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from ..db import connect, register_layers
-from ..paths import BRONZE, FETCH_FROM, SILVER, T0
+from ..paths import BRONZE, FETCH_FROM, ROOT, SILVER, T0
 
 POINTS, DAYS = "strike_points", "strike_days"
 SRC = BRONZE / "strikes_rf" / "dronestrikemap"
@@ -205,11 +205,11 @@ def cmd_checks():
           con.execute(f"SELECT strftime(date, '%Y-%m'), sum(missiles_max), sum(drones_max) FROM {DAYS} WHERE country = 'UA' GROUP BY 1 ORDER BY 1").fetchall())
     print("available_at = date + 30 h in every row:", all(con.execute(
         f"SELECT bool_and(available_at = CAST(date AS TIMESTAMP) + INTERVAL 30 HOUR) FROM {t}").fetchone()[0] for t in (POINTS, DAYS)))
-    mod = SILVER / "rf_mod_reports.parquet"
-    if mod.exists():  # the old silver table of the MoD Telegram reports: is the site's RU day the UTC publication day?
-        rows = con.execute(f"""SELECT d.date, d.intercepted, (SELECT sum(drones_n) FROM read_parquet('{mod}') m
-                                 WHERE CAST(m.published_at AS DATE) = d.date) FROM {DAYS} d WHERE d.country = 'RU'
-                                 AND d.date BETWEEN DATE '2026-07-01' AND DATE '2026-10-09' ORDER BY 1""").fetchall()
+    mod = ROOT / "data" / "verification" / "mod_russia_daily_drones.csv"  # drones the MoD reported per UTC publication day,
+    if mod.exists():                                                      # parsed from @mod_russia by the previous rf_strikes
+        rows = con.execute(f"""SELECT d.date, d.intercepted, (SELECT mod_drones_downed FROM read_csv('{mod}') m WHERE m.date_utc = d.date)
+                                 FROM {DAYS} d WHERE d.country = 'RU' AND d.date BETWEEN DATE '2026-07-01' AND DATE '2026-10-09'
+                                 ORDER BY 1""").fetchall()
         eq = sum(1 for _, a, b in rows if a == b)
         near = sum(1 for _, a, b in rows if a and b and abs(a - b) <= 0.1 * b)
         print(f"RU intercepted of the site vs sum of the MoD Telegram reports published on the same UTC day, 2026-07-01..2026-10-09: "

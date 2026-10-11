@@ -86,6 +86,16 @@ CANDIDATES = {"any>=0.5": dict(one=0.5),
               "fresh and (any>=0.7 or official>=0.7 or 2ch>=0.5)": dict(one=0.7, official=0.7, two=0.5, fresh=True),
               "fresh, originals and any>=0.7": dict(one=0.7, fresh=True, originals=True),
               "fresh, originals and (any>=0.7 or official>=0.5 or 2ch>=0.5)": dict(one=0.7, official=0.5, two=0.5, fresh=True, originals=True)}
+# Hours set by hand after the external check of 2026-10-11 (docs/data/VERIFICATION.md): two blind references (official summaries
+# in Telegram, news on the web) and a reading of the posts found one missed and one false strike hour among 33 nights. No rule
+# fixes them without new doubtful hours (p_strike >= 0.5 adds 10 more), so build() sets them and marks the row `corrected`.
+# hour -> (missile_strike, the posts that decide; they become `evidence`)
+CORRECTIONS = {
+    "2026-09-18T16": (True, ("truexakyiv/87285", "vitaliy_klitschko/7545")),  # Zircon at Kyiv 16:25Z; 16:29Z "Гучно!"; Klitschko 16:32Z
+                                                                               # "У столиці працюють сили ППО. Київ під обстрілом балістикою"
+    "2026-08-27T16": (False, ()),  # debris on a dormitory at 16:55Z during a jet drone attack; the ballistic threat of 16:24Z was
+                                   # called off at 16:37Z (kpszsu 74865), so no missile reached the city
+}
 EXAMPLE_HOURS = ("2026-10-07T00:00:00Z", "2026-10-07T01:00:00Z", "2026-10-10T11:00:00Z", "2026-06-15T00:00:00Z", "2026-08-16T06:00:00Z",
                  "2026-05-14T10:00:00Z", "2026-05-24T09:00:00Z", "2026-09-15T13:00:00Z", "2026-09-28T17:00:00Z", "2026-10-07T14:00:00Z")
 # Hours read by hand (the posts and their texts), not a ground truth. Strike: 6 from the S3a pilot, 4 from the verification of S3b.
@@ -632,7 +642,8 @@ HOURLY_SCHEMA = pa.schema([
     ("hour_utc", pa.timestamp("us")), ("n_posts", pa.int64()), ("n_posts_jev", pa.int64()), ("missile_strike", pa.bool_()),
     ("missile_threat", pa.bool_()), ("drone_threat", pa.bool_()), ("ballistic", pa.bool_()), ("p_strike_max", pa.float64()),
     ("first_strike_at", pa.timestamp("us")), ("evidence", pa.list_(pa.string())), ("rx_rule_a", pa.bool_()),
-    ("rx_rule_b", pa.bool_()), ("jev_model", pa.string()), ("prompt_version", pa.string()), ("available_at", pa.timestamp("us"))])
+    ("rx_rule_b", pa.bool_()), ("corrected", pa.bool_()), ("jev_model", pa.string()), ("prompt_version", pa.string()),
+    ("available_at", pa.timestamp("us"))])
 
 # What was known before {t}. The row of hour h is known at h + 1h: all its posts were published before that instant. So the
 # test is `available_at <= {t}`; the generic `< {t}` would hide the hour that ends exactly at t, which features() reads.
@@ -762,14 +773,21 @@ def build(log=print):
         rs, prev = by_h.get(h, []), by_h.get(h - HOUR, [])
         lab = hour_labels(rs, prev)
         ev = strike_evidence(rs, prev) if lab["missile_strike"] else []
+        fix = CORRECTIONS.get(f"{h:%Y-%m-%dT%H}")
+        if fix:
+            lab["missile_strike"] = fix[0]
+            ev = sorted((r for r in rs if f'{r["channel"]}/{r["post_id"]}' in fix[1]), key=lambda r: (r["published_at"], r["channel"], r["post_id"]))
+            if len(ev) != len(fix[1]):
+                raise SystemExit(f"correction {h}: evidence posts {fix[1]} not all among the posts of the hour")
         rx = rules.get(h, {})
         hourly.append({"hour_utc": h, "n_posts": n_all[h], "n_posts_jev": len(rs), **lab,
                        "p_strike_max": max((r["p_strike"] for r in rs), default=None),
                        "first_strike_at": ev[0]["published_at"] if ev else None,
                        "evidence": [f'{r["channel"]}/{r["post_id"]}' for r in ev],
-                       "rx_rule_a": bool(rx.get("A")), "rx_rule_b": bool(rx.get("B")),
+                       "rx_rule_a": bool(rx.get("A")), "rx_rule_b": bool(rx.get("B")), "corrected": bool(fix),
                        "jev_model": MODEL, "prompt_version": PROMPT_VERSION, "available_at": h + HOUR})
-    meta = {"label_end": label_end(), "jev_model": MODEL, "prompt_version": PROMPT_VERSION}
+    meta = {"label_end": label_end(), "jev_model": MODEL, "prompt_version": PROMPT_VERSION,
+            "corrections": json.dumps({k: v[0] for k, v in CORRECTIONS.items()})}
     for path, schema, data in ((POSTS, POSTS_SCHEMA, posts), (HOURLY, HOURLY_SCHEMA, hourly)):
         tmp = path.with_suffix(".tmp")
         pq.write_table(pa.Table.from_pylist(data, schema=schema).replace_schema_metadata(meta), tmp, compression="zstd")
