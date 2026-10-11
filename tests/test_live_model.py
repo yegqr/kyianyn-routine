@@ -190,11 +190,17 @@ class LiveModelTest(unittest.TestCase):
 
             hours = f["history"]["hours"]
             self.assertEqual(hours[0]["t"], model.START)
-            self.assertEqual((hours[-1]["t"], hours[-1]["source"]), (f["now"]["hour"], "live"))
+            # issued 3 hours after its hour: shown as stale, never logged as a live forecast
+            self.assertEqual((hours[-1]["t"], hours[-1]["source"]), (f["now"]["hour"], "replay"))
             self.assertEqual(f["now"]["hour"], "2026-10-10T17:00:00Z")
             self.assertTrue(f["now"]["stale"])
             self.assertEqual(f["model"]["trained_at"], "2026-10-10T20:00:00Z")
             self.assertTrue((data / "live_model" / "logit_signals-2026-10-10.json").exists())
+            self.assertFalse((data / publish.LOG).exists())
+
+            publish.publish(tmp / "site", self.table, data, datetime(2026, 10, 10, 17, 20))  # in time: logged
+            hours = json.loads((api / "history.json").read_text(encoding="utf-8"))["hours"]
+            self.assertEqual((hours[-1]["t"], hours[-1]["source"]), ("2026-10-10T17:00:00Z", "live"))
             log = (data / publish.LOG).read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(log), 1)
             self.assertFalse(publish.log(data, json.loads(log[0])))  # once per hour

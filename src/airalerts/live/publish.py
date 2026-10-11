@@ -168,10 +168,15 @@ def hour_row(t, p, tier, source, row, issued=None):
             "alert_3h": row.get("y_alert_3h")}
 
 
+def in_time(hour, issued_at):
+    """A live forecast of the hour t counts only when it was issued within that hour, while [t, t + 3 h) was ahead."""
+    return hour <= issued_at < hour + HOUR
+
+
 def history(rep, live, rows):
-    """Every hour from the replay start: the forecast issued live where the log has the hour, the replay for every
-    other hour, so a pause of the service leaves no hole."""
-    issued = {utc(e["t"]): e for e in live}
+    """Every hour from the replay start: the forecast issued live where the log has the hour (issued in time), the
+    replay for every other hour, so a pause of the service leaves no hole."""
+    issued = {utc(e["t"]): e for e in live if in_time(utc(e["t"]), utc(e["issued_at"]))}
     hours = {x["t"]: hour_row(x["t"], x["p"], x["tier"], "replay", rows.get(x["t"])) for x in rep}
     for t, e in issued.items():
         hours[t] = hour_row(t, e["p"], e["tier"], "live", rows.get(t), e)
@@ -198,8 +203,9 @@ def publish(out, table=None, data=None, now=None, pipeline=None):
     hour = row["t_utc"]
     p, parts = model.predict(m, row)
     tier = model.tier(p)
-    log(data, {"t": iso(hour), "p": p, "tier": tier, "quiet_now": row["quiet_now"], "alert": row["alert_active"],
-               "issued_at": iso(now), "trained_at": m["trained_at"]})
+    if in_time(hour, now):  # a late forecast (the data lag behind) is shown as stale, but never logged as live
+        log(data, {"t": iso(hour), "p": p, "tier": tier, "quiet_now": row["quiet_now"], "alert": row["alert_active"],
+                   "issued_at": iso(now), "trained_at": m["trained_at"]})
 
     rep = model.replay(table)
     rows = {r["t_utc"]: r for r in table.to_pylist()}
