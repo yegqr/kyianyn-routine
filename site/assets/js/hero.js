@@ -5,13 +5,15 @@
 // amber limited, red closed); the metro lines M1, M2, M3 run in their own colours, and a line that cannot cross now
 // dims over the river and gets a stop mark. Quiet extras: a few landmarks (names on hover or tap), the sun or the moon
 // by Kyiv time, drones toward Kyiv when the risk is high, a ballistic streak at the red level, a cloud when it is calm.
+// During the curfew (crossing.js CURFEW) nobody crosses without a pass: the bridges turn red, the metro lines stop at the
+// river, the train stays put, and the sentence for screen readers and every tip say so.
 // The trick: the M1 train crosses the Metro bridge on a click or the key T; in an alert it rolls to the bank, stops and
 // goes back, like the real red line. dashboard.js calls mountHero(el, data), then update(data) on new data and train()
 // on the key T. If the map file does not load, mountHero gives null and the small picture of index.html stays.
 // Motion: transform and opacity only, set each frame; with prefers-reduced-motion nothing flies or loops and every
 // effect shows its end state at once.
 
-import { crossingsFor } from './crossing.js'
+import { crossingsFor, CURFEW } from './crossing.js'
 
 const NS = 'http://www.w3.org/2000/svg'
 const SPRITES = 'assets/img/sprites.svg'
@@ -35,12 +37,13 @@ const MARKS = [
 // What sets the colour of each bridge (the road entry of crossing.js) and which rail line runs on it.
 const ROAD = { pivnichnyi: 'bridges', podilskyi: 'podilskyi', metro: 'bridges', patona: 'bridges', darnytskyi: 'bridges', pivdennyi: 'pivdennyi' }
 const ON = { metro: 'm1', pivdennyi: 'm3', darnytskyi: 'rail' }
-const RIDE = { m1: 'червона M1', m3: 'зелена M3', rail: 'електричка' }
-const CAR = { open: 'авто їдуть', limited: 'авто з обмеженнями', closed: 'авто стоять', unknown: 'авто: невідомо' }
-const GOES = { open: 'їде', limited: 'їде з обмеженнями', closed: 'не їде' }
+const RIDE = { m1: 'червона лінія метро', m3: 'зелена лінія метро', rail: 'міська електричка' }
+const CAR = { open: 'авто їдуть', limited: 'авто їдуть з обмеженнями', closed: 'авто не їдуть' }
+const GOES = { open: 'ходить', limited: 'ходить з обмеженнями', closed: 'не ходить' }
 const PX = { label: 11.5, train: 26, drone: 22, missile: 30, cloud: 44, sun: 22, chestnut: 16, burst: 30 }
 const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA']
 const HOUR = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Kyiv', hour: '2-digit', hourCycle: 'h23' })
+const HM = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Kyiv', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
 
 const f = (v, d = 1) => +Number(v).toFixed(d)
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
@@ -48,8 +51,14 @@ const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return 
 // Still poses to try along a path: from a to b by step, the ones nearest mid first.
 const span = (a, b, step, mid) => Array.from({ length: Math.round((b - a) / step) + 1 }, (_, i) => a + i * step).sort((x, y) => Math.abs(x - mid) - Math.abs(y - mid))
 const upper = (t) => (t ? t[0].toUpperCase() + t.slice(1) : '')
-const ride = (name, st) => (GOES[st] ? `${name} ${GOES[st]}` : `${name}: невідомо`)
+const ride = (name, st) => (GOES[st] ? `${name} ${GOES[st]}` : `чи ходить ${name}, невідомо`)
 const isNight = () => { const h = Number(HOUR.format(new Date())); return h >= 21 || h < 6 }
+// The curfew by Kyiv time, "01:00" to "05:00" (also when it runs over midnight).
+const inCurfew = () => {
+  const t = HM.format(new Date())
+  const { from, to } = CURFEW
+  return from < to ? t >= from && t < to : t >= from || t < to
+}
 
 function svg(tag, attrs = {}, ...kids) {
   const n = document.createElementNS(NS, tag)
@@ -123,35 +132,35 @@ function stateOf(data) {
   const tier = now?.forecast?.tier || null
   const kyiv = (Array.isArray(now?.waves) ? now.waves : []).filter((w) => w?.kyiv).length
   return {
-    alert, level, tier, red: level === 'red',
+    alert, level, tier, red: level === 'red', kyiv, curfew: inCurfew(),
     drones: Math.min(5, Math.max(kyiv, tier === 'high' ? 2 : 0)),
     st: Object.fromEntries(crossingsFor(level).map((c) => [c.id, c])),
   }
 }
 
-// One sentence for screen readers: what crosses the river now.
+// One sentence for screen readers: what crosses the river now, in the words of the alert pills above the question.
+// During the curfew nobody crosses without a pass, so the sentence says that instead.
 function sentence(s) {
-  const st = s.st
-  const long = { m1: 'червона лінія M1 мостом Метро', m3: 'зелена лінія M3 Південним мостом' }
-  const go = ['m1', 'm3'].filter((id) => st[id]?.status === 'open')
-  const stop = ['m1', 'm3'].filter((id) => st[id]?.status === 'closed').map((id) => RIDE[id])
-  const unsure = ['m1', 'm3'].filter((id) => !['open', 'closed'].includes(st[id]?.status)).map((id) => RIDE[id])
-  const metro = go.length === 2 ? 'їдуть обидві лінії метро, червона M1 і зелена M3'
-    : go.length ? `їде ${long[go[0]]}`
-      : stop.length && unsure.length ? `${stop.join(' і ')} не їде` : stop.length ? 'метро не їде' : 'чи їде метро, невідомо'
-  const lim = ['pivdennyi', 'podilskyi'].filter((id) => st[id]?.status === 'limited').map((id) => (id === 'pivdennyi' ? 'Південному' : 'Подільському'))
-  return `${[`Зараз через Дніпро ${metro}`,
-    go.length && stop.length ? `${stop.join(' і ')} стоїть` : '',
-    stop.length && unsure.length ? `чи їде ${unsure.join(' і ')}, невідомо` : '',
-    `авто їдуть мостами${lim.length ? `, на ${lim.join(' і ')} ${lim.length > 1 ? 'мостах' : 'мосту'} обмеження` : ' без обмежень'}`,
-  ].filter(Boolean).join(', ')}.`
+  if (s.curfew) return `Комендантська година до ${CURFEW.to}: зараз через Дніпро без перепустки не їде ніхто.`
+  const m1 = s.st.m1?.status
+  const m3 = s.st.m3?.status
+  const metro = m1 === 'open' && m3 === 'open' ? 'ходять червона і зелена лінії метро'
+    : m3 === 'open' ? 'з метро ходить лише зелена лінія'
+      : m1 === 'open' ? 'з метро ходить лише червона лінія'
+        : m1 === 'closed' && m3 === 'closed' ? 'метро не ходить'
+          : m1 === 'closed' ? 'червона лінія метро не ходить, про зелену невідомо'
+            : m3 === 'closed' ? 'зелена лінія метро не ходить, про червону невідомо' : 'чи ходить метро, невідомо'
+  const lim = ['pivdennyi', 'podilskyi'].filter((id) => s.st[id]?.status === 'limited').map((id) => (id === 'pivdennyi' ? 'Південному' : 'Подільському'))
+  return `Зараз через Дніпро ${metro}, авто їдуть мостами${lim.length ? `, на ${lim.join(' і ')} з обмеженнями` : ' без обмежень'}.`
 }
 
-function bridgeText(b, st) {
-  const road = st[ROAD[b.id]]
-  const line = st[ON[b.id]]
+// The tip of a bridge: its name, then the cars and the rail line on it now; during the curfew, that nobody crosses.
+function bridgeText(b, s) {
+  const road = s.st[ROAD[b.id]]
+  const line = s.st[ON[b.id]]
+  if (s.curfew && (road || line)) return `${upper(b.name)}: комендантська година до ${CURFEW.to}, без перепустки не їде ніхто`
   const parts = []
-  if (road) parts.push(`${CAR[road.status] || CAR.unknown}${road.status === 'limited' ? ` (${road.note})` : ''}`)
+  if (road) parts.push(CAR[road.status] ? `${CAR[road.status]}${road.status === 'limited' && road.note ? ` (${road.note})` : ''}` : 'чи їдуть авто, невідомо')
   if (line) parts.push(ride(RIDE[ON[b.id]], line.status))
   return `${upper(b.name)}: ${parts.length ? parts.join(', ') : 'лише поїзди'}`
 }
@@ -230,7 +239,7 @@ function createHero(el, map) {
     for (const b of map.bridges) {
       const hit = svg('path', { class: 'hm-hit', d: b.path })
       bridges.append(svg('g', { class: 'hm-bridge', 'data-id': b.id }, svg('path', { class: 'hm-deck-case', d: b.path }), svg('path', { class: 'hm-deck', d: b.path }), hit))
-      hint(hit, () => bridgeText(b, state.st), () => ({ x: b.mid[0], y: b.mid[1] - s(5) }))
+      hint(hit, () => bridgeText(b, state), () => ({ x: b.mid[0], y: b.mid[1] - s(5) }))
     }
     const lines = svg('g', { class: 'hm-lines' })
     for (const id of ['M2', 'M3', 'M1']) {
@@ -482,10 +491,10 @@ function createHero(el, map) {
     base.classList.toggle('is-night', isNight())
     for (const g of base.querySelectorAll('.hm-bridge')) {
       const road = state.st[ROAD[g.dataset.id]]
-      g.setAttribute('class', `hm-bridge is-${road ? road.status : 'rail'}`)
+      g.setAttribute('class', `hm-bridge is-${road ? (state.curfew ? 'closed' : road.status) : 'rail'}`)
     }
     for (const id of ['M1', 'M3']) {
-      const closed = state.st[id.toLowerCase()]?.status === 'closed' && Boolean(cross[id])
+      const closed = (state.curfew || state.st[id.toLowerCase()]?.status === 'closed') && Boolean(cross[id])
       const route = base.querySelector(`.hm-route.hm-${id}`)
       const full = route?.querySelector('.hm-full')
       if (full && closed) full.setAttribute('clip-path', `url(#hm-out-${id})`)
@@ -518,7 +527,8 @@ function createHero(el, map) {
     const py = (p.y - vb.y) / k
     const tw = tip.offsetWidth
     const th = tip.offsetHeight
-    const top = py - th - 10 >= 6 ? py - th - 10 : Math.min(H - th - 6, py + 14)
+    const low = p.low == null ? py : (p.low - vb.y) / k
+    const top = py - th - 10 >= 6 ? py - th - 10 : Math.min(H - th - 6, low + 14)
     tip.style.left = `${Math.round(Math.max(6, Math.min(W - tw - 6, px - tw / 2)))}px`
     tip.style.top = `${Math.round(Math.max(6, top))}px`
     clearTimeout(tipTimer)
@@ -581,15 +591,16 @@ function createHero(el, map) {
     kick()
   }
 
-  // Reduced motion: each flyer stands still at the first spot of its path that covers no label, landmark, sun or moon,
-  // the train, the link or an earlier flyer (screen boxes with 2 px of air). A missile with no such spot drops its
-  // trail; a flyer that still finds none is left out.
+  // Reduced motion: each flyer stands still at the first spot of its path that covers no bridge, label, landmark, sun
+  // or moon, the train, the link or an earlier flyer (screen boxes with 2 px of air, bridge lines with 7 px). The cloud
+  // also tries lower rows. A missile with no such spot drops its trail; a drone or a missile may then cross a bridge
+  // line; a flyer that still finds none is left out.
   function hold(list) {
     // A use counts by its own x, y, width and height, so it has its box before the sprite file is in.
     const box = (n) => {
       const m = n.tagName === 'use' && n.getScreenCTM()
       if (!m) return n.getBoundingClientRect()
-      const [x, y, w, h] = ['x', 'y', 'width', 'height'].map((k) => n[k].baseVal.value)
+      const [x, y, w, h] = ['x', 'y', 'width', 'height'].map((key) => n[key].baseVal.value)
       const p = [[x, y], [x + w, y], [x, y + h], [x + w, y + h]].map(([u, v]) => new DOMPoint(u, v).matrixTransform(m))
       const r = { left: Math.min(...p.map((q) => q.x)), top: Math.min(...p.map((q) => q.y)), right: Math.max(...p.map((q) => q.x)), bottom: Math.max(...p.map((q) => q.y)) }
       return { ...r, width: r.right - r.left, height: r.bottom - r.top }
@@ -597,18 +608,42 @@ function createHero(el, map) {
     const air = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left) + 2) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) + 2)
     const taken = [...base.querySelectorAll('.hm-labels text, .hm-mark use, .hm-sky use'), trainG, ...el.querySelectorAll('a')]
       .filter(Boolean).map(box).filter((r) => r.width && r.height)
+    // The bridge lines as screen points every 3 px.
+    const deck = []
+    const ctm = base.getScreenCTM()
+    for (const b of ctm ? map.bridges : []) {
+      for (const l of polylines(b.path)) {
+        for (let i = 1; i < l.length; i++) {
+          const [x0, y0] = l[i - 1]
+          const [x1, y1] = l[i]
+          const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / s(3)))
+          for (let j = 0; j <= n; j++) deck.push(new DOMPoint(x0 + ((x1 - x0) * j) / n, y0 + ((y1 - y0) * j) / n).matrixTransform(ctm))
+        }
+      }
+    }
+    const onDeck = (a) => deck.some((p) => p.x > a.left - 7 && p.x < a.right + 7 && p.y > a.top - 7 && p.y < a.bottom + 7)
     const shown = (fl) => fl.parts.filter((n) => n.style.display !== 'none').map(box).filter((r) => r.width)
-    const clear = (fl) => fl.times.find((t) => { fl.frame(t); return shown(fl).every((a) => taken.every((b) => !air(a, b))) })
+    const fits = (fl, decks) => shown(fl).every((a) => taken.every((b) => !air(a, b)) && !(decks && onDeck(a)))
+    const clear = (fl, decks) => {
+      for (const row of fl.rows || [fl.row]) {
+        fl.row = row
+        const t = fl.times.find((x) => { fl.frame(x); return fits(fl, decks) })
+        if (t != null) return t
+      }
+      return null
+    }
     for (const fl of list) {
-      let t = clear(fl)
-      if (t == null && fl.parts.length > 1) { fl.parts[0].style.display = 'none'; t = clear(fl) }
+      let t = clear(fl, true)
+      if (t == null && fl.parts.length > 1) { fl.parts[0].style.display = 'none'; t = clear(fl, true) }
+      if (t == null && !fl.rows) t = clear(fl, false)
       if (t == null) { fl.g.style.display = 'none'; continue }
       fl.frame(t)
       taken.push(...shown(fl))
     }
   }
 
-  // A shahed drifts from the north or the east edge toward the centre and fades before it gets there; tap it.
+  // A shahed drifts from the north or the east edge toward the centre and fades before it gets there. Its tip says why
+  // it is there; a tap downs it.
   function drone(i, n) {
     const r1 = rnd(i + 1)
     const r2 = rnd(i + 11)
@@ -644,6 +679,10 @@ function createHero(el, map) {
       down = self.cyc
       if (RM.matches) inner.style.opacity = 0
     })
+    g.addEventListener('pointerenter', () => {
+      if (self.o >= 0.2 && self.at) showTip(state.kyiv ? 'Дрони з курсом на Київ' : 'Високий ризик атаки дронів або ракет на Київ', { x: self.at.x, y: self.at.y - s(12) })
+    })
+    g.addEventListener('pointerleave', hideTip)
     return self
   }
 
@@ -678,11 +717,10 @@ function createHero(el, map) {
     return self
   }
 
-  // Calm: one cloud drifts across, slowly.
+  // Calm: one cloud drifts across the sky, slowly. Standing still (reduced motion), it may take a lower row.
   function cloud() {
     const w = PX.cloud
     const h = (w * 29) / 47.5
-    const y = vb.y + vb.h * 0.1
     const x0 = vb.x + s(36)
     const x1 = vb.x + vb.w - s(36 + w)
     const dur = 60000
@@ -691,13 +729,16 @@ function createHero(el, map) {
     const g = svg('g', { class: 'hm-cloud' }, inner)
     fly.append(g)
     const self = {
+      row: 0.1,
       frame(now) {
         const p = ((now + off) % dur) / dur
+        const y = Math.max(vb.y + s(h / 2 + 4), vb.y + vb.h * self.row)
         g.setAttribute('transform', `translate(${f(x0 + (x1 - x0) * p, 2)} ${f(y, 2)}) scale(${f(k, 4)})`)
         inner.style.opacity = f(p < 0.1 ? p / 0.1 : p > 0.9 ? (1 - p) / 0.1 : 1, 3)
       },
       g,
       parts: [...inner.children],
+      rows: [0.1, 0.05, 0.16, 0.22, 0.28],
       times: span(0.1, 0.9, 0.05, 0.3).map((p) => dur * (10 + p) - off),
     }
     return self
@@ -711,7 +752,7 @@ function createHero(el, map) {
     if (toward) facing = toward
     const east = T.dir > 0 ? p.a : p.a + 180
     trainG.setAttribute('transform', `translate(${f(p.x, 2)} ${f(p.y, 2)}) ${pose(facing > 0 ? east : east + 180)} scale(${f(k, 4)})`)
-    trainAt = p
+    trainAt = { x: p.x, y: p.y, t }
   }
 
   function moveBtn() {
@@ -722,44 +763,59 @@ function createHero(el, map) {
   }
 
   function trainText() {
-    const m1 = state.st.m1
-    if (!m1) return 'Потяг червоної лінії: натисни або T.'
-    const open = m1.status === 'open'
-    return `${m1.name}, ${m1.via}: ${open ? 'їде' : m1.status === 'closed' ? 'не їде' : 'невідомо'}. Натисни або T: ${open ? 'потяг перетне Дніпро.' : 'подивись, що робить потяг.'}`
+    if (state.curfew) return `Комендантська година до ${CURFEW.to}: метро не ходить.`
+    const st = state.st.m1?.status
+    if (st === 'open') return `Червона лінія метро ходить мостом Метро. Натисни або T, і потяг ${side ? 'повернеться на правий берег' : 'перетне Дніпро'}.`
+    return `${st === 'closed' ? 'Тривога: червона лінія метро через Дніпро не ходить' : 'Чи ходить червона лінія метро через Дніпро, невідомо'}. Натисни або T, і потяг доїде до мосту й повернеться.`
   }
 
-  function say(text) {
+  // Where a train tip stands: over the track from a to b by half a train, so the box never covers the train on that
+  // stretch; `low` is the same under it, for when the box does not fit above.
+  function over(a, b = a) {
+    const ys = Array.from({ length: 25 }, (_, i) => track.at(a + ((b - a) * i) / 24).y)
+    const p = track.at((a + b) / 2)
+    return { x: p.x, y: Math.min(...ys) - s(PX.train / 2), low: Math.max(...ys) + s(PX.train / 2) }
+  }
+
+  // The live line and the tip, over `at` or over the train where it is now.
+  function say(text, at) {
     live.textContent = text
-    if (trainAt) showTip(text, { x: trainAt.x, y: trainAt.y - s(8) }, 2600)
+    const p = at || (trainAt && over(trainAt.t))
+    if (p) showTip(text, p, 2600)
   }
 
+  // Each tip tells where the train is at that moment: on its way over the bridge while it rides, on the bank once it stops.
   function train() {
     if (!T || busy) return
+    // The curfew: the metro does not run, so the train stays where it is.
+    if (state.curfew) { say(trainText()); return }
     if (state.st.m1?.status !== 'open') {
-      say('Тривога: червона лінія не виходить на міст і повертається під землю.')
-      if (RM.matches) return
-      busy = true
       const home = side ? T.e : T.w
       const edge = side ? T.ee : T.ew
+      say(state.st.m1?.status === 'closed' ? 'Тривога: червона лінія метро через Дніпро не ходить.' : 'Чи ходить червона лінія метро через Дніпро, невідомо.', over(home, RM.matches ? home : edge))
+      if (RM.matches) return
+      busy = true
       const out = side ? -1 : 1
       tween(1000, (p) => placeTrain(home + (edge - home) * ease(p), out), () =>
         setTimeout(() => tween(1000, (p) => placeTrain(edge + (home - edge) * ease(p), 0), () => { busy = false }), 700))
       return
     }
     side = 1 - side
-    say(side ? 'Потяг на лівому березі. Ще раз, і він повернеться.' : 'Потяг знову на правому березі.')
+    btn.setAttribute('aria-label', trainText())
+    const there = side ? 'Потяг на лівому березі. Ще раз, і він повернеться.' : 'Потяг знову на правому березі.'
     const a = side ? T.w : T.e
     const b = side ? T.e : T.w
     const to = side ? 1 : -1
-    if (RM.matches) { placeTrain(b, to); moveBtn(); return }
+    if (RM.matches) { placeTrain(b, to); moveBtn(); say(there); return }
     busy = true
-    tween(2400, (p) => placeTrain(a + (b - a) * ease(p), to), () => { busy = false; moveBtn() })
+    say(side ? 'Потяг їде на лівий берег.' : 'Потяг їде на правий берег.', over(a, b))
+    tween(2400, (p) => placeTrain(a + (b - a) * ease(p), to), () => { busy = false; moveBtn(); say(there) })
   }
 
   btn.addEventListener('click', () => train())
-  btn.addEventListener('pointerenter', () => trainAt && showTip(trainText(), { x: trainAt.x, y: trainAt.y - s(8) }))
+  btn.addEventListener('pointerenter', () => trainAt && showTip(trainText(), over(trainAt.t)))
   btn.addEventListener('pointerleave', () => { if (document.activeElement !== btn) hideTip() })
-  btn.addEventListener('focus', () => trainAt && showTip(trainText(), { x: trainAt.x, y: trainAt.y - s(8) }))
+  btn.addEventListener('focus', () => trainAt && showTip(trainText(), over(trainAt.t)))
   btn.addEventListener('blur', hideTip)
 
   // ---------- easter eggs ----------
@@ -769,7 +825,7 @@ function createHero(el, map) {
     const inner = svg('g', {}, use('interceptor-burst', -n / 2, -n / 2, n, n))
     const g = svg('g', { class: 'hm-burst', transform: `translate(${f(p.x, 2)} ${f(p.y, 2)}) scale(${f(k, 4)})` }, inner)
     fx.append(g)
-    showTip('Мінус один. Дякуємо ППО.', { x: p.x, y: p.y - s(14) }, 1800)
+    showTip('Мінус один дрон. Дякуємо ППО.', { x: p.x, y: p.y - s(14) }, 1800)
     if (RM.matches || !inner.animate) { setTimeout(() => g.remove(), 900); return }
     inner.animate([{ transform: 'scale(.3)', opacity: 1 }, { transform: 'scale(1.25)', opacity: 0 }], { duration: 700, easing: 'cubic-bezier(.22,.75,.28,1)' })
       .onfinish = () => g.remove()
@@ -805,7 +861,7 @@ function createHero(el, map) {
     const place = (t) => { const p = w.at(t); g.setAttribute('transform', `translate(${f(p.x, 2)} ${f(p.y, 2)}) ${pose(p.a)} scale(${f(k, 4)})`); return p }
     fx.append(g)
     const p = place(RM.matches ? 0.5 : 0.03)
-    showTip('Ракета на підводних крилах: єдина, яку тут чекають.', { x: p.x, y: p.y - s(10) }, 2600)
+    showTip('«Ракета» на підводних крилах: єдина ракета, яку тут чекають.', { x: p.x, y: p.y - s(10) }, 2600)
     if (RM.matches) { setTimeout(() => g.remove(), 2600); return }
     tween(7000, (q) => { place(0.03 + 0.94 * q); g.style.opacity = f(Math.min(1, q * 12, (1 - q) * 12), 3) }, () => g.remove())
   }
@@ -847,7 +903,11 @@ function createHero(el, map) {
   document.addEventListener('visibilitychange', kick)
   RM.addEventListener?.('change', () => setFlyers())
   document.fonts?.ready.then(() => { if (RM.matches) setFlyers() })
-  setInterval(() => base?.classList.toggle('is-night', isNight()), 60000)
+  // Each minute: day or night, and the curfew as it starts or ends.
+  setInterval(() => {
+    base?.classList.toggle('is-night', isNight())
+    if (state.curfew !== inCurfew()) { state = { ...state, curfew: !state.curfew }; paint() }
+  }, 60000)
 
   return {
     update(data) {
