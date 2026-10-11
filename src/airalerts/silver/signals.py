@@ -18,6 +18,7 @@ import time
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -248,6 +249,28 @@ def event_row(sig, st, items):
             "jev_model": MODEL, "prompt_version": PROMPT_VERSION, "available_at": first}
 
 
+STATED = re.compile(r"станом на\s*(\d{1,2}):(\d{2})", re.I)
+PINNED = re.compile(r"^[^\n«]{1,60} pinned «")
+KYIV = ZoneInfo("Europe/Kyiv")
+
+
+def written_later(r):
+    """True when the text of post r is not the one published at published_at, so it must not make or start an event (audit of
+    2026-10-11): a "pinned" service post (Telegram shows the text of the pinned post as it was when fetched), or a text that
+    states a Kyiv time ("станом на HH:MM") 5 min to 12 h after the publication, that is, the post was rewritten later
+    (AerisRimor updates its summary through the night). Bronze has no edit time, so these are the only edits we can date."""
+    if PINNED.match(r["text"] or ""):
+        return True
+    m = STATED.search(r["text"] or "")
+    if not m or int(m[1]) > 23 or int(m[2]) > 59:
+        return False
+    pub = r["published_at"].replace(tzinfo=timezone.utc).astimezone(KYIV)
+    stated = pub.replace(hour=int(m[1]), minute=int(m[2]), second=0, microsecond=0)
+    if stated < pub - timedelta(hours=12):
+        stated += timedelta(days=1)
+    return timedelta(minutes=5) < stated - pub < timedelta(hours=12)
+
+
 def build_events(posts, probs):
     groups = defaultdict(list)
     for r in posts:
@@ -284,7 +307,9 @@ def main():
     per = Counter((r["channel"], s) for r in posts for s in r["sigs"])
     print(f"candidates: {len(posts)} posts; per channel and signal: {dict(sorted(per.items()))}")
     probs = judge(posts)
-    rows = build_events(posts, probs)
+    later = [r for r in posts if written_later(r)]
+    print(f"posts written after their publication, left out of the events: {len(later)}")
+    rows = build_events([r for r in posts if not written_later(r)], probs)
     last = channel_ends()
     table = pa.Table.from_pylist(rows, schema=SCHEMA).replace_schema_metadata({
         "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "jev_model": MODEL,
