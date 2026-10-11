@@ -10,3 +10,4 @@ data/live/
 site/api/
 site/dev/
 deploy/*.env
+deploy/secrets/

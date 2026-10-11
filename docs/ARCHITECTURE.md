@@ -9,7 +9,7 @@
 | `src/airalerts/` | код пакета: спільне (`paths`, `db`, `telegram`, `jev`), рівні даних `silver/` і `gold/`, спільна оцінка `evaluation/`, моделі трьох питань `strikes/`, `nights/`, `quiet/`, живий сайт `live/` |
 | `scripts/` | `bronze/` збирачі сирих даних, `verify/` зовнішня перевірка і аудит, `analysis/` описовий аналіз тесту (лише друк), `site/` вивантаження чисел розробки для сторінки методології |
 | `site/` | статичний сайт livii-bereh.isakov.fyi: `index.html` (головна і методологія), `assets/` (стилі, код, сцени методології, D3), `data/` (числа розробки); `api/` пише цикл, не в git |
-| `deploy/` | конфіг nginx і юніти systemd живого сайту; `live.env` з ключем Jev не в git |
+| `deploy/` | конфіг nginx і юніти systemd живого сайту; `secrets/live.env` з ключем Jev не в git |
 | `tests/` | тести на витік у gold і поділі, тести моделей кожного питання, мірила проти перерахунку в лоб |
 | `data/` | `bronze/` і `silver/` (не в git), `gold/` (у git, версія в [DATASET.md](data/DATASET.md)), `predictions/<strikes\|nights\|quiet>/` (не в git), `verification/` (у git), `live/` живі дані сайту (не в git) |
 | `reports/` | таблиці порівняння моделей `strikes_leaderboard.md`, `nights_leaderboard.md`, `quiet_leaderboard.md`; їх пишуть оцінювачі, вручну не редагувати |
@@ -99,7 +99,7 @@ flowchart LR
 | ознаки проти gold | `.venv/bin/python -I -m airalerts.live.features check` | після зміни коду |
 | сайт на сервер | `rsync -a --delete --exclude api/ --exclude dev/ site/ /var/www/livii-bereh/` | після зміни сайту |
 
-Юніти й конфіг nginx: `deploy/systemd/`, `deploy/nginx/livii-bereh.conf`; ключ Jev: `deploy/live.env` (`TYPESAFE_API_KEY`, не в git). Журнал: `journalctl -u livii-bereh-cycle`.
+Юніти й конфіг nginx: `deploy/systemd/`, `deploy/nginx/livii-bereh.conf`; ключ Jev: `deploy/secrets/live.env` (`TYPESAFE_API_KEY`, не в git, папка лише для власника). Журнал: `journalctl -u livii-bereh-cycle`.
 
 **Що читає сайт** (`site/api/`, schema 1, час у UTC):
 - `now.json`: `hour` і `window_end` (вікно [t, t + 3 год)), `now` (тривога, рівень, «зараз тихо»), `forecast` (`p`, `tier` low/medium/high, межі, 3 причини, `kind`: що було в минулому на цьому рівні), `stale` і `stale_reason`, `waves` (хвилі дронів за 6 год);
