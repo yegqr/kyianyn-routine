@@ -1,0 +1,815 @@
+{
+ "schema": 1,
+ "source": ".venv/bin/python -I scripts/site/trust.py",
+ "split": {
+  "source": "data/gold/kyiv_quiet.parquet split by airalerts.evaluation.split (docs/adr/0008-time-split.md)",
+  "hours": 3909,
+  "labelled": 3906,
+  "first": "2026-05-01 00:00",
+  "last": "2026-10-10 20:00",
+  "folds_from": "2026-07-04 12:00",
+  "test_start": "2026-08-29 12:00",
+  "test_weeks": 6,
+  "parts": [
+   {
+    "key": "history",
+    "name": "розробка: лише навчання, перевірок ще немає",
+    "from": "2026-05-01 00:00",
+    "to": "2026-07-04 12:00",
+    "rows": 1548,
+    "busy_share_all": 0.289,
+    "quiet_now": 1320,
+    "busy": 315,
+    "busy_share": 0.239
+   },
+   {
+    "key": "development",
+    "name": "розробка: 8 тижневих перевірок, тут обирали модель і межі",
+    "from": "2026-07-04 12:00",
+    "to": "2026-08-29 10:00",
+    "rows": 1342,
+    "busy_share_all": 0.393,
+    "quiet_now": 1067,
+    "busy": 335,
+    "busy_share": 0.314
+   },
+   {
+    "key": "purged",
+    "name": "викинуто: їхні 3 години заходять у тест",
+    "from": "2026-08-29 10:00",
+    "to": "2026-08-29 12:00",
+    "rows": 2,
+    "busy_share_all": 1.0,
+    "quiet_now": 0,
+    "busy": 0,
+    "busy_share": null
+   },
+   {
+    "key": "test",
+    "name": "тест: відкрито один раз, лише звіт",
+    "from": "2026-08-29 12:00",
+    "to": "2026-10-10 18:00",
+    "rows": 1014,
+    "busy_share_all": 0.809,
+    "quiet_now": 412,
+    "busy": 294,
+    "busy_share": 0.714
+   },
+   {
+    "key": "unlabelled",
+    "name": "останні години: їхні 3 години ще не минули",
+    "from": "2026-10-10 18:00",
+    "to": "2026-10-10 21:00",
+    "rows": 3,
+    "busy_share_all": null,
+    "quiet_now": 0,
+    "busy": 0,
+    "busy_share": null
+   }
+  ],
+  "dev_folds": [
+   {
+    "origin": "2026-07-04 12:00",
+    "fit_rows": 1546,
+    "rows": 168,
+    "quiet_now": 135,
+    "busy": 33,
+    "busy_share": 0.244
+   },
+   {
+    "origin": "2026-07-11 12:00",
+    "fit_rows": 1714,
+    "rows": 168,
+    "quiet_now": 152,
+    "busy": 29,
+    "busy_share": 0.191
+   },
+   {
+    "origin": "2026-07-18 12:00",
+    "fit_rows": 1882,
+    "rows": 168,
+    "quiet_now": 139,
+    "busy": 55,
+    "busy_share": 0.396
+   },
+   {
+    "origin": "2026-07-25 12:00",
+    "fit_rows": 2050,
+    "rows": 168,
+    "quiet_now": 133,
+    "busy": 51,
+    "busy_share": 0.383
+   },
+   {
+    "origin": "2026-08-01 12:00",
+    "fit_rows": 2218,
+    "rows": 168,
+    "quiet_now": 149,
+    "busy": 36,
+    "busy_share": 0.242
+   },
+   {
+    "origin": "2026-08-08 12:00",
+    "fit_rows": 2386,
+    "rows": 168,
+    "quiet_now": 138,
+    "busy": 47,
+    "busy_share": 0.341
+   },
+   {
+    "origin": "2026-08-15 12:00",
+    "fit_rows": 2554,
+    "rows": 168,
+    "quiet_now": 115,
+    "busy": 48,
+    "busy_share": 0.417
+   },
+   {
+    "origin": "2026-08-22 12:00",
+    "fit_rows": 2722,
+    "rows": 166,
+    "quiet_now": 106,
+    "busy": 36,
+    "busy_share": 0.34
+   }
+  ],
+  "test_folds": [
+   {
+    "origin": "2026-08-29 12:00",
+    "fit_rows": 2890,
+    "rows": 168,
+    "quiet_now": 59,
+    "busy": 53,
+    "busy_share": 0.898
+   },
+   {
+    "origin": "2026-09-05 12:00",
+    "fit_rows": 3058,
+    "rows": 168,
+    "quiet_now": 87,
+    "busy": 43,
+    "busy_share": 0.494
+   },
+   {
+    "origin": "2026-09-12 12:00",
+    "fit_rows": 3226,
+    "rows": 168,
+    "quiet_now": 90,
+    "busy": 51,
+    "busy_share": 0.567
+   },
+   {
+    "origin": "2026-09-19 12:00",
+    "fit_rows": 3394,
+    "rows": 168,
+    "quiet_now": 54,
+    "busy": 48,
+    "busy_share": 0.889
+   },
+   {
+    "origin": "2026-09-26 12:00",
+    "fit_rows": 3562,
+    "rows": 168,
+    "quiet_now": 40,
+    "busy": 35,
+    "busy_share": 0.875
+   },
+   {
+    "origin": "2026-10-03 12:00",
+    "fit_rows": 3730,
+    "rows": 168,
+    "quiet_now": 82,
+    "busy": 64,
+    "busy_share": 0.78
+   },
+   {
+    "origin": "2026-10-10 12:00",
+    "fit_rows": 3898,
+    "rows": 6,
+    "quiet_now": 0,
+    "busy": 0,
+    "busy_share": null
+   }
+  ]
+ },
+ "evaluation": {
+  "source": "reports/quiet_leaderboard.md (.venv/bin/python -I -m airalerts.quiet.score final), recomputed from data/predictions/quiet by airalerts.evaluation.walkforward.bootstrap",
+  "hours": "quiet_now",
+  "n_boot": 1000,
+  "ci": 0.95,
+  "parts": {
+   "development": {
+    "hours": 1067,
+    "busy": 335,
+    "busy_share": 0.314
+   },
+   "test": {
+    "hours": 412,
+    "busy": 294,
+    "busy_share": 0.714
+   }
+  },
+  "models": [
+   {
+    "name": "logit_signals",
+    "role": "finalist",
+    "label": "наша модель: година, давність атаки і сигнали моніторів про дрони",
+    "development": {
+     "bss": 0.094,
+     "bss_ci": [
+      0.045,
+      0.148
+     ],
+     "roc_auc": 0.684,
+     "roc_auc_ci": [
+      0.621,
+      0.746
+     ],
+     "d_bss": 0.156,
+     "d_bss_ci": [
+      0.08,
+      0.24
+     ],
+     "verdict": "краще"
+    },
+    "test": {
+     "bss": 0.284,
+     "bss_ci": [
+      0.189,
+      0.37
+     ],
+     "roc_auc": 0.749,
+     "roc_auc_ci": [
+      0.594,
+      0.837
+     ],
+     "d_bss": 0.007,
+     "d_bss_ci": [
+      -0.226,
+      0.272
+     ],
+     "verdict": "не розрізнити"
+    }
+   },
+   {
+    "name": "naive_7d",
+    "role": "reference",
+    "label": "частка неспокійних вікон за останні 7 днів",
+    "development": {
+     "bss": -0.061,
+     "bss_ci": [
+      -0.119,
+      -0.011
+     ],
+     "roc_auc": 0.472,
+     "roc_auc_ci": [
+      0.406,
+      0.539
+     ],
+     "d_bss": null,
+     "d_bss_ci": null,
+     "verdict": "опорна"
+    },
+    "test": {
+     "bss": 0.277,
+     "bss_ci": [
+      0.013,
+      0.517
+     ],
+     "roc_auc": 0.49,
+     "roc_auc_ci": [
+      0.374,
+      0.597
+     ],
+     "d_bss": null,
+     "d_bss_ci": null,
+     "verdict": "опорна"
+    }
+   },
+   {
+    "name": "clim_hour",
+    "role": "rule",
+    "label": "лише година доби",
+    "development": {
+     "bss": 0.027,
+     "bss_ci": [
+      0.001,
+      0.049
+     ],
+     "roc_auc": 0.596,
+     "roc_auc_ci": [
+      0.55,
+      0.643
+     ],
+     "d_bss": 0.088,
+     "d_bss_ci": [
+      0.038,
+      0.153
+     ],
+     "verdict": "краще"
+    },
+    "test": {
+     "bss": -0.025,
+     "bss_ci": [
+      -0.05,
+      -0.003
+     ],
+     "roc_auc": 0.528,
+     "roc_auc_ci": [
+      0.431,
+      0.602
+     ],
+     "d_bss": -0.302,
+     "d_bss_ci": [
+      -0.551,
+      -0.036
+     ],
+     "verdict": "гірше"
+    }
+   },
+   {
+    "name": "recency_table",
+    "role": "rule",
+    "label": "нещодавно була атака, отже буде ще",
+    "development": {
+     "bss": 0.047,
+     "bss_ci": [
+      0.005,
+      0.091
+     ],
+     "roc_auc": 0.602,
+     "roc_auc_ci": [
+      0.536,
+      0.665
+     ],
+     "d_bss": 0.109,
+     "d_bss_ci": [
+      0.041,
+      0.176
+     ],
+     "verdict": "краще"
+    },
+    "test": {
+     "bss": 0.206,
+     "bss_ci": [
+      0.122,
+      0.299
+     ],
+     "roc_auc": 0.685,
+     "roc_auc_ci": [
+      0.521,
+      0.796
+     ],
+     "d_bss": -0.07,
+     "d_bss_ci": [
+      -0.29,
+      0.207
+     ],
+     "verdict": "не розрізнити"
+    }
+   },
+   {
+    "name": "hour_recency_nb",
+    "role": "rule",
+    "label": "година доби і давність атаки",
+    "development": {
+     "bss": 0.075,
+     "bss_ci": [
+      0.035,
+      0.117
+     ],
+     "roc_auc": 0.659,
+     "roc_auc_ci": [
+      0.606,
+      0.709
+     ],
+     "d_bss": 0.137,
+     "d_bss_ci": [
+      0.072,
+      0.202
+     ],
+     "verdict": "краще"
+    },
+    "test": {
+     "bss": 0.178,
+     "bss_ci": [
+      0.088,
+      0.266
+     ],
+     "roc_auc": 0.667,
+     "roc_auc_ci": [
+      0.517,
+      0.768
+     ],
+     "d_bss": -0.098,
+     "d_bss_ci": [
+      -0.323,
+      0.177
+     ],
+     "verdict": "не розрізнити"
+    }
+   }
+  ]
+ },
+ "replay": {
+  "source": "airalerts.live.model.replay() with its defaults on data/gold/kyiv_quiet.parquet (model.load(gold=True)), quiet-now hours with a known target (model.scored); tiers and calibration by airalerts.live.publish.summary and calibration; y_alert_3h by airalerts.live.features.alert_ahead on data/silver/kyiv_alerts.parquet",
+  "model": "logit_signals",
+  "busy_at": 0.197,
+  "high_at": 0.3,
+  "tier_names": {
+   "low": "швидше тихо",
+   "medium": "середній ризик",
+   "high": "високий ризик"
+  },
+  "cadence": {
+   "words": "щотижня у суботу о 12:00 за Києвом",
+   "retrains": 15,
+   "every_hours": 168,
+   "kyiv_hours": [
+    12
+   ],
+   "defaults": {
+    "start": "2026-07-04T09:00:00Z",
+    "cadence": "weekly"
+   },
+   "about": "The history as the live service would have made it: at each retrain moment of the cadence a model fitted on the hours known at that moment predicts each hour up to the next retrain"
+  },
+  "development": {
+   "from": "2026-07-04 12:00",
+   "to": "2026-08-29 10:00",
+   "hours": 1067,
+   "busy": 335,
+   "busy_share": 0.314,
+   "table": {
+    "quiet_quiet": 332,
+    "quiet_busy": 69,
+    "busy_quiet": 400,
+    "busy_busy": 266
+   },
+   "accuracy": 0.56,
+   "always_busy_accuracy": 0.314,
+   "always_quiet_accuracy": 0.686,
+   "busy_precision": 0.399,
+   "busy_recall": 0.794,
+   "quiet_truth": 0.828,
+   "quiet_found": 0.454,
+   "alert_hours": 1067,
+   "alert_share": 0.211,
+   "tiers": {
+    "low": {
+     "hours": 401,
+     "share_of_hours": 0.376,
+     "busy_share": 0.172,
+     "alert_share": 0.127,
+     "missile_share": 0.681
+    },
+    "medium": {
+     "hours": 312,
+     "share_of_hours": 0.292,
+     "busy_share": 0.295,
+     "alert_share": 0.208,
+     "missile_share": 0.804
+    },
+    "high": {
+     "hours": 354,
+     "share_of_hours": 0.332,
+     "busy_share": 0.492,
+     "alert_share": 0.308,
+     "missile_share": 0.73
+    }
+   },
+   "calibration": [
+    {
+     "from": 0.0,
+     "to": 0.1,
+     "n": 13,
+     "p_mean": 0.0921,
+     "busy_share": 0.154
+    },
+    {
+     "from": 0.1,
+     "to": 0.2,
+     "n": 400,
+     "p_mean": 0.1614,
+     "busy_share": 0.177
+    },
+    {
+     "from": 0.2,
+     "to": 0.3,
+     "n": 300,
+     "p_mean": 0.2457,
+     "busy_share": 0.293
+    },
+    {
+     "from": 0.3,
+     "to": 0.4,
+     "n": 210,
+     "p_mean": 0.342,
+     "busy_share": 0.381
+    },
+    {
+     "from": 0.4,
+     "to": 0.5,
+     "n": 88,
+     "p_mean": 0.4411,
+     "busy_share": 0.58
+    },
+    {
+     "from": 0.5,
+     "to": 0.6,
+     "n": 32,
+     "p_mean": 0.5441,
+     "busy_share": 0.719
+    },
+    {
+     "from": 0.6,
+     "to": 0.7,
+     "n": 12,
+     "p_mean": 0.644,
+     "busy_share": 0.75
+    },
+    {
+     "from": 0.7,
+     "to": 0.8,
+     "n": 6,
+     "p_mean": 0.7371,
+     "busy_share": 0.833
+    },
+    {
+     "from": 0.8,
+     "to": 0.9,
+     "n": 2,
+     "p_mean": 0.8296,
+     "busy_share": 1.0
+    },
+    {
+     "from": 0.9,
+     "to": 1.0,
+     "n": 4,
+     "p_mean": 0.9356,
+     "busy_share": 1.0
+    }
+   ]
+  },
+  "test": {
+   "from": "2026-08-29 12:00",
+   "to": "2026-10-10 21:00",
+   "hours": 412,
+   "busy": 294,
+   "busy_share": 0.714,
+   "table": {
+    "quiet_quiet": 23,
+    "quiet_busy": 5,
+    "busy_quiet": 95,
+    "busy_busy": 289
+   },
+   "accuracy": 0.757,
+   "always_busy_accuracy": 0.714,
+   "always_quiet_accuracy": 0.286,
+   "busy_precision": 0.753,
+   "busy_recall": 0.983,
+   "quiet_truth": 0.821,
+   "quiet_found": 0.195,
+   "alert_hours": 412,
+   "alert_share": 0.653,
+   "tiers": {
+    "low": {
+     "hours": 28,
+     "share_of_hours": 0.068,
+     "busy_share": 0.179,
+     "alert_share": 0.179,
+     "missile_share": 0.0
+    },
+    "medium": {
+     "hours": 63,
+     "share_of_hours": 0.153,
+     "busy_share": 0.492,
+     "alert_share": 0.413,
+     "missile_share": 0.161
+    },
+    "high": {
+     "hours": 321,
+     "share_of_hours": 0.779,
+     "busy_share": 0.804,
+     "alert_share": 0.741,
+     "missile_share": 0.275
+    }
+   },
+   "calibration": [
+    {
+     "from": 0.0,
+     "to": 0.1,
+     "n": 0,
+     "p_mean": null,
+     "busy_share": null
+    },
+    {
+     "from": 0.1,
+     "to": 0.2,
+     "n": 30,
+     "p_mean": 0.1645,
+     "busy_share": 0.167
+    },
+    {
+     "from": 0.2,
+     "to": 0.3,
+     "n": 61,
+     "p_mean": 0.2496,
+     "busy_share": 0.508
+    },
+    {
+     "from": 0.3,
+     "to": 0.4,
+     "n": 62,
+     "p_mean": 0.3504,
+     "busy_share": 0.694
+    },
+    {
+     "from": 0.4,
+     "to": 0.5,
+     "n": 52,
+     "p_mean": 0.4543,
+     "busy_share": 0.731
+    },
+    {
+     "from": 0.5,
+     "to": 0.6,
+     "n": 64,
+     "p_mean": 0.5484,
+     "busy_share": 0.844
+    },
+    {
+     "from": 0.6,
+     "to": 0.7,
+     "n": 54,
+     "p_mean": 0.6483,
+     "busy_share": 0.796
+    },
+    {
+     "from": 0.7,
+     "to": 0.8,
+     "n": 38,
+     "p_mean": 0.7476,
+     "busy_share": 0.868
+    },
+    {
+     "from": 0.8,
+     "to": 0.9,
+     "n": 35,
+     "p_mean": 0.8446,
+     "busy_share": 0.914
+    },
+    {
+     "from": 0.9,
+     "to": 1.0,
+     "n": 16,
+     "p_mean": 0.935,
+     "busy_share": 0.938
+    }
+   ]
+  },
+  "docs_weekly": {
+   "source": "docs/quiet/forecast.md: the weekly refit (scripts/analysis/quiet_forecast_check.py and quiet_forecast_value.py)",
+   "development": {
+    "said_quiet_share": 0.37,
+    "quiet_truth": 0.83,
+    "busy_recall": 0.8,
+    "medium_busy_share": 0.3,
+    "high_busy_share": 0.5,
+    "accuracy": 0.56,
+    "quiet_found": 0.45,
+    "alert_share": 0.21,
+    "low_alert_share": 0.13,
+    "medium_alert_share": 0.21,
+    "high_alert_share": 0.31
+   },
+   "test": {
+    "said_quiet_share": 0.07,
+    "quiet_truth": 0.83,
+    "busy_recall": 0.98,
+    "medium_busy_share": 0.48,
+    "high_busy_share": 0.8,
+    "accuracy": 0.76,
+    "quiet_found": 0.2,
+    "alert_share": 0.65,
+    "low_alert_share": 0.17,
+    "medium_alert_share": 0.43,
+    "high_alert_share": 0.74
+   }
+  }
+ },
+ "obvious_rules": {
+  "source": "docs/quiet/forecast.md, «Чи хороша модель» (scripts/analysis/quiet_forecast_value.py); the BSS and ROC AUC also in reports/quiet_leaderboard.md",
+  "rules": [
+   {
+    "name": "recency_table",
+    "label": "нещодавно була атака, отже буде ще",
+    "test_bss": 0.206,
+    "d_bss_ci": [
+     0.011,
+     0.145
+    ],
+    "test_roc_auc": 0.685,
+    "d_roc_auc_ci": [
+     -0.011,
+     0.147
+    ]
+   },
+   {
+    "name": "hour_recency_nb",
+    "label": "година доби і давність атаки",
+    "test_bss": 0.178,
+    "d_bss_ci": [
+     0.045,
+     0.169
+    ],
+    "test_roc_auc": 0.667,
+    "d_roc_auc_ci": [
+     0.02,
+     0.145
+    ]
+   }
+  ],
+  "model": {
+   "test_bss": 0.284,
+   "test_roc_auc": 0.749
+  },
+  "alert_copy": {
+   "label": "копія «зараз тривога»: знає лише, тихо зараз чи ні",
+   "roc_auc_all_hours": {
+    "development": 0.632,
+    "test": 0.625
+   },
+   "model_all_hours": {
+    "development": 0.749,
+    "test": 0.767
+   },
+   "model_quiet_now": {
+    "development": 0.684,
+    "test": 0.749
+   }
+  }
+ },
+ "examples": {
+  "source": "the replay above, test part",
+  "rule": "test hours of the replay, the most confident of each kind: the lowest p among the 'швидше тихо' hours that stayed quiet and among those that got busy, the highest p among the 'високий ризик' hours that got busy and among those that stayed quiet; a tie goes to the earlier hour",
+  "items": [
+   {
+    "kind": "right_quiet",
+    "label": "правильне «швидше тихо»",
+    "t": "2026-09-07 03:00",
+    "window": "03:00..06:00",
+    "p": 0.1174,
+    "tier": "low",
+    "said": "швидше тихо",
+    "busy": false,
+    "drones": false,
+    "missiles": false,
+    "alert": false,
+    "happened": "тихо, офіційної тривоги не було"
+   },
+   {
+    "kind": "miss",
+    "label": "пропуск: модель казала «швидше тихо», а стало неспокійно",
+    "t": "2026-09-07 15:00",
+    "window": "15:00..18:00",
+    "p": 0.1608,
+    "tier": "low",
+    "said": "швидше тихо",
+    "busy": true,
+    "drones": true,
+    "missiles": false,
+    "alert": true,
+    "happened": "неспокійно: дрони, офіційна тривога була"
+   },
+   {
+    "kind": "right_high",
+    "label": "правильний «високий ризик»",
+    "t": "2026-09-29 23:00",
+    "window": "23:00..02:00",
+    "p": 0.9799,
+    "tier": "high",
+    "said": "високий ризик",
+    "busy": true,
+    "drones": true,
+    "missiles": true,
+    "alert": true,
+    "happened": "неспокійно: дрони, ракети, офіційна тривога була"
+   },
+   {
+    "kind": "false_alarm",
+    "label": "хибна тривога: модель казала «високий ризик», а було тихо",
+    "t": "2026-09-04 00:00",
+    "window": "00:00..03:00",
+    "p": 0.9125,
+    "tier": "high",
+    "said": "високий ризик",
+    "busy": false,
+    "drones": false,
+    "missiles": false,
+    "alert": false,
+    "happened": "тихо, офіційної тривоги не було"
+   }
+  ]
+ }
+}
