@@ -1,0 +1,119 @@
+/* Charts of the main tab (charts.js): cards, key figures, period pills, legends, marks and the tooltip.
+   Colors and radii only from tokens.css; animations only transform and opacity. */
+
+.ch-card {
+  display: grid; gap: 14px; min-width: 0;
+  padding: 20px; border: 1px solid var(--line); border-radius: var(--r-card);
+  background: var(--card); color: var(--body); font-family: var(--font);
+}
+.ch-title { margin: 0; font: 700 20px/1.25 var(--font); color: var(--ink); }
+.ch-sub { margin: 0; max-width: 72ch; font: 400 15px/1.5 var(--font); color: var(--body); }
+.ch-h4 { margin: 10px 0 0; font: 600 16px/1.3 var(--font); color: var(--ink); }
+.ch-note { margin: 0; max-width: 90ch; font: 400 13px/1.5 var(--font); color: var(--soft); }
+.ch-calm { margin: 0; padding: 20px; border-radius: var(--r-small); background: var(--paper); font: 400 15px/1.5 var(--font); color: var(--soft); }
+
+.ch-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.ch-pill {
+  min-height: 36px; padding: 8px 16px; border: 1px solid var(--line); border-radius: var(--r-pill);
+  background: var(--card); color: var(--body); font: 500 14px/1 var(--font); cursor: pointer;
+  transition: transform 200ms var(--ease), opacity 200ms var(--ease);
+}
+.ch-pill:hover:not(:disabled) { border-color: var(--pink); }
+.ch-pill:active:not(:disabled) { transform: scale(.97); }
+.ch-pill[aria-pressed="true"] { border-color: var(--pink); background: var(--pink); color: var(--card); }
+.ch-pill:disabled { opacity: .45; cursor: default; }
+.ch-pill:focus-visible, .ch-raw:focus-visible, .ch-credit:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ch-svg:focus { outline: none; }
+.ch-svg:focus-visible { box-shadow: var(--focus-ring); }
+
+.ch-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; gap: 0 10px; }
+.ch-tile { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 4px; min-width: 0; padding: 12px 14px; border-radius: var(--r-small); background: var(--paper); }
+.ch-tile-label { align-self: end; font: 500 13px/1.3 var(--font); color: var(--soft); }
+.ch-tile-value { font: 700 28px/1.1 var(--font); color: var(--ink); }
+.ch-tile-note { font: 400 12px/1.35 var(--font); color: var(--soft); }
+
+.ch-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 0; padding: 0; list-style: none; font: 400 13px/1.3 var(--font); color: var(--body); }
+.ch-legend li, .ch-li { display: inline-flex; align-items: center; gap: 6px; }
+.ch-lead { font-weight: 600; color: var(--ink); }
+.ch-seq { display: block; max-width: 100%; }
+.ch-key { flex: none; width: 12px; height: 12px; border-radius: 3px; }
+.ch-key-busy, .ch-key-test { background: var(--pink); }
+.ch-key-calm { background: var(--soft); opacity: .45; }
+.ch-key-whole { background: var(--soft); }
+.ch-key-unknown { border: 1.5px solid var(--soft); background: var(--card); }
+.ch-key-alert { height: 6px; border-radius: 1px; background: var(--ink); }
+.ch-key-live { width: 16px; height: 3px; border-radius: 1px; background: var(--ink); }
+.ch-key-limit { width: 18px; height: 0; border-top: 1.5px dashed var(--ink); border-radius: 0; }
+.ch-key-line { width: 18px; height: 0; border-top: 2px solid var(--pink); border-radius: 0; }
+.ch-key-band { background: var(--pink-soft); }
+.ch-key-area { background: var(--soft); opacity: .3; }
+.ch-key-said { border: 1.5px solid var(--ink); border-radius: 50%; background: var(--card); }
+.ch-key-real { border-radius: 50%; background: var(--pink); }
+.ch-key-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+
+.ch-plot { position: relative; min-width: 0; }
+.ch-svg { display: block; width: 100%; height: auto; border-radius: var(--r-small); font-family: var(--font); touch-action: pan-y; }
+.ch-grid line { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
+.ch-tick { font-size: 12px; fill: var(--soft); font-variant-numeric: tabular-nums; }
+.ch-tick line { stroke: var(--soft); stroke-width: 1; }
+.ch-lab { font-size: 12px; font-weight: 500; fill: var(--ink); }
+.ch-strong { font-weight: 600; }
+.ch-halo { paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }
+.ch-on-bar { fill: var(--card); font-weight: 600; }
+.ch-b-busy { fill: var(--pink); }
+.ch-b-calm { fill: var(--soft); opacity: .45; }
+.ch-b-unknown { fill: var(--card); stroke: var(--soft); stroke-width: 1; }
+.ch-alert, .ch-live { fill: var(--ink); }
+.ch-band { fill: var(--pink-soft); }
+.ch-limit { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 4 3; opacity: .75; }
+.ch-test { stroke: var(--ink); stroke-width: 1; opacity: .6; }
+.ch-line { fill: none; stroke: var(--pink); stroke-width: 2; stroke-linejoin: round; }
+.ch-line-ink { stroke: var(--ink); stroke-width: 1.5; }
+.ch-area { fill: var(--soft); opacity: .22; }
+.ch-cross { stroke: var(--ink); stroke-width: 1; pointer-events: none; }
+.ch-dot { fill: var(--card); stroke: var(--ink); stroke-width: 2; pointer-events: none; }
+.ch-hl { fill: var(--paper); opacity: 0; }
+.ch-hl.on { opacity: 1; }
+.ch-seg { stroke: var(--soft); stroke-width: 2; opacity: .5; }
+.ch-said { fill: var(--card); stroke: var(--ink); stroke-width: 1.5; }
+.ch-real { fill: var(--pink); stroke: var(--card); stroke-width: 2; }
+.ch-pale { opacity: .45; }
+.ch-whole { fill: var(--soft); }
+.ch-testbar { fill: var(--pink); }
+.ch-gridbg { fill: var(--paper); }
+.ch-seqbar { stroke: var(--line); stroke-width: 1; }
+.ch-mark-dark { fill: var(--card); }
+.ch-mark-light { fill: var(--ink); }
+.ch-focus { fill: none; stroke: var(--ink); stroke-width: 2; pointer-events: none; }
+
+.ch-tip {
+  position: absolute; left: 0; top: 0; z-index: 5; display: grid; gap: 2px;
+  width: max-content; max-width: min(260px, 100%); padding: 8px 10px; border-radius: var(--r-small);
+  background: var(--ink); color: var(--card); font: 400 13px/1.4 var(--font);
+  pointer-events: none; opacity: 0;
+  transition: opacity 200ms var(--ease);
+}
+.ch-tip.on { opacity: 1; }
+.ch-tip strong { font-weight: 600; }
+.ch-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.ch-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); font: 500 13px/1.2 var(--font); }
+.ch-raw, .ch-credit { padding: 6px 4px; border-radius: var(--r-pill); color: var(--soft); text-decoration: none; }
+.ch-credit { color: var(--ink); font-weight: 700; }
+.ch-raw:hover, .ch-credit:hover { color: var(--pink); }
+
+.ch-in { animation: ch-in 320ms var(--ease) both; }
+@keyframes ch-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 560px) {
+  .ch-card { gap: 12px; padding: 16px; }
+  .ch-title { font-size: 18px; }
+  .ch-sub { font-size: 14px; }
+  .ch-tile { padding: 10px 8px; }
+  .ch-tile-label { font-size: 12px; }
+  .ch-tile-value { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ch-in { animation: none; }
+  .ch-pill, .ch-tip, .ch-tip.on { transition: none; }
+}
