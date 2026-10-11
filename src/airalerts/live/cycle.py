@@ -75,7 +75,9 @@ def run(out, data=None, do_fetch=True):
             prev = json.loads(state_path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             prev = {}
-        state = {"last_cycle": now_iso(), "ok": True, "error": None, "new_posts": 0, "steps": {}}
+        # how Jev is reached: the service key from the env file, or the vault (never the key itself)
+        state = {"last_cycle": now_iso(), "ok": True, "error": None, "new_posts": 0, "steps": {},
+                 "jev": "key" if os.environ.get("TYPESAFE_API_KEY") else "vault"}
         if do_fetch and fetch.run_once(data):
             state["error"] = "частина каналів не відповіла"
         state["new_posts"] = new_posts(data) if do_fetch else 0
