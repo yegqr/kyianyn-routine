@@ -1,6 +1,6 @@
 # kyiv_alerts
 
-Тривоги по місту Київ як інтервали. Модуль `src/airalerts/silver/alerts.py`, файл `data/silver/kyiv_alerts.parquet`. Правила розбору: [PARSING.md](../../PARSING.md) розділ 1. Рівні даних і контракт: [ARCHITECTURE.md](../../ARCHITECTURE.md).
+Тривоги по місту Київ як інтервали. Модуль `src/airalerts/silver/alerts.py`, файл `data/silver/kyiv_alerts.parquet`. Правила розбору: [PARSING.md](../PARSING.md) розділ 1. Рівні даних і контракт: [ARCHITECTURE.md](../../ARCHITECTURE.md).
 
 ## Що це
 

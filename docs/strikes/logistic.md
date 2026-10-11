@@ -1,6 +1,6 @@
 # Модель logistic: логістична регресія з часом від останнього удару
 
-Код: `src/airalerts/strikes/logistic.py`. Тести: `tests/test_strikes_logistic.py`. Прогнози: `data/predictions/logistic.parquet`.
+Код: `src/airalerts/strikes/logistic.py`. Тести: `tests/test_strikes_logistic.py`. Прогнози: `data/predictions/strikes/logistic.parquet`.
 Чесна назва: логістична регресія з часом від останнього удару. Ідея взята з моделей ризику (hazard), але це не повна hazard модель.
 
 ## Як працює
@@ -65,7 +65,7 @@
 
 ## Результат на розробці
 
-`evaluate check logistic`: 2026-07-04 12:00 .. 2026-08-29 09:00 за Києвом, 1342 год, 65 true, 18 атак. У дужках 95% інтервал (bootstrap по днях від полудня до полудня).
+`.venv/bin/python -I -m airalerts.strikes.score check logistic`: 2026-07-04 12:00 .. 2026-08-29 09:00 за Києвом, 1342 год, 65 true, 18 атак. У дужках 95% інтервал (bootstrap по днях від полудня до полудня).
 
 | модель | BSS | Brier | PR AUC | ROC AUC | поріг | recall | precision | атак спіймано | попереджень, год/тиждень | ΔBSS з naive_7d |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -118,7 +118,7 @@ BSS по тижнях (старт тижня у суботу 12:00 за Києв
 З кореня проєкту:
 
 ```
-.venv/bin/python -I -m airalerts.strikes.logistic                    # пише data/predictions/logistic.parquet (2356 год, близько 5 с)
+.venv/bin/python -I -m airalerts.strikes.logistic                    # пише data/predictions/strikes/logistic.parquet (2356 год, близько 5 с)
 .venv/bin/python -I -m airalerts.strikes.score check logistic     # таблиці розробки проти naive_7d
 choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests     # усі тести, разом з tests/test_strikes_logistic.py
 ```

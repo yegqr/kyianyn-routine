@@ -1,6 +1,6 @@
 # prep_signal_events
 
-Події підготовки удару з моніторингових каналів: стратегічна авіація (S1), МіГ-31К (S2), хвилі ударних дронів (S4). Модуль `src/airalerts/silver/signals.py`, файл `data/silver/prep_signal_events.parquet`. Правила: [PARSING.md](../../PARSING.md) розділи 0, 0.1, 7. Jev: [JEV.md](../../JEV.md). Рівні даних і контракт: [ARCHITECTURE.md](../../ARCHITECTURE.md).
+Події підготовки удару з моніторингових каналів: стратегічна авіація (S1), МіГ-31К (S2), хвилі ударних дронів (S4). Модуль `src/airalerts/silver/signals.py`, файл `data/silver/prep_signal_events.parquet`. Правила: [PARSING.md](../PARSING.md) розділи 0, 0.1, 7. Jev: [JEV.md](../JEV.md). Рівні даних і контракт: [ARCHITECTURE.md](../../ARCHITECTURE.md).
 
 ## Що це
 

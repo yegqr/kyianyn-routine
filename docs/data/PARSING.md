@@ -1,6 +1,6 @@
 # Парсинг: посібник з джерел
 
-Рівень bronze: сирі дані як є (`data/bronze/`). Файли bronze не лежать у git, їх збирають скрипти з цього посібника; у git лише журнал запусків `data/bronze/MANIFEST.md`. Silver і gold: [ARCHITECTURE.md](ARCHITECTURE.md). Навіщо дані: [METHODOLOGY.md](METHODOLOGY.md). Як шукали джерела і від чого відмовились: [HISTORY.md](HISTORY.md). Чому даним можна вірити: [data/VERIFICATION.md](data/VERIFICATION.md). Числа в «Перевірці» це стан на 2026-10-10; на пізніший запуск останні id і підсумки будуть більші.
+Рівень bronze: сирі дані як є (`data/bronze/`). Файли bronze не лежать у git, їх збирають скрипти з цього посібника; у git лише журнал запусків `data/bronze/MANIFEST.md`. Silver і gold: [ARCHITECTURE.md](../ARCHITECTURE.md). Навіщо дані: [METHODOLOGY.md](../METHODOLOGY.md). Як шукали джерела і від чого відмовились: [HISTORY.md](../HISTORY.md). Чому даним можна вірити: [data/VERIFICATION.md](VERIFICATION.md). Числа в «Перевірці» це стан на 2026-10-10; на пізніший запуск останні id і підсумки будуть більші.
 
 ## Карта джерел
 
@@ -56,7 +56,7 @@
 | `url` | str | `https://t.me/<channel>/<id>` |
 | `fetched_at` | str | час забору, UTC з `Z` |
 
-**Скрипт** [scripts/bronze/tg_fetch.py](../scripts/bronze/tg_fetch.py) (stdlib; `get()` і `parse()` можна імпортувати): `python3 -I scripts/bronze/tg_fetch.py <channel> data/bronze/telegram/<channel>.jsonl` (since за замовчуванням FETCH_FROM, пауза 1.5 с). Друкує підсумок: сторінки, рядки, перший і останній час, min і max id. Перший запуск іде від найновішого поста назад до since, наступні дописують лише новіше і добудовують перерваний бекфіл без дублів. Довгий канал можна качати частинами (`before stop_id`, див. docstring) і зливати: `python3 -I scripts/bronze/tg_fetch.py merge <out.jsonl> <part.jsonl>...`. У відповіді береться власний текст поста, а не цитата (OP_UA/18640); неіснуючий канал дає вихід з помилкою без файлу.
+**Скрипт** [scripts/bronze/tg_fetch.py](../../scripts/bronze/tg_fetch.py) (stdlib; `get()` і `parse()` можна імпортувати): `python3 -I scripts/bronze/tg_fetch.py <channel> data/bronze/telegram/<channel>.jsonl` (since за замовчуванням FETCH_FROM, пауза 1.5 с). Друкує підсумок: сторінки, рядки, перший і останній час, min і max id. Перший запуск іде від найновішого поста назад до since, наступні дописують лише новіше і добудовують перерваний бекфіл без дублів. Довгий канал можна качати частинами (`before stop_id`, див. docstring) і зливати: `python3 -I scripts/bronze/tg_fetch.py merge <out.jsonl> <part.jsonl>...`. У відповіді береться власний текст поста, а не цитата (OP_UA/18640); неіснуючий канал дає вихід з помилкою без файлу.
 
 **Пастки (усі канали):**
 - Сторінка буває коротша за 20 постів (5-9 у КМВА, Кличка, Собяніна): альбоми і видалені пости. Дірка в id не означає втрату; зупинка лише за датою.
@@ -65,7 +65,7 @@
 - Неіснуючий або закритий канал віддає HTTP 200 і 0 постів. 0 постів на відомому каналі означає, що змінилась розмітка: зупинитись і повідомити.
 - Офіційних лімітів немає: понад 1500 запитів з паузою 1.2-1.5 с пройшли без 429; @kpszsu повільніший, ~8 с на сторінку. Умови використання Telegram щодо t.me/s не перевіряли; Telegram API потребує реєстрації (лише з «так»).
 
-**Черга бекфілу.** [scripts/bronze/tg_backfill.sh](../scripts/bronze/tg_backfill.sh) `A|B|C` качає канали потоку один за одним; три потоки йдуть паралельно (якщо пішли 429, зменшити до одного). Лог `data/bronze/telegram/logs/<потік>.log`: рядок `done <канал>` або `FAIL <канал>`. Разом ~9 тис. сторінок з паузою ~4.5 с на сторінку; найбільший канал @kyiv_airdef. Контрольний пост (id, час) мусить бути у файлі після бекфілу:
+**Черга бекфілу.** [scripts/bronze/tg_backfill.sh](../../scripts/bronze/tg_backfill.sh) `A|B|C` качає канали потоку один за одним; три потоки йдуть паралельно (якщо пішли 429, зменшити до одного). Лог `data/bronze/telegram/logs/<потік>.log`: рядок `done <канал>` або `FAIL <канал>`. Разом ~9 тис. сторінок з паузою ~4.5 с на сторінку; найбільший канал @kyiv_airdef. Контрольний пост (id, час) мусить бути у файлі після бекфілу:
 - A: VA_Kyiv 17852 (2026-05-01T05:59:01Z), vitaliy_klitschko 6552 (2026-05-02T20:10:48Z), OP_UA 18635 (2026-05-01T11:49:35Z), V_Zelenskiy_official 18830 (2026-05-01T07:01:12Z), truexakyiv 74876 (2026-05-01T04:15:54Z), war_monitor 39394 (2026-04-30T21:00:41Z), AerisRimor 68042 (2026-04-30T22:00:41Z);
 - B: kyiv_airdef 33830 (2026-04-30T21:44:25Z), kyiv_nebo 22901 (2026-05-01T06:51:13Z), StrategicaviationT 30395 (2026-04-30T23:05:15Z);
 - C: mod_russia 63081 (2026-05-01T03:07:01Z), GeneralStaffZSU 37996 (2026-05-01T03:47:32Z), mos_sobyanin 19581 (2026-05-01T07:00:04Z), favt_info 4747 (2026-04-30T22:05:45Z), kpszsu 61012 (2026-04-30T22:09:30Z), monitorwarr 35743 (2026-04-30T22:22:16Z), vanek_nikolaev 40385 (2026-04-30T22:02:22Z).
@@ -86,7 +86,7 @@
 
 **Як забирати:** VA_Kyiv: рецепт 0.1. eTryvoga весь не качати: `python3 -I scripts/bronze/etryvoga_patch.py [годин до відбою, типово 3]` бере відбої без старту з `va_count.py`, бісекцією по `?before=<id>` знаходить сторінку з часом відбою, читає сторінки назад до відбою мінус 3 год і дописує пости (формат 0.1) у `data/bronze/telegram/UkraineAlarmSignal.jsonl`; повторний запуск дописує лише відсутнє. Файли: `data/bronze/telegram/VA_Kyiv.jsonl`, `data/bronze/telegram/UkraineAlarmSignal.jsonl`.
 
-**Правила обробки** (склеювання в тривоги і рішення про відбій без старту: [kyiv_alerts.md](data/silver/kyiv_alerts.md)):
+**Правила обробки** (склеювання в тривоги і рішення про відбій без старту: [kyiv_alerts.md](silver/kyiv_alerts.md)):
 - head = текст без початкових емодзі і знаків, перші 120 символів: `re.sub(r"^[^0-9A-Za-zА-Яа-яЄєІіЇїҐґ]+", "", text).strip()[:120]`.
 - Відбій: `^(м\.\s*Київ\s*[-–]\s*)?[Вв]ідбій`.
 - Старт: `^((м\.\s*Київ\s*[-–]\s*)?[Пп]овітряна тривога|(Червоний|Жовтий) рівень небезпеки|(У Києві |У столиці )?[Оо]голошено повітряну тривогу)`; рівень red, якщо в head є «Червоний», yellow, якщо «Жовтий», інакше alert. Нагадування всередині тривоги («У Києві лунає повітряна тривога...», «Сили ППО працюють...», «Загроза БпЛА триває...») не старт: regex з `^` їх відсікає.
@@ -100,15 +100,15 @@
 - КМВА зрідка не постить тривогу взагалі (в official є старт 2026-06-20 21:52:21Z, у КМВА нема поста в межах 20 хв) або коротку перерву (2026-08-29 у КМВА одна тривога 04:29-08:54Z, в official 04:29-05:29Z).
 - Червоний на жовтий: КМВА пише відбій і за хвилину новий жовтий старт (2026-10-07 20:48Z і 20:49Z), у даних це дві тривоги.
 
-**Перевірка:** `python3 -I scripts/bronze/va_count.py data/bronze/telegram/VA_Kyiv.jsonl` ([va_count.py](../scripts/bronze/va_count.py)) має дати `alerts by Kyiv month: {'05': 58, '06': 45, '07': 59, '08': 120, '09': 185, '10': 78} total 545 orphan ends: [21659]`.
+**Перевірка:** `python3 -I scripts/bronze/va_count.py data/bronze/telegram/VA_Kyiv.jsonl` ([va_count.py](../../scripts/bronze/va_count.py)) має дати `alerts by Kyiv month: {'05': 58, '06': 45, '07': 59, '08': 120, '09': 185, '10': 78} total 545 orphan ends: [21659]`.
 
 ## 2. Мітка ракетного удару
 
-**Що збираємо:** усі пости 7 каналів. Моніторингові, що в реальному часі ведуть Київ (загроза, рух ракет і дронів, вибухи, ППО, уламки, влучання, відбій): @truexakyiv (найшвидші пости про вибухи і влучання по районах), @war_monitor (загальноукраїнський: тип ракет, «Вибухи в Києві», відбій загрози балістики), @AerisRimor (треки ракет і дронів на Київ, «Пролунали вибухи»), @kyiv_nebo («Балістика на Київ», треки, відбій; контекст), @kyiv_airdef (треки по районах і передмістях, «БАЛІСТИКА НА КИЇВ»; контекст). Офіційні, як підтвердження: @VA_Kyiv (рівні небезпеки, червоний = ракети, уламки, влучання по районах) і @vitaliy_klitschko («Вибухи в столиці», влучання, постраждалі). Парсер зберігає все сире; мітку «ракетний удар по Києву в годину h» будує обробка: [kyiv_threat_hourly.md](data/silver/kyiv_threat_hourly.md), [JEV.md](JEV.md). Забір: рецепт 0.1.
+**Що збираємо:** усі пости 7 каналів. Моніторингові, що в реальному часі ведуть Київ (загроза, рух ракет і дронів, вибухи, ППО, уламки, влучання, відбій): @truexakyiv (найшвидші пости про вибухи і влучання по районах), @war_monitor (загальноукраїнський: тип ракет, «Вибухи в Києві», відбій загрози балістики), @AerisRimor (треки ракет і дронів на Київ, «Пролунали вибухи»), @kyiv_nebo («Балістика на Київ», треки, відбій; контекст), @kyiv_airdef (треки по районах і передмістях, «БАЛІСТИКА НА КИЇВ»; контекст). Офіційні, як підтвердження: @VA_Kyiv (рівні небезпеки, червоний = ракети, уламки, влучання по районах) і @vitaliy_klitschko («Вибухи в столиці», влучання, постраждалі). Парсер зберігає все сире; мітку «ракетний удар по Києву в годину h» будує обробка: [kyiv_threat_hourly.md](silver/kyiv_threat_hourly.md), [JEV.md](JEV.md). Забір: рецепт 0.1.
 
 Запасні (живі 2026-10-10, не качаємо): @kievreal1 (глибину архіву не перевіряли), @monitoring_kyiv, @kyivalarm, @kyivcityofficial (дублює КМВА і Кличка), @dsns_kyiv (наслідки і пожежі). Відкинуті: @kyiv_alarm (43 підписники), @kyiv_tryvoga, @kyiv_monitoring, @kyivoperativ (мовчать з 2024-2025), @chyste_nebo (0 постів у t.me/s).
 
-**Правила обробки.** Словник класів, міста і області (Python `re`, `re.I`, укр. і рос.): [`src/airalerts/silver/telegram_rx.py`](../src/airalerts/silver/telegram_rx.py) (`CLASSES`, `KYIV_CITY`, `OBLAST`, `KYIV_ONLY`, `classify`). Правило години, яке діє: [kyiv_threat_hourly.md](data/silver/kyiv_threat_hourly.md). Прості правила A і B лишились як база для порівняння з міткою: година h, якщо в [h, h+1) є (A) пост КМВА або Кличка з класом explosion, debris або impact_damage, або (B) щонайменше 2 різні моніторингові канали з таким постом по місту в межах 30 хв; в обох випадках за 90 хв до поста є пост з missile_threat у будь-якому з 7 каналів. Репост не рахується окремим джерелом.
+**Правила обробки.** Словник класів, міста і області (Python `re`, `re.I`, укр. і рос.): [`src/airalerts/silver/telegram_rx.py`](../../src/airalerts/silver/telegram_rx.py) (`CLASSES`, `KYIV_CITY`, `OBLAST`, `KYIV_ONLY`, `classify`). Правило години, яке діє: [kyiv_threat_hourly.md](silver/kyiv_threat_hourly.md). Прості правила A і B лишились як база для порівняння з міткою: година h, якщо в [h, h+1) є (A) пост КМВА або Кличка з класом explosion, debris або impact_damage, або (B) щонайменше 2 різні моніторингові канали з таким постом по місту в межах 30 хв; в обох випадках за 90 хв до поста є пост з missile_threat у будь-якому з 7 каналів. Репост не рахується окремим джерелом.
 
 **Витік:** для ознак стандартно `published_at < t`. Для мітки час події = `published_at` першого поста-доказу, а не ранкового зведення.
 
@@ -134,7 +134,7 @@
 - Один запит = один прогін, 168 погодинних значень від `run`: `https://single-runs-api.open-meteo.com/v1/forecast?latitude=50.4501&longitude=30.5234&hourly=cloud_cover,precipitation,wind_speed_10m,wind_gusts_10m,wind_direction_10m,visibility&models=ecmwf_ifs&run=2026-10-09T12:00&timezone=UTC&format=json`.
 - Прогони кожні 6 год від `2026-04-23T00:00` до останнього опублікованого. Останній: `https://api.open-meteo.com/data/ecmwf_ifs/static/meta.json`, поля `last_run_initialisation_time` і `last_run_availability_time` (unix-секунди); прогін 06:00 2026-10-10 вийшов о 12:22:53 UTC, через 6.4 год.
 - Неопублікований або відсутній прогін дає HTTP 400 `{"reason":"The requested model run is not available. ...","error":true}`: пропустити і повторити пізніше. Ліміти: до 10 000 викликів на добу, 5 000 на годину, 600 на хвилину.
-- Код: [scripts/bronze/wx_fetch_run.py](../scripts/bronze/wx_fetch_run.py) `python3 -I scripts/bronze/wx_fetch_run.py data/bronze/weather 2026-10-09T12:00 2026-10-10T06:00`. Бекфіл усіх прогонів: [scripts/bronze/wx_backfill.py](../scripts/bronze/wx_backfill.py) `[--out DIR] [--from 2026-04-23T00:00] [--to RUN] [--dry-run]`; відновлюваний, прогін з HTTP 400 пише в `ecmwf_ifs_missing_runs.csv` і питає знову, лише поки прогону менше 48 год.
+- Код: [scripts/bronze/wx_fetch_run.py](../../scripts/bronze/wx_fetch_run.py) `python3 -I scripts/bronze/wx_fetch_run.py data/bronze/weather 2026-10-09T12:00 2026-10-10T06:00`. Бекфіл усіх прогонів: [scripts/bronze/wx_backfill.py](../../scripts/bronze/wx_backfill.py) `[--out DIR] [--from 2026-04-23T00:00] [--to RUN] [--dry-run]`; відновлюваний, прогін з HTTP 400 пише в `ecmwf_ifs_missing_runs.csv` і питає знову, лише поки прогону менше 48 год.
 
 **Сирий формат і куди:**
 - `data/bronze/weather/openmeteo_single_runs/ecmwf_ifs_<YYYYMMDDTHH>.json`: відповідь як є, файл на прогін.
@@ -144,20 +144,20 @@
 **Правила обробки:**
 - Лише `models=ecmwf_ifs` і `timezone=UTC`, координати не міняти. Вузол сітки 50.439365, 30.476192, ~3.6 км на захід від центру. Якщо `hourly_units` змінилися, зупинитися.
 - Ключ (`run_utc`, `valid_utc`); дублікати від повторного запуску прибрати.
-- На `lead_h = 0` опади і пориви порожні. Звичайно прогони 06 і 18 UTC мають 145 непорожніх годин з 168, прогони 00 і 12 UTC усі 168; 6 з 681 прогонів коротші з вини джерела (таблиця в [weather_runs.md](data/silver/weather_runs.md), розділ Пастки).
+- На `lead_h = 0` опади і пориви порожні. Звичайно прогони 06 і 18 UTC мають 145 непорожніх годин з 168, прогони 00 і 12 UTC усі 168; 6 з 681 прогонів коротші з вини джерела (таблиця в [weather_runs.md](silver/weather_runs.md), розділ Пастки).
 - Для моменту t брати найсвіжіший прогін з `available_at_utc < t`; порожнє значення брати зі старшого прогону.
 
 **Витік:** `available_at_utc = run_utc + 8 год` (фактична затримка 6.4 год плюс запас). З правилом `< t` випередження прогнозу 9-14 год, до 20 год у 6 годинах після пропущеного прогону 2026-06-10T12:00. `fetched_at_utc` не час доступності: бекфіл забирає все сьогодні.
 
 **Пастки:** прогону 2026-06-10T12:00 в архіві нема (HTTP 400). Після вибору прогону частина значень порожня, її закриває старший прогін. Це вузол моделі, не станція; видимість модельна (80..55 200 м у всіх прогонах). Вітер у км/год, не м/с.
 
-**Перевірка:** скрипт на прогонах 2026-10-09T12:00 і 2026-10-10T06:00 дає 336 рядків, непорожніх хмарності і видимості по 313, рядок години 2026-10-10T12:00 як у прикладі. Повний бекфіл (2026-04-23T00:00..2026-10-10T06:00) дає 681 файл і 114 408 рядків CSV = 168 x 681; прогін 2026-06-10T12:00 лише в `ecmwf_ifs_missing_runs.csv`. Решта перевірок: [weather_runs.md](data/silver/weather_runs.md).
+**Перевірка:** скрипт на прогонах 2026-10-09T12:00 і 2026-10-10T06:00 дає 336 рядків, непорожніх хмарності і видимості по 313, рядок години 2026-10-10T12:00 як у прикладі. Повний бекфіл (2026-04-23T00:00..2026-10-10T06:00) дає 681 файл і 114 408 рядків CSV = 168 x 681; прогін 2026-06-10T12:00 лише в `ecmwf_ifs_missing_runs.csv`. Решта перевірок: [weather_runs.md](silver/weather_runs.md).
 
 ## 4. Астрономія
 
 **Що збираємо:** для Києва (50.4501, 30.5234) погодинно: висота Сонця, темно чи ні (цивільні і навігаційні сутінки), освітленість і фаза Місяця; щодня: схід і захід Сонця, сутінки, тривалість дня і ночі. Рахуємо локально, без мережі.
 
-**Джерело:** власний модуль [scripts/bronze/kyiv_astro.py](../scripts/bronze/kyiv_astro.py) на stdlib: рівняння NOAA Solar Calculator (Meeus) для Сонця, Meeus «Astronomical Algorithms», розділ 48, для фази Місяця. Контроль: MET Norway Sunrise 3.0 (https://api.met.no/weatherapi/sunrise/3.0/) і каталог фаз Espenak (https://astropixels.com/ephemeris/phasescat/phases2001.html). Не бібліотека: skyfield, ephem і astral не встановлені, а нова залежність лише з «так»; skyfield потребує файл ефемерид de421.bsp (16.8 МБ), astral без освітленості Місяця.
+**Джерело:** власний модуль [scripts/bronze/kyiv_astro.py](../../scripts/bronze/kyiv_astro.py) на stdlib: рівняння NOAA Solar Calculator (Meeus) для Сонця, Meeus «Astronomical Algorithms», розділ 48, для фази Місяця. Контроль: MET Norway Sunrise 3.0 (https://api.met.no/weatherapi/sunrise/3.0/) і каталог фаз Espenak (https://astropixels.com/ephemeris/phasescat/phases2001.html). Не бібліотека: skyfield, ephem і astral не встановлені, а нова залежність лише з «так»; skyfield потребує файл ефемерид de421.bsp (16.8 МБ), astral без освітленості Місяця.
 
 **Як:** `python3 -I scripts/bronze/kyiv_astro.py build data/bronze/astro` рахує за замовчуванням 2026-04-23..2026-10-31; інший період: `--from YYYY-MM-DD` і `--to YYYY-MM-DD`.
 
@@ -199,7 +199,7 @@ moon at next Kyiv midnight: illum 0.0005 phase 0.0072
 | 6 | Вікіпедія, окремі статті (URL у таблиці) | напр. https://uk.wikipedia.org/wiki/День_Києва | рухомі дати, річниці |
 | 7 | Nager.Date | https://date.nager.at/api/v3/PublicHolidays/2026/UA і `/RU` | перехресна перевірка вихідних |
 
-**Як забирати:** `python3 -I scripts/bronze/calendar_dates.py` ([скрипт](../scripts/bronze/calendar_dates.py)) читає таблицю нижче (блок `<details>`, рівно 100 рядків) і пише `dates.csv` без мережі (модуль csv, колонки рівно `date,name,group,type,source_url,hypothesis`). Для аудиту він зберігає сторінки Вікіпедії в `data/bronze/calendar/sources/` (по одному запиту, пауза 2 с), дописує `manifest.jsonl` (`key, url, revid, rev_timestamp, fetched_at, bytes`) і `dates_added.csv`; повторний запуск додає лише відсутнє. Рухомі дати 2026 перевіряються кодом:
+**Як забирати:** `python3 -I scripts/bronze/calendar_dates.py` ([скрипт](../../scripts/bronze/calendar_dates.py)) читає таблицю нижче (блок `<details>`, рівно 100 рядків) і пише `dates.csv` без мережі (модуль csv, колонки рівно `date,name,group,type,source_url,hypothesis`). Для аудиту він зберігає сторінки Вікіпедії в `data/bronze/calendar/sources/` (по одному запиту, пауза 2 с), дописує `manifest.jsonl` (`key, url, revid, rev_timestamp, fetched_at, bytes`) і `dates_added.csv`; повторний запуск додає лише відсутнє. Рухомі дати 2026 перевіряються кодом:
 
 ```python
 import datetime as dt
@@ -338,11 +338,11 @@ print("easter", E, "trinity", E + dt.timedelta(49), "kyiv_day", last(6, 5), "ru_
 - Збіги 2026: 04-12 (Великдень, День космонавтики, День ППО РФ), 05-31 (Трійця, День Києва), 10-01 (День захисників, Сухопутні війська РФ), кластери 22-24 серпня і 7-10 жовтня. Ефект окремої дати з них не виділити.
 - Москва UTC+3 цілий рік, Київ узимку UTC+2: з 2026-10-25 межа доби різниться на годину.
 
-**Перевірка:** `dates.csv` 100 рядків, 2026-01-01..2026-12-25; RF 67, UA 33; state_holiday 17, memorable_date 29, military_branch 25, military_glory 18, anniversary 6, religious 3, personal 1, city_day 1; 82 різні дати; 50 рядків у 2026-05-01..2026-10-12. Блок рухомих дат вище друкує очікуваний рядок. Nager.Date: усі 11 дат UA є серед рядків UA типу state_holiday або religious. `dates_added.csv` 9 рядків. Решта перевірок: [calendar_dates.md](data/silver/calendar_dates.md).
+**Перевірка:** `dates.csv` 100 рядків, 2026-01-01..2026-12-25; RF 67, UA 33; state_holiday 17, memorable_date 29, military_branch 25, military_glory 18, anniversary 6, religious 3, personal 1, city_day 1; 82 різні дати; 50 рядків у 2026-05-01..2026-10-12. Блок рухомих дат вище друкує очікуваний рядок. Nager.Date: усі 11 дат UA є серед рядків UA типу state_holiday або religious. `dates_added.csv` 9 рядків. Решта перевірок: [calendar_dates.md](silver/calendar_dates.md).
 
 ## 6. Календар: візити і події
 
-**Що збираємо:** датовані політичні події в групах RF (поїздки, зустрічі, дзвінки Путіна, зокрема з Трампом, форуми, саміти) і UA (візити лідерів в Україну, зустрічі і переговори за постами ОП і Зеленського). Поїздки Зеленського за кордон і сторінки G7, NATO, Європейської ради, Рамштайну лишаються в bronze, але клас `world` у silver прибрано: [ADR-0005](adr/0005-political-events-without-world.md). Кожен запис має `announced_at` в UTC; що йде в silver: [political_events.md](data/silver/political_events.md). Рівень 1 джерел офіційні (час до хвилини), рівень 2 Вікіпедія (таблиці; час доступності = перша ревізія з подією).
+**Що збираємо:** датовані політичні події в групах RF (поїздки, зустрічі, дзвінки Путіна, зокрема з Трампом, форуми, саміти) і UA (візити лідерів в Україну, зустрічі і переговори за постами ОП і Зеленського). Поїздки Зеленського за кордон і сторінки G7, NATO, Європейської ради, Рамштайну лишаються в bronze, але клас `world` у silver прибрано: [ADR-0005](../adr/0005-political-events-without-world.md). Кожен запис має `announced_at` в UTC; що йде в silver: [political_events.md](silver/political_events.md). Рівень 1 джерел офіційні (час до хвилини), рівень 2 Вікіпедія (таблиці; час доступності = перша ревізія з подією).
 
 | # | Джерело | URL | Що дає |
 |---|---|---|---|
@@ -365,9 +365,9 @@ print("easter", E, "trinity", E + dt.timedelta(49), "kyiv_day", last(6, 5), "ru_
 - Wiki «Peace negotiations in the Russo-Ukrainian war (2022–present)»: проза без таблиць.
 
 **Як забирати:**
-1. Kremlin: [scripts/bronze/kremlin_fetch.py](../scripts/bronze/kremlin_fetch.py) `[news] [trips]` (без аргументу обидва). Новини: гортає `/page/N` (новіші зверху), дописує записи з новим `item_id`, стоп на сторінці зі статтею старшою за FETCH_FROM; пауза 1.5 с, таймаут 60 с, повтори (окремі сторінки відповідають до 22 с). Поїздки: перша сторінка Atom-фіду, рядок додається, коли пара (`item_id`, `updated_at`) нова. Запис новини: `<a href="/events/president/news/(\d+)" rel="bookmark" itemprop="url"><span class="entry-title p-name"[^>]*>(.*?)</span>\s*<span class="hentry__meta">\s*<time class="published dt-published" datetime="(\d{4}-\d{2}-\d{2})"[^>]*>([^<]*)</time>`; година з тексту на кшталт `October 10, 2026, 10:10` (час Москви, UTC+3). У фіді `<published>2026-10-10T10:10:00+04:00</published>` це стінний час Москви, офсет `+04:00` хибний; `<updated>` теж зберігаємо.
+1. Kremlin: [scripts/bronze/kremlin_fetch.py](../../scripts/bronze/kremlin_fetch.py) `[news] [trips]` (без аргументу обидва). Новини: гортає `/page/N` (новіші зверху), дописує записи з новим `item_id`, стоп на сторінці зі статтею старшою за FETCH_FROM; пауза 1.5 с, таймаут 60 с, повтори (окремі сторінки відповідають до 22 с). Поїздки: перша сторінка Atom-фіду, рядок додається, коли пара (`item_id`, `updated_at`) нова. Запис новини: `<a href="/events/president/news/(\d+)" rel="bookmark" itemprop="url"><span class="entry-title p-name"[^>]*>(.*?)</span>\s*<span class="hentry__meta">\s*<time class="published dt-published" datetime="(\d{4}-\d{2}-\d{2})"[^>]*>([^<]*)</time>`; година з тексту на кшталт `October 10, 2026, 10:10` (час Москви, UTC+3). У фіді `<published>2026-10-10T10:10:00+04:00</published>` це стінний час Москви, офсет `+04:00` хибний; `<updated>` теж зберігаємо.
 2. Telegram: рецепт 0.1 (OP_UA, V_Zelenskiy_official).
-3. Вікіпедія: [scripts/bronze/wiki_fetch.py](../scripts/bronze/wiki_fetch.py); повторний запуск питає поточні ревізії всіх сторінок одним запитом і дописує лише нове. Запити MediaWiki API: знімок `action=query&prop=revisions&rvprop=ids|timestamp|content&rvslots=main&redirects=1&format=json&formatversion=2&titles=<T1>|<T2>`; ревізії з 2026-04-01 для часу першої появи `rvlimit=50&rvdir=newer&rvstart=2026-04-01T00:00:00Z` плюс `continue`; базова ревізія `rvdir=older&rvlimit=1`.
+3. Вікіпедія: [scripts/bronze/wiki_fetch.py](../../scripts/bronze/wiki_fetch.py); повторний запуск питає поточні ревізії всіх сторінок одним запитом і дописує лише нове. Запити MediaWiki API: знімок `action=query&prop=revisions&rvprop=ids|timestamp|content&rvslots=main&redirects=1&format=json&formatversion=2&titles=<T1>|<T2>`; ревізії з 2026-04-01 для часу першої появи `rvlimit=50&rvdir=newer&rvstart=2026-04-01T00:00:00Z` плюс `continue`; базова ревізія `rvdir=older&rvlimit=1`.
 4. Що парсити на сторінках Вікіпедії: Putin: таблиця після `=== 2026 ===` до `== Future trips ==` і після `===2026===` у `== Future trips ==`, колонки Country | Areas visited | Date(s) | Details. Zelensky: розділ `== 2026 ==`, дати як `{{sort|163|6 January}}`. Visits to Ukraine: дати ISO (`2026-07-15` або `2026-08-23–2026-08-24`), країна `{{Flag icon|X}}` з rowspan (переносити на наступні рядки). EUCO: клітинка-рік `2026` (rowspan), далі № | дата | Scheduled/Informal. UDCG: `|'''34''' |15 April 2026 |[[Berlin]]`. G7, NATO: рядок інфобокса `| date = 15–17 June 2026`. EEF: рядок `| 2026` і наступний `| September 1-4`. Формати дат: `19–20 May`, `31 August – 1 September`, `15 April 2026`, ISO; перед пошуком дати прибрати `<ref>..</ref>` і шаблони.
 
 **Сирий формат і куди:**
@@ -375,7 +375,7 @@ print("easter", E, "trinity", E + dt.timedelta(49), "kyiv_day", last(6, 5), "ru_
 - `data/bronze/calendar/kremlin_news.jsonl`: `source, item_id, url, title, published_local_msk, published_at (UTC = MSK мінус 3 год), fetched_at`. `kremlin_trips.jsonl`: ті самі поля плюс `updated_local_msk, updated_at, published_raw, updated_raw` (з фіду).
 - `data/bronze/calendar/wiki/<title>.json`: `title`, `lang`, `base` (остання ревізія до 2026-04-01), `revisions` (відповіді API з усіма ревізіями від 2026-04-01 з вікітекстом), `snapshots` (поточна сторінка); кожна частина має URL запиту, `fetched_at` і відповідь API.
 
-**Правила обробки:** заголовки Kremlin у типи (`call`, `call_trump`, `foreign_meeting`, `forum_ru`, `summit`, `putin_trip_abroad` та інші), ключові слова постів ОП, парсинг таблиць Вікіпедії, клас, важливість і дедуп: [political_events.md](data/silver/political_events.md), код `src/airalerts/silver/political_events.py`.
+**Правила обробки:** заголовки Kremlin у типи (`call`, `call_trump`, `foreign_meeting`, `forum_ru`, `summit`, `putin_trip_abroad` та інші), ключові слова постів ОП, парсинг таблиць Вікіпедії, клас, важливість і дедуп: [political_events.md](silver/political_events.md), код `src/airalerts/silver/political_events.py`.
 
 **Витік:**
 - Telegram: `announced_at = published_at`.
@@ -393,7 +393,7 @@ print("easter", E, "trinity", E + dt.timedelta(49), "kyiv_day", last(6, 5), "ru_
 
 ## 7. Сигнали підготовки удару
 
-**Що збираємо:** усі пости 7 моніторингових каналів з FETCH_FROM. Обробка виділяє сигнали: S1 зльоти і передислокація Ту-95МС, Ту-160, Ту-22М3 (Енгельс, Оленья, Українка); S2 зльоти МіГ-31К; S3 носії «Калібрів» у морі; S4 пуски і хвилі шахедів; S5 NOTAM. S3 і S5 відкинуто (причини в Пастках), @vanek_nikolaev з кандидатів виключено (рішення користувача 2026-10-10), його пости лишаються в bronze. Класифікація: [prep_signal_events.md](data/silver/prep_signal_events.md). Забір: рецепт 0.1; war_monitor, AerisRimor і kyiv_airdef спільні з розділом 2, качаються один раз.
+**Що збираємо:** усі пости 7 моніторингових каналів з FETCH_FROM. Обробка виділяє сигнали: S1 зльоти і передислокація Ту-95МС, Ту-160, Ту-22М3 (Енгельс, Оленья, Українка); S2 зльоти МіГ-31К; S3 носії «Калібрів» у морі; S4 пуски і хвилі шахедів; S5 NOTAM. S3 і S5 відкинуто (причини в Пастках), @vanek_nikolaev з кандидатів виключено (рішення користувача 2026-10-10), його пости лишаються в bronze. Класифікація: [prep_signal_events.md](silver/prep_signal_events.md). Забір: рецепт 0.1; war_monitor, AerisRimor і kyiv_airdef спільні з розділом 2, качаються один раз.
 
 **Джерела:**
 - @war_monitor: S1 зльоти і кількість бортів; S2 зліт і відбій МіГ-31К; S3 якісно (рядок «Флот» у зведенні #обстановка); S4 по Київщині (позначка 🅿️);
@@ -408,7 +408,7 @@ print("easter", E, "trinity", E + dt.timedelta(49), "kyiv_day", last(6, 5), "ru_
 
 **Приклади** (id, час UTC): S1 kpszsu/83399 2026-10-07T00:49:13Z «зафіксовано зліт 6 бортів Ту-95 з аеродрому «Оленегорськ»»; S2 подія 2026-09-17 у 4 каналах за 1.5 хв (monitorwarr/40368 10:22:51Z «Зліт МіГ-31К з аеродрому "Саваслейка"», kpszsu/78656, AerisRimor/85750, war_monitor/44811), відбій war_monitor/44812 10:42:16Z; S3 AerisRimor/89431 2026-10-07T00:20:54Z «Флот. Без ракетоносіїв в морях»; S4 war_monitor/47499 2026-10-09T00:37:07Z «Київщина: 🅿️1х реактив від Димера в сектор Буча / Ірпінь.»
 
-**Правила обробки.** Вирази сигналів S1..S5, KYIV і лічильники (кількість бортів `S1_COUNT`, кількість дронів `S4_COUNT`; рахуються лише разом з основним виразом сигналу): [`src/airalerts/silver/telegram_rx.py`](../src/airalerts/silver/telegram_rx.py) (`SIGNALS`). Збіги рахуються на збереженому тексті без цитати відповіді (0.1). Зведення: war_monitor `#обстановка` («Обстановка станом на 00:00», рядки «Стратегічна авіація», «БпЛА», «Флот»), востаннє war_monitor/44601 2026-09-13T21:05:30Z; AerisRimor «Зведення станом на 8:30» і «19:30» (блоки «СА/ДА» і «Флот»). Мова: vanek_nikolaev російською, решта українською. Час у тексті («станом на 02:05») київський і не є часом доступності.
+**Правила обробки.** Вирази сигналів S1..S5, KYIV і лічильники (кількість бортів `S1_COUNT`, кількість дронів `S4_COUNT`; рахуються лише разом з основним виразом сигналу): [`src/airalerts/silver/telegram_rx.py`](../../src/airalerts/silver/telegram_rx.py) (`SIGNALS`). Збіги рахуються на збереженому тексті без цитати відповіді (0.1). Зведення: war_monitor `#обстановка` («Обстановка станом на 00:00», рядки «Стратегічна авіація», «БпЛА», «Флот»), востаннє war_monitor/44601 2026-09-13T21:05:30Z; AerisRimor «Зведення станом на 8:30» і «19:30» (блоки «СА/ДА» і «Флот»). Мова: vanek_nikolaev російською, решта українською. Час у тексті («станом на 02:05») київський і не є часом доступності.
 
 **Витік:** час доступності = `published_at`. Правило для `edited` як у 0.1.
 
@@ -431,11 +431,11 @@ python3 -I -c "import json,sys; L=[json.loads(l) for l in open(sys.argv[1])]; D=
 
 ## 8. Удари України по РФ
 
-**Джерело (з 2026-10-11):** відкрите API dronestrikemap.com, без ключа, robots.txt дозволяє: `/api/strikes` (точки ударів з 2024-07-30: дата, місце, регіон, координати, опис цілі, достовірність), `/api/timeline` (підсумок дня по Росії і по Україні: запущено і збито за видом зброї, з переліком джерел), `/api/day/<d>` (точки дня зі зброєю і статтями), `/api/events`, `/api/sources`. Збирач `scripts/bronze/dronestrikemap_fetch.py` (знімок на кожен запуск), розбір і перевірка: [rf_strikes.md](data/silver/rf_strikes.md), рішення: [ADR-0004](adr/0004-rf-strikes-dronestrikemap.md).
+**Джерело (з 2026-10-11):** відкрите API dronestrikemap.com, без ключа, robots.txt дозволяє: `/api/strikes` (точки ударів з 2024-07-30: дата, місце, регіон, координати, опис цілі, достовірність), `/api/timeline` (підсумок дня по Росії і по Україні: запущено і збито за видом зброї, з переліком джерел), `/api/day/<d>` (точки дня зі зброєю і статтями), `/api/events`, `/api/sources`. Збирач `scripts/bronze/dronestrikemap_fetch.py` (знімок на кожен запуск), розбір і перевірка: [rf_strikes.md](silver/rf_strikes.md), рішення: [ADR-0004](../adr/0004-rf-strikes-dronestrikemap.md).
 
 **Витік:** сайт дає лише дату (для Росії день UTC, для України доба ПС 15:00Z..15:00Z), без години, часу публікації і історії змін; день d відомий з d + 30 год.
 
-**Попередні джерела (2026-10-10, у silver більше не йдуть, bronze лишився):** @mod_russia (звіти ППО МО РФ: «перехвачены и уничтожены N ... над территориями ...»), @mos_sobyanin (хвилі на Москву), @favt_info (обмеження в аеропортах Москви), @GeneralStaffZSU («Уражено ... НПЗ»), таблиця укрВікі «Перелік атак БпЛА по російських цілях (2026)» (з 2026-07-10, затримка до 3 діб; її збирач прибрано). Чому відмовились: [ADR-0004](adr/0004-rf-strikes-dronestrikemap.md). Денні суми збитих дронів зі звітів МО збережено в `data/verification/mod_russia_daily_drones.csv`; ними перевірено день сайту.
+**Попередні джерела (2026-10-10, у silver більше не йдуть, bronze лишився):** @mod_russia (звіти ППО МО РФ: «перехвачены и уничтожены N ... над территориями ...»), @mos_sobyanin (хвилі на Москву), @favt_info (обмеження в аеропортах Москви), @GeneralStaffZSU («Уражено ... НПЗ»), таблиця укрВікі «Перелік атак БпЛА по російських цілях (2026)» (з 2026-07-10, затримка до 3 діб; її збирач прибрано). Чому відмовились: [ADR-0004](../adr/0004-rf-strikes-dronestrikemap.md). Денні суми збитих дронів зі звітів МО збережено в `data/verification/mod_russia_daily_drones.csv`; ними перевірено день сайту.
 
 **Відкинуті агрегатори:** The Refinery Ledger (CSV віддає 404, лише 34 НПЗ), англ. Вікі «Deep strike campaign» (таблиці по об'єктах, а не по подіях), ACLED (потребує реєстрації).
 

@@ -1,4 +1,4 @@
-# quiet_linear: чотири лінійні моделі спокійних годин
+# linear: чотири лінійні моделі спокійних годин
 
 Модуль `src/airalerts/quiet/linear.py`, прогнози `data/predictions/quiet/{logit_small,logit_signals,two_heads,logit_all_l2}.parquet`, тести `tests/test_quiet.py` (підтест module=linear) і `tests/test_quiet_linear.py`. Питання: чи будуть наступні 3 години в Києві спокійними, дрони враховано ([ADR-0011](../adr/0011-quiet-hours.md)).
 

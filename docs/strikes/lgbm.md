@@ -1,6 +1,6 @@
 # lgbm: LightGBM (бустинг дерев рішень)
 
-Модуль `src/airalerts/strikes/lgbm.py`, прогнози `data/predictions/lgbm.parquet`, тести `tests/test_strikes_lgbm.py`.
+Модуль `src/airalerts/strikes/lgbm.py`, прогнози `data/predictions/strikes/lgbm.parquet`, тести `tests/test_strikes_lgbm.py`.
 
 ## Як працює
 
@@ -71,7 +71,7 @@
 
 ## Результат на розробці
 
-`evaluate check lgbm`, 2026-07-04 12:00 .. 2026-08-29 09:00 за Києвом, 1342 години, 65 true, 18 атак, у дужках 95% інтервали:
+`.venv/bin/python -I -m airalerts.strikes.score check lgbm`, 2026-07-04 12:00 .. 2026-08-29 09:00 за Києвом, 1342 години, 65 true, 18 атак, у дужках 95% інтервали:
 
 | модель | BSS | Brier | PR AUC | ROC AUC | поріг | recall | precision | атак спіймано | попереджень, год/тиждень | ΔBSS з naive_7d |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -126,7 +126,7 @@ BSS по тижнях (початок тижня, субота 12:00 за Киє
 
 З кореня проєкту:
 
-    .venv/bin/python -I -m airalerts.strikes.lgbm                      # пише data/predictions/lgbm.parquet (2356 годин)
+    .venv/bin/python -I -m airalerts.strikes.lgbm                      # пише data/predictions/strikes/lgbm.parquet (2356 годин)
     .venv/bin/python -I -m airalerts.strikes.score check lgbm       # таблиці розробки
     .venv/bin/python -I -m unittest discover -s tests                   # усі тести
 

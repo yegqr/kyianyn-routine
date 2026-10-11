@@ -1,6 +1,6 @@
 # weather_runs
 
-Silver, клас «погода»: `data/silver/weather_runs.parquet`, будівник `src/airalerts/silver/weather.py`. Правила рівнів: [ARCHITECTURE.md](../../ARCHITECTURE.md), джерело: [PARSING.md](../../PARSING.md) розділ 3.
+Silver, клас «погода»: `data/silver/weather_runs.parquet`, будівник `src/airalerts/silver/weather.py`. Правила рівнів: [ARCHITECTURE.md](../../ARCHITECTURE.md), джерело: [PARSING.md](../PARSING.md) розділ 3.
 
 ## Що це
 

@@ -2,7 +2,7 @@
 
 Стан на 2026-10-11 близько 15:00Z. Гілка `data-layers`, віддаленого репозиторію немає, нічого не запушено. Дані пройшли аудит перед моделюванням. Моделювання: погодинні моделі ([ADR-0009](adr/0009-three-models.md)) і нічне питання ([ADR-0010](adr/0010-night-question.md)) зроблено, тест обох відкрито один раз. Спокійні 3 години з дронами ([ADR-0011](adr/0011-quiet-hours.md)) теж зроблено, тест відкрито один раз. Далі: звіт `README.md`, рефлексія, експорт розмови, GitHub. Здача завдання KSE: 2026-10-12 23:59 за Києвом ([ASSIGNMENT.md](ASSIGNMENT.md)).
 
-Читати в такому порядку: цей файл, [ARCHITECTURE.md](ARCHITECTURE.md) (рівні, контракт, як запустити), [VERIFICATION.md](data/VERIFICATION.md) (чому даним можна довіряти, аудит), [kyiv_hourly.md](data/gold/kyiv_hourly.md) (колонки gold), [HISTORY.md](HISTORY.md) (як дійшли і від чого відмовились), [adr/](adr/).
+Читати в такому порядку: цей файл, [ARCHITECTURE.md](ARCHITECTURE.md) (рівні, контракт, як запустити), [VERIFICATION.md](data/VERIFICATION.md) (чому даним можна довіряти, аудит), [DATASET.md](data/DATASET.md) (заморожена версія трьох таблиць gold), [kyiv_hourly.md](data/gold/kyiv_hourly.md) (колонки gold), [HISTORY.md](HISTORY.md) (як дійшли і від чого відмовились), [adr/](adr/).
 
 ## Що є
 
@@ -32,12 +32,12 @@
 
 | Що | Де | Результат |
 |---|---|---|
-| поділ за часом | [ADR-0008](adr/0008-time-split.md), `evaluation/split.py` | тест з 2026-08-29, 6 тижнів; тижневий walk-forward |
+| поділ за часом | [ADR-0008](adr/0008-time-split.md), `src/airalerts/evaluation/split.py` | тест з 2026-08-29, 6 тижнів; тижневий walk-forward |
 | погодинні моделі (`naive_7d`, `share_table`, `logistic`, `lgbm`) | [ADR-0009](adr/0009-three-models.md), `reports/strikes_leaderboard.md` | ловлять нічні атаки, коли вони починаються (7 з 7 на тесті); денні атаки тесту пропущено; на тесті жодна не доведено краща за `naive_7d` |
 | нічне питання о 22:00, 12 моделей | [ADR-0010](adr/0010-night-question.md), `reports/nights_leaderboard.md` | фіналіст `refractory` на тесті провалився (2 з 7); тримається лише «ніч після атаки тиха» (23 з 23, тест 6 з 7) |
-| опис кожної моделі простими словами | `docs/models/` | варіанти, вибір, що вивчила, обмеження |
+| опис кожної моделі простими словами | `docs/strikes/`, `docs/nights/`, `docs/quiet/` | варіанти, вибір, що вивчила, обмеження |
 | спокійні 3 години з дронами, 11 моделей | [ADR-0011](adr/0011-quiet-hours.md), `reports/quiet_leaderboard.md` | гарантувати тишу не можна; рівні ризику фіналіста `logit_signals` втримались на тесті (низький 17%, високий 80% неспокійних) |
-| прогноз на 3 години для людини | `quiet/forecast.py`, [опис](models/forecast.md) | «швидше тихо» правдиве у 83% випадків і на розробці, і на тесті; восени казав так рідко |
+| прогноз на 3 години для людини | `src/airalerts/quiet/forecast.py`, [опис](quiet/forecast.md) | «швидше тихо» правдиве у 83% випадків і на розробці, і на тесті; восени казав так рідко |
 | описовий аналіз тесту | `scripts/analysis/` | матриця помилок, день і ніч, рівень ночей, рівні ризику спокою |
 
 Правила, що діють для кожної нової моделі:
@@ -63,7 +63,7 @@
 Команди перевірок (жодна не пише дані, крім позначених):
 
 ```
-.venv/bin/python -I -m unittest discover -s tests -v
+choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests
 .venv/bin/python -I -m airalerts.silver.alerts check
 .venv/bin/python -I -m airalerts.silver.telegram_posts check
 .venv/bin/python -I -m airalerts.silver.threat_hourly selftest
@@ -85,4 +85,4 @@ mkdir -p /tmp/s4 && .venv/bin/python -I -m airalerts.silver.signals check /tmp/s
 
 ## Як відтворити з нуля
 
-[ARCHITECTURE.md](ARCHITECTURE.md), «Як запустити»: bronze збирачами (`scripts/bronze/`), silver модулями в указаному порядку (Jev з кешу безкоштовно; без кешу потрібен відкритий vault з ключем `typesafe-general`), gold, база DuckDB, тест. Зовнішня перевірка: `scripts/verify/` (агенти Claude Code через Workflow і промпти в `label_reference_briefs.md`).
+[ARCHITECTURE.md](ARCHITECTURE.md), «Як запустити»: bronze збирачами (`scripts/bronze/`), silver модулями в указаному порядку (Jev з кешу безкоштовно; без кешу потрібен відкритий vault з ключем `typesafe-general`), gold (контрольні суми в [DATASET.md](data/DATASET.md)), база DuckDB, тести; моделі й оцінювачі кожного питання там само, пункт 5. Зовнішня перевірка: `scripts/verify/` (агенти Claude Code через Workflow і промпти в `label_reference_briefs.md`).

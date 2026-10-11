@@ -1,6 +1,6 @@
 # tg_posts
 
-Усі пости Telegram усіх каналів в одній таблиці з класами за regex. Модуль `src/airalerts/silver/telegram_posts.py`, regex у `src/airalerts/silver/telegram_rx.py`, файл `data/silver/tg_posts.parquet`. Правила: [PARSING.md](../../PARSING.md) розділи 0.1, 2, 7. Рівні даних і контракт: [ARCHITECTURE.md](../../ARCHITECTURE.md).
+Усі пости Telegram усіх каналів в одній таблиці з класами за regex. Модуль `src/airalerts/silver/telegram_posts.py`, regex у `src/airalerts/silver/telegram_rx.py`, файл `data/silver/tg_posts.parquet`. Правила: [PARSING.md](../PARSING.md) розділи 0.1, 2, 7. Рівні даних і контракт: [ARCHITECTURE.md](../../ARCHITECTURE.md).
 
 ## Що це
 

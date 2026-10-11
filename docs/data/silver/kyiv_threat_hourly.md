@@ -1,6 +1,6 @@
 # kyiv_threat_hourly
 
-Мітка ракетного удару по місту Київ за годинами: пости 7 каналів, оцінки Jev, правило години, ознаки і ціль для gold. Таблиці silver `kyiv_threat_hourly` і `kyiv_threat_posts`, модуль `src/airalerts/silver/threat_hourly.py`. Правила: [PARSING.md](../../PARSING.md) розділ 2, [JEV.md](../../JEV.md). Рівні даних і контракт: [ARCHITECTURE.md](../../ARCHITECTURE.md). Як ішов вибір правила: [HISTORY.md](../../HISTORY.md). Зовнішня перевірка мітки: [VERIFICATION.md](../VERIFICATION.md).
+Мітка ракетного удару по місту Київ за годинами: пости 7 каналів, оцінки Jev, правило години, ознаки і ціль для gold. Таблиці silver `kyiv_threat_hourly` і `kyiv_threat_posts`, модуль `src/airalerts/silver/threat_hourly.py`. Правила: [PARSING.md](../PARSING.md) розділ 2, [JEV.md](../JEV.md). Рівні даних і контракт: [ARCHITECTURE.md](../../ARCHITECTURE.md). Як ішов вибір правила: [HISTORY.md](../../HISTORY.md). Зовнішня перевірка мітки: [VERIFICATION.md](../VERIFICATION.md).
 
 ## Що це
 

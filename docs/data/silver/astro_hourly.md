@@ -1,6 +1,6 @@
 # astro_hourly
 
-Silver, клас «астрономія»: `data/silver/astro_hourly.parquet`, будівник `src/airalerts/silver/astro.py`. Правила рівнів: [ARCHITECTURE.md](../../ARCHITECTURE.md), джерело: [PARSING.md](../../PARSING.md) розділ 4.
+Silver, клас «астрономія»: `data/silver/astro_hourly.parquet`, будівник `src/airalerts/silver/astro.py`. Правила рівнів: [ARCHITECTURE.md](../../ARCHITECTURE.md), джерело: [PARSING.md](../PARSING.md) розділ 4.
 
 ## Що це
 

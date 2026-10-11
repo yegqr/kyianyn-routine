@@ -1,4 +1,4 @@
-# night_ml: чотири моделі машинного навчання для ночі
+# ml: чотири моделі машинного навчання для ночі
 
 Модуль `src/airalerts/nights/ml.py`, прогнози `data/predictions/nights/{lgbm_tiny,random_forest,knn,gaussian_nb}.parquet`, тести `tests/test_nights.py` (підтест module=ml) і `tests/test_nights_ml.py`. Питання: о 22:00 за Києвом йти спати в коридор чи в кімнату ([ADR-0010](../adr/0010-night-question.md)).
 

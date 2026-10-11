@@ -1,4 +1,4 @@
-# quiet_trees: чотири моделі з дерев для спокійних годин
+# trees: чотири моделі з дерев для спокійних годин
 
 Модуль `src/airalerts/quiet/trees.py`, прогнози `data/predictions/quiet/{lgbm_small,rf_small,lgbm_all,gaussian_nb}.parquet`, тест `tests/test_quiet.py` (підтест module=trees). Питання: на початку години t, чи будуть наступні 3 години в Києві спокійними, дрони враховано ([ADR-0011](../adr/0011-quiet-hours.md)). Модель дає ймовірність, що буде неспокійно.
 

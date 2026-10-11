@@ -1,6 +1,6 @@
 # Модель `share_table`: згладжена таблиця частот
 
-Код: `src/airalerts/strikes/share_table.py`. Тести логіки: `tests/test_strikes_share_table.py`. Прогнози: `data/predictions/share_table.parquet`.
+Код: `src/airalerts/strikes/share_table.py`. Тести логіки: `tests/test_strikes_share_table.py`. Прогнози: `data/predictions/strikes/share_table.parquet`.
 
 ## Як працює
 
@@ -71,7 +71,7 @@ p = (ударів у клітинці + m * p батьківської) / (го�
 
 ## Результат на розробці
 
-З `evaluate check share_table` (розробка, 2026-07-04 12:00 .. 2026-08-29 09:00 за Києвом, 18 атак; у дужках 95% інтервали бутстрепом по днях):
+З `.venv/bin/python -I -m airalerts.strikes.score check share_table` (розробка, 2026-07-04 12:00 .. 2026-08-29 09:00 за Києвом, 18 атак; у дужках 95% інтервали бутстрепом по днях):
 
 | модель | BSS | PR AUC | ROC AUC | атак спіймано | попереджень, год/тиждень | ΔBSS з naive_7d |
 |---|---|---|---|---|---|---|
@@ -104,9 +104,9 @@ p = (ударів у клітинці + m * p батьківської) / (го�
 З кореня проєкту:
 
 ```
-.venv/bin/python -I -m airalerts.strikes.share_table              # прогнози в data/predictions/share_table.parquet
+.venv/bin/python -I -m airalerts.strikes.share_table              # прогнози в data/predictions/strikes/share_table.parquet
 .venv/bin/python -I -m airalerts.strikes.score check share_table   # таблиці розробки проти naive_7d
-.venv/bin/python -I -m unittest discover -s tests -p test_share_table.py -v   # перевірки логіки на іграшкових даних
+.venv/bin/python -I -m unittest discover -s tests -p test_strikes_share_table.py -v   # перевірки логіки на іграшкових даних
 ```
 
 Увесь прогін (15 тижневих перенавчань) займає менше секунди.
