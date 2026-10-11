@@ -140,7 +140,7 @@ def main():
 
 # ---- self-test: python -m airalerts.silver.telegram_posts check ----
 
-CONTROL_01 = [  # PARSING 0.1, column "Контрольний пост": channel, post_id, published_at
+CONTROL_01 = [  # control posts of PARSING 0.1: channel, post_id, published_at
     ("VA_Kyiv", 17852, "2026-05-01T05:59:01Z"), ("vitaliy_klitschko", 6552, "2026-05-02T20:10:48Z"),
     ("truexakyiv", 74876, "2026-05-01T04:15:54Z"), ("war_monitor", 39394, "2026-04-30T21:00:41Z"),
     ("AerisRimor", 68042, "2026-04-30T22:00:41Z"), ("kpszsu", 61012, "2026-04-30T22:09:30Z"),
@@ -163,7 +163,7 @@ VIEW_EXAMPLES = [("GeneralStaffZSU", 37672), ("V_Zelenskiy_official", 18768), ("
 # the same fetched_at in bronze), so it is a run of ids deleted in the channel: docs/data/silver/tg_posts.md, section Пастки
 EXPLAINED_GAPS = {("truexakyiv", 79219, 79250)}
 DAY = ("2026-10-09 00:00:00", "2026-10-10 00:00:00")
-EXPECT_DAY = {  # posts, S1, S2, S3, S4, S5, KYIV counted on the stored text (no reply quote, PARSING 0.1); PARSING 7 carries the same
+EXPECT_DAY = {  # posts, S1, S2, S3, S4, S5, KYIV counted on the stored text (no reply quote, PARSING 0.1)
     "war_monitor": (37, 0, 0, 0, 30, 0, 28), "kpszsu": (455, 0, 0, 0, 382, 0, 104), "AerisRimor": (105, 0, 0, 0, 39, 0, 1),
     "StrategicaviationT": (116, 3, 1, 0, 14, 0, 1), "monitorwarr": (97, 0, 0, 0, 61, 0, 35),
     "vanek_nikolaev": (1, 0, 0, 0, 0, 0, 0), "kyiv_airdef": (791, 0, 0, 0, 17, 0, 1)}
