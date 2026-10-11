@@ -26,6 +26,20 @@ HOUR = timedelta(hours=1)
 NIGHT_FORBIDDEN = FORBIDDEN + ("nights", "nightly", "kyiv_nightly")
 
 
+def check_model(case, mod, fit, predict, folds, spec, forbidden):
+    """fit sees only rows whose target is known at the fold origin, predict sees no target, neither reads data on its
+    own (names) or keeps data in a module variable, and the output is reproducible probabilities."""
+    case.assertEqual([n for n in forbidden if any(reaches(mod, f, n, set()) for f in (fit, predict))], [])
+    case.assertEqual(data_globals(mod, (fit, predict)), [])
+    for o, rows, ev in folds:
+        case.assertLessEqual(max(rows["t_utc"].to_pylist()) + spec.h * HOUR, o)
+        x = ev.drop_columns([spec.label])
+        p = [float(v) for v in predict(fit(rows), x)]
+        case.assertEqual(len(p), ev.num_rows)
+        case.assertTrue(all(0 <= v <= 1 for v in p))
+        case.assertEqual(p, [float(v) for v in predict(fit(rows), x)])
+
+
 class NightlyTableTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -81,16 +95,7 @@ class NightModelsTest(unittest.TestCase):
         cls.folds = [dev[0], dev[-1], test[-2]]
 
     def check(self, mod, fit, predict):
-        self.assertEqual([n for n in NIGHT_FORBIDDEN if any(reaches(mod, f, n, set()) for f in (fit, predict))], [])
-        self.assertEqual(data_globals(mod, (fit, predict)), [])
-        for o, rows, ev in self.folds:
-            self.assertLessEqual(max(rows["t_utc"].to_pylist()) + nights.H * HOUR, o)
-            x = nights.features_only(ev)
-            self.assertNotIn(nights.LABEL, x.column_names)
-            p = [float(v) for v in predict(fit(rows), x)]
-            self.assertEqual(len(p), ev.num_rows)
-            self.assertTrue(all(0 <= v <= 1 for v in p))
-            self.assertEqual(p, [float(v) for v in predict(fit(rows), x)])
+        check_model(self, mod, fit, predict, self.folds, nights.SPEC, NIGHT_FORBIDDEN)
 
     def test_every_night_model(self):
         """Each module of airalerts.modeling.night_models in its own subtest, then each of its models."""

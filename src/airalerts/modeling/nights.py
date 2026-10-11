@@ -17,62 +17,51 @@ Rules fixed before any night model was scored:
 """
 import importlib
 import pkgutil
-import random
 import sys
 from datetime import timedelta
 
-import pyarrow as pa
-import pyarrow.compute as pc
-import pyarrow.parquet as pq
-
 from ..gold import kyiv_nightly as nightly
 from ..paths import DATA, ROOT
-from . import evaluate, split
+from . import split, tasks
 
 LABEL, H = nightly.LABEL, nightly.H
 PREDICTIONS = DATA / "predictions" / "nights"
+SPEC = tasks.Spec(nightly.PATH, LABEL, H, PREDICTIONS, "nights")
 REPORT = ROOT / "reports" / "nights_leaderboard.md"
 REFERENCE = "naive_7n"
 RECALL = 0.8
-N_BOOT = 1000
-SEED = 20261011
+N_BOOT = tasks.N_BOOT
 
 
 def load():
-    """Nights with a known target, in time order."""
-    t = pq.read_table(nightly.PATH).sort_by("t_utc")
-    return t.filter(pc.is_valid(t[LABEL]))
+    return tasks.load(SPEC)
 
 
 def features_only(rows):
-    return rows.drop_columns([LABEL])
+    return tasks.features_only(SPEC, rows)
 
 
 def dev_folds(t):
-    return split.dev_folds(t, H)
+    return tasks.dev_folds(SPEC, t)
 
 
 def test_folds(t):
-    return split.test_folds(t, H)
+    return tasks.test_folds(SPEC, t)
 
 
 def nights_scored(t):
-    return [x for fs in (dev_folds(t), test_folds(t)) for _, _, ev in fs for x in ev["t_utc"].to_pylist()]
+    return tasks.scored(SPEC, t)
 
 
 def fold_predictions(fit, predict, folds):
-    out = []
-    for _, rows, ev in folds:
-        p = [float(v) for v in predict(fit(rows), features_only(ev))]
-        if len(p) != ev.num_rows or any(not 0 <= v <= 1 for v in p):
-            raise ValueError(f"predict must return {ev.num_rows} probabilities in [0, 1]")
-        out += p
-    return out
+    return tasks.fold_predictions(SPEC, fit, predict, folds)
 
 
 def climatology(folds):
-    """The share of attack nights known at each fold origin, for every night it scores."""
-    return [sum(rows[LABEL].to_pylist()) / rows.num_rows for _, rows, ev in folds for _ in range(ev.num_rows)]
+    return tasks.climatology(SPEC, folds)
+
+
+scores = tasks.scores
 
 
 def naive_7n(t, at):
@@ -96,9 +85,18 @@ def decisions(y, p, thr):
     return caught, sum(y), false, len(y) - sum(y)
 
 
-def scores(y, p, clim):
-    return {"bss": 1 - evaluate.brier(y, p) / evaluate.brier(y, clim), "brier": evaluate.brier(y, p),
-            "roc_auc": evaluate.roc_auc(y, p), "pr_auc": evaluate.pr_auc(y, p)}
+def save(name, description, at, p):
+    tasks.save(SPEC, name, description, at, p)
+
+
+def run(mod):
+    """Fit and predict every development and test fold for each model of a night model module, then save."""
+    tasks.run(SPEC, mod)
+
+
+def night_modules():
+    from . import night_models
+    return [importlib.import_module(f"{night_models.__name__}.{m.name}") for m in pkgutil.iter_modules(night_models.__path__)]
 
 
 def dev_scores(fit, predict, t=None):
@@ -122,61 +120,9 @@ def dev_scores(fit, predict, t=None):
             "threshold": thr, "caught": f"{caught}/{att}", "false_nights": f"{false}/{quiet}"}
 
 
-def save(name, description, at, p):
-    if list(at) != nights_scored(load()):
-        raise ValueError(f"{name}: predictions must cover exactly the scored nights, in time order")
-    if any(v is None or not 0 <= v <= 1 for v in p):
-        raise ValueError(f"{name}: every p must be in [0, 1]")
-    PREDICTIONS.mkdir(parents=True, exist_ok=True)
-    table = pa.table({"t_utc": pa.array(at, pa.timestamp("us")), "p": pa.array(p, pa.float64())})
-    tmp = PREDICTIONS / f".{name}.parquet.tmp"  # write then rename: a reader never sees half a file
-    pq.write_table(table.replace_schema_metadata({"description": description}), tmp)
-    tmp.replace(PREDICTIONS / f"{name}.parquet")
-    print(f"{name}: {len(p)} nights written")
-
-
-def run(mod):
-    """Fit and predict every development and test fold for each model of a night model module, then save."""
-    t = load()
-    for name, m in mod.MODELS.items():
-        save(name, m["description"], nights_scored(t), fold_predictions(m["fit"], m["predict"], dev_folds(t) + test_folds(t)))
-
-
-def night_modules():
-    from . import night_models
-    return [importlib.import_module(f"{night_models.__name__}.{m.name}") for m in pkgutil.iter_modules(night_models.__path__)]
-
-
-def load_predictions(at, only=None):
-    models, about = {}, {}
-    for f in sorted(PREDICTIONS.glob("*.parquet")):
-        if only and f.stem not in only:
-            continue
-        t = pq.read_table(f)
-        if t["t_utc"].to_pylist() != at:
-            raise ValueError(f"{f.name}: not the scored nights; rerun its module")
-        models[f.stem], about[f.stem] = t["p"].to_pylist(), t.schema.metadata[b"description"].decode()
-    return models, about
-
-
-def ci(v, box, fmt=".3f"):
-    return "n/a" if v is None else f"{v:{fmt}} [{box[0]:{fmt}}, {box[1]:{fmt}}]"
-
-
 def part_table(title, idx, y, clim, models, thr, n_features):
     """Markdown rows for one part: point scores, 95% bootstrap intervals over nights, alarms at the threshold."""
-    rnd = random.Random(SEED)
-    vals = {}
-    for _ in range(N_BOOT):
-        b = [rnd.choice(idx) for _ in idx]
-        yy, cc = [y[i] for i in b], [clim[i] for i in b]
-        got = {m: scores(yy, [p[i] for i in b], cc) for m, p in models.items()}
-        for m, s in got.items():
-            for k, v in s.items():
-                if v is not None:
-                    vals.setdefault((m, k), []).append(v)
-            vals.setdefault((m, "d"), []).append(s["bss"] - got[REFERENCE]["bss"])
-    box = {k: (sorted(v)[int(0.025 * len(v))], sorted(v)[int(0.975 * len(v)) - 1]) for k, v in vals.items()}
+    box = tasks.bootstrap([[i] for i in idx], y, clim, models, REFERENCE)
     yy, cc = [y[i] for i in idx], [clim[i] for i in idx]
     point = {m: scores(yy, [p[i] for i in idx], cc) for m, p in models.items()}
     out = [f"## {title}: {len(idx)} ночей, {sum(yy)} з атакою", "",
@@ -190,10 +136,10 @@ def part_table(title, idx, y, clim, models, thr, n_features):
             d, verdict = "", "опорна"
         else:
             lo, hi = box[(m, "d")]
-            d = ci(s["bss"] - point[REFERENCE]["bss"], (lo, hi))
+            d = tasks.ci(s["bss"] - point[REFERENCE]["bss"], (lo, hi))
             verdict = "краще" if lo > 0 else "гірше" if hi < 0 else "не розрізнити"
-        out.append(f"| `{m}` | {n_features.get(m, '')} | {ci(s['bss'], box.get((m, 'bss'), (0, 0)))} | "
-                   f"{ci(s['roc_auc'], box.get((m, 'roc_auc'), (0, 0)))} | {ci(s['pr_auc'], box.get((m, 'pr_auc'), (0, 0)))} | "
+        out.append(f"| `{m}` | {n_features.get(m, '')} | {tasks.ci(s['bss'], box.get((m, 'bss'), (0, 0)))} | "
+                   f"{tasks.ci(s['roc_auc'], box.get((m, 'roc_auc'), (0, 0)))} | {tasks.ci(s['pr_auc'], box.get((m, 'pr_auc'), (0, 0)))} | "
                    f"{thr[m]:.3f} | {caught}/{att} | {false}/{quiet} | {prec} | {d} | {verdict} |")
     return out + [""]
 
@@ -212,27 +158,13 @@ HEADER = """# Нічне питання: чи йти спати в коридо�
 """
 
 
-def finalist(point, n_features):
-    best = max(point, key=lambda m: point[m])
-    near = [m for m in point if point[best] - point[m] < 0.01]
-    return min(near, key=lambda m: (n_features.get(m, 99), -point[m]))
-
-
 def report(final=False, only=None):
     t = load()
     at = nights_scored(t)
     save(REFERENCE, "share of attack nights among the 7 nights before", at, naive_7n(t, at))
-    models, about = load_predictions(at, only)
-    n_features = {}
+    models, about = tasks.load_predictions(SPEC, at, only)
     from . import night_models
-    for info in pkgutil.iter_modules(night_models.__path__):
-        try:  # another builder's module may be half written; its own tests and check will say so
-            mod = importlib.import_module(f"{night_models.__name__}.{info.name}")
-        except Exception as e:
-            print(f"skipped night_models.{info.name}: {e!r}", file=sys.stderr)
-            continue
-        for name, m in getattr(mod, "MODELS", {}).items():
-            n_features[name] = m.get("n_features", "")
+    n_features = tasks.n_features(night_models)
     n_features[REFERENCE] = 1
     folds = dev_folds(t) + test_folds(t)
     y = [int(v) for _, _, ev in folds for v in ev[LABEL].to_pylist()]
@@ -241,7 +173,7 @@ def report(final=False, only=None):
     test = [i for i, x in enumerate(at) if x >= split.TEST_START]
     thr = {m: threshold([y[i] for i in dev], [p[i] for i in dev]) for m, p in models.items()}
     dev_bss = {m: scores([y[i] for i in dev], [p[i] for i in dev], [clim[i] for i in dev])["bss"] for m, p in models.items()}
-    star = finalist({m: v for m, v in dev_bss.items() if m != REFERENCE} or dev_bss, n_features)
+    star = tasks.finalist({m: v for m, v in dev_bss.items() if m != REFERENCE} or dev_bss, n_features)
     lines = [HEADER.format(final=" final" if final else "", boot=N_BOOT,
                            scope="Фінальна оцінка з тестом." if final else "Лише розробка: тест відкриває `final`, один раз."),
              f"Фіналіст за правилом: ★ `{star}`.", "", "## Моделі", ""]
