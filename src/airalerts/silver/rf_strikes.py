@@ -126,10 +126,10 @@ SELECT t.t_utc,
   (SELECT count(*) FROM p WHERE p.is_energy AND p.available_at >= t.t_utc - INTERVAL 24 HOUR AND p.available_at < t.t_utc)::INTEGER AS rf_energy_1d,
   (SELECT count(*) FROM p WHERE p.is_energy AND p.available_at >= t.t_utc - INTERVAL 72 HOUR AND p.available_at < t.t_utc)::INTEGER AS rf_energy_3d,
   (SELECT count(*) > 0 FROM p WHERE p.is_moscow AND p.available_at >= t.t_utc - INTERVAL 72 HOUR AND p.available_at < t.t_utc)::INTEGER AS rf_moscow_3d,
-  COALESCE((SELECT sum(intercepted) FROM strike_days d WHERE d.country = 'RU'
+  COALESCE((SELECT sum(drones_intercepted) FROM strike_days d WHERE d.country = 'RU'
             AND d.available_at >= t.t_utc - INTERVAL 24 HOUR AND d.available_at < t.t_utc), 0)::INTEGER AS rf_drones_intercepted_1d,
-  COALESCE((SELECT sum(missiles_max) FROM strike_days d WHERE d.country = 'UA'
-            AND d.available_at >= t.t_utc - INTERVAL 24 HOUR AND d.available_at < t.t_utc), 0)::INTEGER AS ua_missiles_launched_1d,
+  (SELECT sum(missiles_max) FROM strike_days d WHERE d.country = 'UA'
+   AND d.available_at >= t.t_utc - INTERVAL 24 HOUR AND d.available_at < t.t_utc)::INTEGER AS ua_missiles_launched_1d,
   COALESCE((SELECT sum(drones_max) FROM strike_days d WHERE d.country = 'UA'
             AND d.available_at >= t.t_utc - INTERVAL 24 HOUR AND d.available_at < t.t_utc), 0)::INTEGER AS ua_drones_launched_1d,
   LEAST({cap}, COALESCE((SELECT date_diff('second', max(p.available_at), t.t_utc) / 3600.0 FROM p
@@ -155,8 +155,9 @@ def features(con, t_table):
     Russia: points in Russia without occupied Ukraine; 1d = the newest known day ([t-24h, t)), 3d = the three newest ([t-72h, t)).
     rf_points_*: strike points; rf_regions_3d: distinct regions; rf_energy_*: points whose summary names a refinery, fuel or oil
     depot, power grid or plant, substation, gas facility; rf_moscow_3d: 1 if a point is in Moscow or Moscow Oblast;
-    rf_drones_intercepted_1d: drones the Russian MoD said it intercepted on the newest known day; ua_missiles_launched_1d,
-    ua_drones_launched_1d: missiles and drones launched at Ukraine on the newest known day (Air Force, max of the range);
+    rf_drones_intercepted_1d: drones (without missiles) the Russian MoD said it intercepted on the newest known day;
+    ua_missiles_launched_1d, ua_drones_launched_1d: missiles and drones launched at Ukraine on the newest known day (Air Force, max
+    of the range); ua_missiles_launched_1d is NULL when the site has no missile figure for that day (55 of 178 days), not 0;
     hours_since_rf_energy: hours from the available_at of the last energy point to t, capped at 336. t must not be after data_end()."""
     last = con.execute(f"SELECT MAX(CAST(t_utc AS TIMESTAMP)) FROM {t_table}").fetchone()[0]
     if last and last > data_end():
@@ -174,8 +175,9 @@ def _py_features(points, days, t):
     return {"rf_points_1d": len(in1), "rf_points_3d": len(in3), "rf_regions_3d": len({r["region"] for r in in3}),
             "rf_energy_1d": sum(r["is_energy"] for r in in1), "rf_energy_3d": sum(r["is_energy"] for r in in3),
             "rf_moscow_3d": int(any(r["is_moscow"] for r in in3)),
-            "rf_drones_intercepted_1d": sum(r["intercepted"] or 0 for r in d1 if r["country"] == "RU"),
-            "ua_missiles_launched_1d": sum(r["missiles_max"] or 0 for r in d1 if r["country"] == "UA"),
+            "rf_drones_intercepted_1d": sum(r["drones_intercepted"] or 0 for r in d1 if r["country"] == "RU"),
+            "ua_missiles_launched_1d": sum(m) if (m := [r["missiles_max"] for r in d1 if r["country"] == "UA"
+                                                         and r["missiles_max"] is not None]) else None,
             "ua_drones_launched_1d": sum(r["drones_max"] or 0 for r in d1 if r["country"] == "UA"),
             "hours_since_rf_energy": min(CAP_HOURS, (t - max(en)).total_seconds() / 3600) if en else CAP_HOURS}
 
@@ -224,13 +226,13 @@ def cmd_features_check(seed=11):
     print(f"hours {len(f)} ({first:%Y-%m-%dT%H}Z..{last:%Y-%m-%dT%H}Z), unique {len({r['t_utc'] for r in f}) == len(f)}, "
           f"nulls {sum(v is None for r in f for v in r.values())}")
     for c in COLS:
-        v = [r[c] for r in f]
-        print(f"  {c}: min {min(v)}, max {max(v)}, mean {sum(v) / len(v):.2f}")
+        v = [r[c] for r in f if r[c] is not None]
+        print(f"  {c}: min {min(v)}, max {max(v)}, mean {sum(v) / len(v):.2f}, null {len(f) - len(v)}")
     points = _arrow(con.execute(f"SELECT * FROM {POINTS}")).to_pylist()
     days = _arrow(con.execute(f"SELECT * FROM {DAYS}")).to_pylist()
     bad = [r["t_utc"] for r in f if {c: r[c] for c in COLS} != _py_features(points, days, r["t_utc"])]
     print(f"plain-Python recomputation differs in {len(bad)} hours {bad[:3]}")
-    ok = not bad and all(v is not None for r in f for v in r.values())
+    ok = not bad and all(v is not None for r in f for c, v in r.items() if c != "ua_missiles_launched_1d")
     rnd = random.Random(seed)
     for t in sorted(rnd.sample([r["t_utc"] for r in f], 3)):
         c2 = connect()
