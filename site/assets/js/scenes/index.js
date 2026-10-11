@@ -9,6 +9,7 @@ export const SCENES = [
   './07-model.js',
   './08-thresholds.js',
   './09-results.js',
-  './10-live.js',
-  './11-agents.js',
+  './10-trust.js',
+  './11-live.js',
+  './12-agents.js',
 ]
