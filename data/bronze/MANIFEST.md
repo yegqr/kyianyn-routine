@@ -16,6 +16,7 @@
 | `calendar/wiki/2026_Ankara_NATO_summit` | 2026-10-10T17:43:32Z | 71 | 2026-04-12T20:52:37Z | 2026-07-26T09:50:40Z |
 | `calendar/wiki/Eastern_Economic_Forum` | 2026-10-10T17:44:05Z | 1 | 2026-09-03T14:53:18Z | 2026-09-03T14:53:18Z |
 | `strikes_rf/ukwiki_list_2026/` (ревізії, `scripts/bronze/wiki_fetch.py`) | 2026-10-10T17:44:06Z | 101 | 2026-07-10T20:10:31Z | 2026-10-10T10:41:24Z |
+| `strikes_rf/dronestrikemap/20261011T083437Z/` (знімок API dronestrikemap.com: strikes, timeline, events, sources, meta і 179 файлів `days/`; `scripts/bronze/dronestrikemap_fetch.py`; 184 запити, усі HTTP 200) | 2026-10-11T08:38:54Z | 8735 точок ударів | 2024-07-30 | 2026-10-11 |
 | president.gov.ua (`scripts/bronze/president_fetch.py`): HTTP 403, нічого не збережено | 2026-10-10T17:38:31Z | 0 | | |
 | `calendar/dates.csv` (з PARSING.md розділ 5, без мережі, `scripts/bronze/calendar_dates.py`) | 2026-10-10T17:38:53Z | 100 | 2026-01-01 | 2026-12-25 |
 | `calendar/dates_added.csv` (кожен рядок підтверджено збереженою сторінкою Вікіпедії) | 2026-10-10T17:43:42Z | 9 | 2026-01-25 | 2026-11-11 |
