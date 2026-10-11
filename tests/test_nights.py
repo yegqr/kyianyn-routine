@@ -17,10 +17,12 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from airalerts.gold import kyiv_hourly as hourly, kyiv_nightly as nightly
-from airalerts.modeling import night_models, nights, split, tasks
+from airalerts import nights as night_models
+from airalerts.evaluation import split, walkforward
+from airalerts.nights import score as nights
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I leaves the tests folder off the path
-from test_models import FORBIDDEN, data_globals, reaches  # noqa: E402
+from test_strikes import FORBIDDEN, data_globals, reaches  # noqa: E402
 
 HOUR = timedelta(hours=1)
 NIGHT_FORBIDDEN = FORBIDDEN + ("nights", "nightly", "kyiv_nightly")
@@ -33,7 +35,7 @@ def check_model(case, mod, fit, predict, folds, spec, forbidden):
     case.assertEqual(data_globals(mod, (fit, predict)), [])
     for o, rows, ev in folds:
         case.assertLessEqual(max(rows["t_utc"].to_pylist()) + spec.h * HOUR, o)
-        x = tasks.features_only(spec, ev)
+        x = walkforward.features_only(spec, ev)
         case.assertEqual([c for c in (spec.label, *spec.extra_targets) if c in x.column_names], [])
         p = [float(v) for v in predict(fit(rows), x)]
         case.assertEqual(len(p), ev.num_rows)
@@ -86,7 +88,7 @@ class NightlyTableTest(unittest.TestCase):
 
 
 class NightModelsTest(unittest.TestCase):
-    """Every model of every module in airalerts.modeling.night_models: fit sees only nights whose target is known at
+    """Every model of every module in airalerts.nights: fit sees only nights whose target is known at
     the fold origin, predict sees no target, neither reads data on its own, the output is reproducible probabilities."""
 
     @classmethod
@@ -99,14 +101,19 @@ class NightModelsTest(unittest.TestCase):
         check_model(self, mod, fit, predict, self.folds, nights.SPEC, NIGHT_FORBIDDEN)
 
     def test_every_night_model(self):
-        """Each module of airalerts.modeling.night_models in its own subtest, then each of its models."""
+        """Each module of airalerts.nights in its own subtest, then each of its models."""
         for info in pkgutil.iter_modules(night_models.__path__):
             with self.subTest(module=info.name):
                 mod = importlib.import_module(f"{night_models.__name__}.{info.name}")
-                for name, m in mod.MODELS.items():
+                for name, m in getattr(mod, "MODELS", {}).items():
                     with self.subTest(model=name):
                         self.assertTrue({"fit", "predict", "description", "n_features"} <= set(m))
                         self.check(mod, m["fit"], m["predict"])
+
+    def test_dev_scores_runs(self):
+        from airalerts.nights import rules
+        m = rules.MODELS["refractory"]
+        self.assertIn("bss", nights.dev_scores(m["fit"], m["predict"]))
 
     def test_the_split_keeps_test_nights_out_of_development(self):
         t = nights.load()

@@ -9,7 +9,7 @@ from datetime import timedelta
 from zoneinfo import ZoneInfo
 
 from airalerts.gold.kyiv_hourly import LABEL
-from airalerts.modeling import split
+from airalerts.evaluation import split
 
 HOUR = timedelta(hours=1)
 KYIV = ZoneInfo("Europe/Kyiv")

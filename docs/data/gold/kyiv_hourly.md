@@ -2,7 +2,7 @@
 
 ## Що це
 
-Один рядок це одна година t (UTC, початок години): ознаки, відомі до t, і ціль `y_strike_3h`, чи буде ракетний удар по місту Київ у `[t, t + 3 год)`. Файл `data/gold/kyiv_hourly.parquet`: 3909 рядків, 52 колонки, від 2026-04-30T21:00Z (2026-05-01 00:00 за Києвом) до зрізу 2026-10-10T17:00Z. Код `src/airalerts/gold/kyiv_hourly.py`, тест `tests/test_no_leakage.py`. Jev не викликається, усе береться з silver.
+Один рядок це одна година t (UTC, початок години): ознаки, відомі до t, і ціль `y_strike_3h`, чи буде ракетний удар по місту Київ у `[t, t + 3 год)`. Файл `data/gold/kyiv_hourly.parquet`: 3909 рядків, 52 колонки, від 2026-04-30T21:00Z (2026-05-01 00:00 за Києвом) до зрізу 2026-10-10T17:00Z. Код `src/airalerts/gold/kyiv_hourly.py`, тест `tests/test_gold_hourly.py`. Jev не викликається, усе береться з silver.
 
 ## Входи
 
@@ -113,7 +113,7 @@ choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v   # тес�
 
 ## Тест на витік
 
-`tests/test_no_leakage.py`, stdlib `unittest`, 7 тестів:
+`tests/test_gold_hourly.py`, stdlib `unittest`, 7 тестів:
 
 1. форма: перші колонки `t_utc`, `hour_kyiv`, `dow_kyiv`, далі колонки `features()` модулів у порядку модулів, остання `y_strike_3h`; години від T0 до зрізу безперервні й унікальні;
 2. gold не старший за таблиці silver, які читають модулі (час зміни файлів);
@@ -125,7 +125,7 @@ choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v   # тес�
 
 Результат: 7 тестів OK. У тесті 3 порівняно 2400 значень (50 t, 8 модулів, 48 колонок ознак), різниць 0.
 
-Команда `.venv/bin/python -I -m unittest tests/test_no_leakage.py` падає на імпорті (`ModuleNotFoundError: No module named 'tests'`): `-I` прибирає поточну теку з `sys.path`. Працюють `discover -s tests` (вище), `.venv/bin/python -I tests/test_no_leakage.py` і та сама команда без `-I`.
+Команда `.venv/bin/python -I -m unittest tests/test_gold_hourly.py` падає на імпорті (`ModuleNotFoundError: No module named 'tests'`): `-I` прибирає поточну теку з `sys.path`. Працюють `discover -s tests` (вище), `.venv/bin/python -I tests/test_gold_hourly.py` і та сама команда без `-I`.
 
 ## Перевірка
 
@@ -136,7 +136,7 @@ choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v   # тес�
 | `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT count(*), count(*) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone())"` | `(3909, 138)` |
 | `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT min(t_utc) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone()[0])"` | `2026-05-13 22:00:00` |
 | `choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v` | `Ran 7 tests`, `OK`; `50 random t (seed 20261011) ... 2400 feature values compared ... differences 0` |
-| `.venv/bin/python -I -m unittest tests/test_no_leakage.py` | `ModuleNotFoundError: No module named 'tests'` |
+| `.venv/bin/python -I -m unittest tests/test_gold_hourly.py` | `ModuleNotFoundError: No module named 'tests'` |
 | `.venv/bin/python -I -c "from airalerts.silver import rf_strikes; print(rf_strikes.data_end())"` | `2026-10-11 08:00:00` |
 | `.venv/bin/python -I -c "from airalerts.silver import political_events; print(political_events.data_end())"` | `2026-10-10 17:00:00` |
 | `.venv/bin/python -I -c "import pyarrow.parquet as pq; print(pq.read_metadata('data/silver/prep_signal_events.parquet').metadata[b'data_until'].decode())"` | `2026-10-10T11:36:43Z` |

@@ -1,6 +1,6 @@
 """Audit of gold kyiv_hourly (2026-10-11, docs/data/VERIFICATION.md): every column recomputed by plain Python loops, without the
 project modules and their SQL, from the silver Parquet files (weather and astronomy from bronze), following the definitions in
-docs/data/gold/kyiv_hourly.md. Unlike tests/test_no_leakage.py it does not reuse features(), so a wrong window or a wrong
+docs/data/gold/kyiv_hourly.md. Unlike tests/test_gold_hourly.py it does not reuse features(), so a wrong window or a wrong
 available_at in a module shows up as a mismatch.
 
 Run from the project root: .venv/bin/python -I scripts/verify/audit_recompute.py   (writes data/verification/audit_recompute.txt)

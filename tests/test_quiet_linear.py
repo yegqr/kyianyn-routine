@@ -1,11 +1,11 @@
-"""Small checks of the linear quiet models on toy hours (docs/models/quiet_linear.md)."""
+"""Small checks of the linear quiet models on toy hours (docs/quiet/linear.md)."""
 import math
 import unittest
 from datetime import datetime, timedelta
 
 import pyarrow as pa
 
-from airalerts.modeling.quiet_models import linear
+from airalerts.quiet import linear
 
 
 def toy(n=48):

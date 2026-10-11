@@ -18,7 +18,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from . import kyiv_hourly as hourly
-from ..modeling.split import TEST_START
+from ..evaluation.split import TEST_START
 from ..paths import GOLD, SILVER
 
 PATH = GOLD / "kyiv_quiet.parquet"

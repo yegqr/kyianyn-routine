@@ -15,10 +15,12 @@ from pathlib import Path
 import pyarrow.parquet as pq
 
 from airalerts.gold import kyiv_hourly as hourly, kyiv_quiet
-from airalerts.modeling import quiet, quiet_models, split
+from airalerts import quiet as quiet_models
+from airalerts.evaluation import split
+from airalerts.quiet import score as quiet
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I leaves the tests folder off the path
-from test_models import FORBIDDEN  # noqa: E402
+from test_strikes import FORBIDDEN  # noqa: E402
 from test_nights import check_model  # noqa: E402
 
 SEED = 20261011
@@ -92,14 +94,19 @@ class QuietModelsTest(unittest.TestCase):
         cls.folds = [dev[0], dev[-1], test[-2]]
 
     def test_every_quiet_model(self):
-        """Each module of airalerts.modeling.quiet_models in its own subtest, then each of its models."""
+        """Each module of airalerts.quiet in its own subtest, then each of its models."""
         for info in pkgutil.iter_modules(quiet_models.__path__):
             with self.subTest(module=info.name):
                 mod = importlib.import_module(f"{quiet_models.__name__}.{info.name}")
-                for name, m in mod.MODELS.items():
+                for name, m in getattr(mod, "MODELS", {}).items():
                     with self.subTest(model=name):
                         self.assertTrue({"fit", "predict", "description", "n_features"} <= set(m))
                         check_model(self, mod, m["fit"], m["predict"], self.folds, quiet.SPEC, QUIET_FORBIDDEN)
+
+    def test_dev_scores_runs(self):
+        from airalerts.quiet import baselines
+        m = baselines.MODELS["clim_hour"]
+        self.assertIn("bss", quiet.dev_scores(m["fit"], m["predict"]))
 
     def test_development_never_reaches_the_test(self):
         t = quiet.load()

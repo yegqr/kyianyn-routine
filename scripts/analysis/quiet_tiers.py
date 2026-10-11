@@ -4,7 +4,8 @@ the test, all hours and daytime 08..19 Kyiv. Descriptive only, run after `quiet 
 
     .venv/bin/python -I scripts/analysis/quiet_tiers.py    (from the project root)
 """
-from airalerts.modeling import quiet, split, tasks
+from airalerts.evaluation import split, walkforward as tasks
+from airalerts.quiet import score as quiet
 
 t = quiet.load()
 at = tasks.scored(quiet.SPEC, t)
