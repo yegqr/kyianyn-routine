@@ -1,0 +1,10 @@
+# Every day at 04:00 Kyiv time, as in the replay of the history (airalerts.live.model replay).
+[Unit]
+Description=Livii bereh: daily retrain at 04:00 Kyiv
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 Europe/Kyiv
+Persistent=true
+
+[Install]
+WantedBy=timers.target

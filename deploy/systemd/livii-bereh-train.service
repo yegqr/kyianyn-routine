@@ -1,0 +1,13 @@
+# The daily retrain of the frozen model logit_signals on every hour whose 3 hours already passed (docs/ARCHITECTURE.md).
+[Unit]
+Description=Livii bereh: retrain the forecast model
+
+[Service]
+Type=oneshot
+User=ye
+Group=ye
+WorkingDirectory=/home/ye/PROJECTS/ai-school/airalers
+Environment=AIRALERTS_DATA=/home/ye/PROJECTS/ai-school/airalers/data/live
+ExecStart=/home/ye/PROJECTS/ai-school/airalers/.venv/bin/python -I -m airalerts.live.model train
+Nice=10
+TimeoutStartSec=20min

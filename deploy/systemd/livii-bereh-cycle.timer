@@ -1,0 +1,11 @@
+# Every 5 minutes; a cycle that is still running makes the next start wait (oneshot), never overlap.
+[Unit]
+Description=Livii bereh: live cycle every 5 minutes
+
+[Timer]
+OnCalendar=*:0/5
+AccuracySec=15s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

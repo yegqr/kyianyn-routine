@@ -8,3 +8,5 @@ data/airalerts.duckdb*
 data/predictions/
 data/live/
 site/api/
+site/dev/
+deploy/*.env
