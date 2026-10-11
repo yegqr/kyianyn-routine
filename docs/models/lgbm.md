@@ -130,4 +130,4 @@ BSS по тижнях (початок тижня, субота 12:00 за Киє
     .venv/bin/python -I -m airalerts.modeling.evaluate check lgbm       # таблиці розробки
     .venv/bin/python -I -m unittest discover -s tests                   # усі тести
 
-Потрібні lightgbm 4.7.0, numpy, scipy (уже в .venv). Підбір варіантів робили скрипти в теці scratchpad (tune.py, contrib.py, folds.py), їх немає в репозиторії.
+Потрібні lightgbm 4.7.0, numpy, scipy (уже в .venv). Кожен варіант з таблиці відтворює `runner.dev_scores(lambda r: lgbm.fit(r, **налаштування), lgbm.predict)`.

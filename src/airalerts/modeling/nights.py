@@ -13,7 +13,7 @@ Rules fixed before any night model was scored:
 
     .venv/bin/python -I -m airalerts.modeling.nights               write naive_7n, score the development folds
     .venv/bin/python -I -m airalerts.modeling.nights final         also score the test: once, at the end
-    .venv/bin/python -I -m airalerts.modeling.nights check NAME    NAME against naive_7n on development, write nothing
+    .venv/bin/python -I -m airalerts.modeling.nights check NAME    NAME against naive_7n on development; writes only naive_7n
 """
 import importlib
 import pkgutil

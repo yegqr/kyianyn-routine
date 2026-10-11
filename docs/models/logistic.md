@@ -48,7 +48,7 @@
 
 Правило: беремо варіант з найкращим BSS на розробці; якщо простіший за порядком вище варіант відстає не більше ніж на 0.01, беремо найпростіший такий.
 
-Результати (8 тижнів розробки, 1342 год, частка true 0.048; скрипт `scratchpad/build/logistic/tune.py`, без інтервалів):
+Результати (8 тижнів розробки, 1342 год, частка true 0.048; будь-який варіант відтворює `runner.dev_scores(lambda r: logistic.fit(r, **налаштування), logistic.predict)`, без інтервалів):
 
 | варіант | BSS | PR AUC | ROC AUC | середній p | BSS по тижнях 07-04 .. 08-22 |
 |---|---|---|---|---|---|
@@ -123,4 +123,4 @@ BSS по тижнях (старт тижня у суботу 12:00 за Києв
 choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests     # усі тести, разом з tests/test_logistic.py
 ```
 
-Підбір варіантів (лише розробка): `.venv/bin/python -I <scratchpad>/build/logistic/tune.py results.json`.
+Підбір варіантів (лише розробка): кожен варіант з таблиці відтворює `runner.dev_scores(lambda r: logistic.fit(r, **налаштування), logistic.predict)`.
