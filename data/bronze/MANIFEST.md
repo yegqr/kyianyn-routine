@@ -43,3 +43,4 @@
 | `telegram/GeneralStaffZSU.jsonl` (`tg_fetch.py`, потік C, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T18:05:34Z | 2009 | 2026-04-17T04:00:12Z | 2026-10-10T12:01:01Z |
 | `telegram/mos_sobyanin.jsonl` (`tg_fetch.py`, потік C, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T18:23:19Z | 1233 | 2026-04-17T08:00:14Z | 2026-10-10T12:30:44Z |
 | `telegram/favt_info.jsonl` (`tg_fetch.py`, потік C, розширено до FETCH_FROM 2026-04-16T21:00Z) | 2026-10-10T18:49:24Z | 3970 | 2026-04-16T21:17:59Z | 2026-10-10T14:10:19Z |
+| `osm/` (OpenStreetMap, Overpass API, `scripts/site/kyiv_map.py`: межа Києва, вода Дніпра з островами, осьова річки, мости, лінії метро, пам'ятки; 4 запити; © OpenStreetMap contributors, ODbL) | 2026-10-11T20:04:59Z | 2091 | знімок OSM 2026-10-11T20:03:41Z | знімок OSM 2026-10-11T20:03:41Z |
