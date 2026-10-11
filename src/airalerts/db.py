@@ -1,4 +1,4 @@
-"""DuckDB connection inside the session limits (5 CPUs, 10 GB RAM for everything, see docs/PLAN.md)."""
+"""DuckDB connection inside the session limits (5 CPUs, 10 GB RAM for everything, see docs/HISTORY.md)."""
 import duckdb
 
 from .paths import DB, SILVER, GOLD

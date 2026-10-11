@@ -2,7 +2,7 @@
 (S1), MiG-31K (S2) and waves of attack drones (S4). Jev confirms that a post reports an actual event now.
 
 Input: data/silver/tg_posts.parquet. A candidate is a post of one of CHANNELS whose rx_signals has S1, S2 or S4
-(S3 and S5 are dropped and vanek_nikolaev is excluded: docs/PLAN.md). Jev answers yes/no questions about every candidate
+(S3 and S5 are dropped and vanek_nikolaev is excluded: docs/HISTORY.md). Jev answers yes/no questions about every candidate
 (many posts per request, dates removed from the text); code turns the confirmed posts into events: posts of one signal
 and subtype within GAP of the first post of the event are one event, the event time is the earliest post.
 Docs: docs/data/silver/prep_signal_events.md.

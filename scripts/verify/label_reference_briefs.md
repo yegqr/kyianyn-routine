@@ -11,7 +11,7 @@ Common definition (both briefs):
 
 ## V1: official summaries in local Telegram
 
-Read only `data/bronze/telegram/{kpszsu,VA_Kyiv,vitaliy_klitschko,V_Zelenskiy_official,GeneralStaffZSU,OP_UA}.jsonl`. Do not open `data/silver/`, `data/gold/`, `docs/PLAN.md`, `docs/HANDOFF.md`, `docs/data/silver/kyiv_threat_hourly.md`, `src/airalerts/silver/threat_hourly.py` (stay blind to the label).
+Read only `data/bronze/telegram/{kpszsu,VA_Kyiv,vitaliy_klitschko,V_Zelenskiy_official,GeneralStaffZSU,OP_UA}.jsonl`. Do not open `data/silver/`, `data/gold/`, `docs/HISTORY.md`, `docs/HANDOFF.md`, `docs/data/silver/kyiv_threat_hourly.md`, `src/airalerts/silver/threat_hourly.py` (stay blind to the label).
 
 Method: a stdlib script narrows posts by date and broad keywords (`ракет|балісти|крилат|кинджал|іскандер|циркон|х-101|х-22|калібр|kn-23|орєшн|орешн|х-59|х-69|х-555` together with `київ|києв|столиц`, plus every VA_Kyiv and vitaliy_klitschko post with `вибух|уламк|влучан|наслідк|ППО` on a day where some post mentions missiles) and prints the candidates in full, grouped by Kyiv date. The verdict comes from reading them: the Air Force daily summary ("У ніч на ... противник атакував ... ракетами ... Основний напрямок удару ..."), KMVA morning summaries, Klitschko ("Вибухи в столиці", "влучання"), Zelensky after big attacks.
 
