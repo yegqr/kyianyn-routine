@@ -4,6 +4,8 @@ Run from the project root with either of:
     .venv/bin/python -I -m unittest discover -s tests -v
     .venv/bin/python -I tests/test_nights.py
 """
+import importlib
+import pkgutil
 import sys
 import unittest
 from datetime import timedelta
@@ -15,7 +17,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from airalerts.gold import kyiv_hourly as hourly, kyiv_nightly as nightly
-from airalerts.modeling import nights, split
+from airalerts.modeling import night_models, nights, split
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I leaves the tests folder off the path
 from test_models import FORBIDDEN, data_globals, reaches  # noqa: E402
@@ -91,11 +93,14 @@ class NightModelsTest(unittest.TestCase):
             self.assertEqual(p, [float(v) for v in predict(fit(rows), x)])
 
     def test_every_night_model(self):
-        for mod in nights.night_modules():
-            for name, m in mod.MODELS.items():
-                with self.subTest(model=name):
-                    self.assertTrue({"fit", "predict", "description", "n_features"} <= set(m))
-                    self.check(mod, m["fit"], m["predict"])
+        """Each module of airalerts.modeling.night_models in its own subtest, then each of its models."""
+        for info in pkgutil.iter_modules(night_models.__path__):
+            with self.subTest(module=info.name):
+                mod = importlib.import_module(f"{night_models.__name__}.{info.name}")
+                for name, m in mod.MODELS.items():
+                    with self.subTest(model=name):
+                        self.assertTrue({"fit", "predict", "description", "n_features"} <= set(m))
+                        self.check(mod, m["fit"], m["predict"])
 
     def test_the_split_keeps_test_nights_out_of_development(self):
         t = nights.load()

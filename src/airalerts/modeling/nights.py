@@ -224,8 +224,14 @@ def report(final=False, only=None):
     save(REFERENCE, "share of attack nights among the 7 nights before", at, naive_7n(t, at))
     models, about = load_predictions(at, only)
     n_features = {}
-    for mod in night_modules():
-        for name, m in mod.MODELS.items():
+    from . import night_models
+    for info in pkgutil.iter_modules(night_models.__path__):
+        try:  # another builder's module may be half written; its own tests and check will say so
+            mod = importlib.import_module(f"{night_models.__name__}.{info.name}")
+        except Exception as e:
+            print(f"skipped night_models.{info.name}: {e!r}", file=sys.stderr)
+            continue
+        for name, m in getattr(mod, "MODELS", {}).items():
             n_features[name] = m.get("n_features", "")
     n_features[REFERENCE] = 1
     folds = dev_folds(t) + test_folds(t)
