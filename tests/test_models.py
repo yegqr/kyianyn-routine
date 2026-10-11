@@ -5,6 +5,7 @@ Run from the project root with either of:
     .venv/bin/python -I tests/test_models.py
 """
 import importlib
+import inspect
 import pkgutil
 import random
 import sys
@@ -18,7 +19,7 @@ from airalerts.gold.kyiv_hourly import LABEL
 from airalerts.modeling import evaluate, naive, runner, split
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I leaves the tests folder off the path
-from test_no_leakage import reaches  # noqa: E402
+from test_no_leakage import names_in, reaches  # noqa: E402
 
 SEED = 20261011
 # fit and predict see only the rows they are given: neither they nor a function of their module that they reach may
@@ -67,6 +68,29 @@ def reads_outside(mod, fns):
     return [n for n in FORBIDDEN if any(reaches(mod, f, n, set()) for f in fns)]
 
 
+def plain(v):
+    """A constant a model may keep at module level: a number, a string, None, or a tuple, list, set or dict of them."""
+    if v is None or isinstance(v, (bool, int, float, str)):
+        return True
+    if isinstance(v, (tuple, list, set, frozenset)):
+        return all(plain(x) for x in v)
+    return isinstance(v, dict) and all(plain(k) and plain(x) for k, x in v.items())
+
+
+def data_globals(mod, fns):
+    """Module-level names that fit or predict, or a function of the module they reach, use and that hold data rather
+    than code or a plain constant: data loaded at import would hide from reads_outside."""
+    names, seen, todo = set(), set(), list(fns)
+    while todo:
+        f = todo.pop()
+        if f not in seen:
+            seen.add(f)
+            names |= names_in(f)
+            todo += [g for g in map(vars(mod).get, names_in(f)) if inspect.isfunction(g) and g.__module__ == mod.__name__]
+    g = vars(mod)
+    return sorted(n for n in names if n in g and not (callable(g[n]) or inspect.ismodule(g[n]) or plain(g[n])))
+
+
 def _share_fit(rows):
     ys = rows[LABEL].to_pylist()
     return sum(ys) / len(ys)
@@ -81,6 +105,13 @@ def _leaky_predict(model, rows):
     return [model] * rows.num_rows
 
 
+_PRELOADED = pa.table({"y": [True, False]})  # data read at import time
+
+
+def _preloaded_predict(model, rows):
+    return [_PRELOADED.num_rows / 2] * rows.num_rows
+
+
 class FittedModelsTest(unittest.TestCase):
     """Every fitted model: fit sees only labels known at the fold origin, predict sees no label, neither reads data on its
     own, and the output is reproducible probabilities."""
@@ -93,6 +124,7 @@ class FittedModelsTest(unittest.TestCase):
 
     def check(self, mod, fit, predict):
         self.assertEqual(reads_outside(mod, (fit, predict)), [])
+        self.assertEqual(data_globals(mod, (fit, predict)), [])
         for o, rows, ev in self.folds:
             self.assertLessEqual(max(rows["t_utc"].to_pylist()) + split.H * split.HOUR, o)
             x = runner.features_only(ev)
@@ -106,6 +138,7 @@ class FittedModelsTest(unittest.TestCase):
         here = sys.modules[__name__]
         self.check(here, _share_fit, _share_predict)
         self.assertEqual(reads_outside(here, (_share_fit, _leaky_predict)), ["load", "split"])
+        self.assertEqual(data_globals(here, (_share_fit, _preloaded_predict)), ["_PRELOADED"])
 
     def test_every_fitted_model(self):
         """Every module of airalerts.modeling with NAME, fit and predict, each in its own subtest."""
