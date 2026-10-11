@@ -1,15 +1,15 @@
-/* Charts of the main tab (charts.js): cards, key figures, period pills, legends, marks and the tooltip.
-   Colors and radii only from tokens.css; animations only transform and opacity. */
+/* Charts of the folded block "Як прогноз справджувався" (charts.js): cards, key figures, period pills, legends, marks
+   and the tooltip. Colors and radii only from tokens.css; animations only transform and opacity. */
 
 .ch-card {
   display: grid; gap: 14px; min-width: 0;
   padding: 20px; border: 1px solid var(--line); border-radius: var(--r-card);
   background: var(--card); color: var(--body); font-family: var(--font);
 }
-.ch-title { margin: 0; font: 700 20px/1.25 var(--font); color: var(--ink); }
-.ch-sub { margin: 0; max-width: 72ch; font: 400 15px/1.5 var(--font); color: var(--body); }
-.ch-h4 { margin: 10px 0 0; font: 600 16px/1.3 var(--font); color: var(--ink); }
-.ch-note { margin: 0; max-width: 90ch; font: 400 13px/1.5 var(--font); color: var(--soft); }
+.ch-title { margin: 0; font: 700 20px/1.25 var(--font); color: var(--ink); text-wrap: balance; }
+.ch-sub { margin: 0; max-width: 72ch; font: 400 15px/1.5 var(--font); color: var(--body); text-wrap: pretty; }
+.ch-h4 { margin: 10px 0 0; font: 600 16px/1.3 var(--font); color: var(--ink); text-wrap: balance; }
+.ch-note { margin: 0; max-width: 90ch; font: 400 13px/1.5 var(--font); color: var(--soft); text-wrap: pretty; }
 .ch-calm { margin: 0; padding: 20px; border-radius: var(--r-small); background: var(--paper); font: 400 15px/1.5 var(--font); color: var(--soft); }
 
 .ch-pills { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -26,11 +26,12 @@
 .ch-svg:focus { outline: none; }
 .ch-svg:focus-visible { box-shadow: var(--focus-ring); }
 
+/* Key figures: what was counted (label), the figure, and the counts behind it (note). */
 .ch-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; gap: 0 10px; }
 .ch-tile { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 4px; min-width: 0; padding: 12px 14px; border-radius: var(--r-small); background: var(--paper); }
-.ch-tile-label { align-self: end; font: 500 13px/1.3 var(--font); color: var(--soft); }
-.ch-tile-value { font: 700 28px/1.1 var(--font); color: var(--ink); }
-.ch-tile-note { font: 400 12px/1.35 var(--font); color: var(--soft); }
+.ch-tile-label { align-self: end; font: 500 13px/1.3 var(--font); color: var(--ink); text-wrap: pretty; }
+.ch-tile-value { font: 700 28px/1.1 var(--font); color: var(--ink); font-variant-numeric: tabular-nums; }
+.ch-tile-note { font: 400 12px/1.35 var(--font); color: var(--soft); text-wrap: pretty; }
 
 .ch-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 0; padding: 0; list-style: none; font: 400 13px/1.3 var(--font); color: var(--body); }
 .ch-legend li, .ch-li { display: inline-flex; align-items: center; gap: 6px; }
@@ -56,9 +57,11 @@
 .ch-grid line { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
 .ch-tick { font-size: 12px; fill: var(--soft); font-variant-numeric: tabular-nums; }
 .ch-tick line { stroke: var(--soft); stroke-width: 1; }
-.ch-lab { font-size: 12px; font-weight: 500; fill: var(--ink); }
+.ch-lab { font-size: 12px; font-weight: 500; fill: var(--ink); font-variant-numeric: tabular-nums; }
 .ch-strong { font-weight: 600; }
-.ch-halo { paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }
+.ch-soft { fill: var(--soft); font-weight: 400; }
+/* A label that may sit on a grid line gets a halo in the card colour, so the line never cuts its letters. */
+.ch-halo { paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
 .ch-on-bar { fill: var(--card); font-weight: 600; }
 .ch-b-busy { fill: var(--pink); }
 .ch-b-calm { fill: var(--soft); opacity: .45; }
@@ -97,21 +100,31 @@
 .ch-tip strong { font-weight: 600; }
 .ch-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-.ch-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); font: 500 13px/1.2 var(--font); }
-.ch-raw, .ch-credit { padding: 6px 4px; border-radius: var(--r-pill); color: var(--soft); text-decoration: none; }
-.ch-credit { color: var(--ink); font-weight: 700; }
-.ch-raw:hover, .ch-credit:hover { color: var(--pink); }
+/* Footer of every card: the raw data on the left, the author's mark on the right (the same mark as the site footer). */
+.ch-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid var(--line); font: 500 13px/1.2 var(--font); }
+.ch-raw, .ch-credit { display: inline-flex; align-items: center; min-height: 36px; padding: 0 6px; border-radius: var(--r-pill); text-decoration: none; }
+.ch-raw { gap: 6px; margin-left: -6px; color: var(--soft); }
+.ch-ico { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ch-credit { margin-right: -6px; color: var(--pink); font: 800 14px/1 var(--font-display); }
+.ch-raw:hover { color: var(--pink); }
+.ch-credit:hover { color: var(--ink); }
 
 .ch-in { animation: ch-in 320ms var(--ease) both; }
 @keyframes ch-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 560px) {
-  .ch-card { gap: 12px; padding: 16px; }
+  .ch-card { gap: 12px; padding: 16px 12px; }
   .ch-title { font-size: 18px; }
   .ch-sub { font-size: 14px; }
-  .ch-tile { padding: 10px 8px; }
-  .ch-tile-label { font-size: 12px; }
-  .ch-tile-value { font-size: 22px; }
+  /* On a phone the figures become a list: the figure on the left, what it counts on the right. */
+  .ch-tiles { grid-auto-flow: row; grid-template-rows: none; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .ch-tile {
+    grid-row: auto; grid-template-rows: none; grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-areas: "value label" "value note"; column-gap: 12px; row-gap: 2px; align-items: center; padding: 10px 12px;
+  }
+  .ch-tile-value { grid-area: value; font-size: 22px; }
+  .ch-tile-label { grid-area: label; }
+  .ch-tile-note { grid-area: note; align-self: start; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ch-in { animation: none; }

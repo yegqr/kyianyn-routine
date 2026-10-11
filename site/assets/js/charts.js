@@ -1,34 +1,34 @@
-// Charts of the main tab (#/): the forecast against what really happened, whether its numbers can be trusted, and
-// the days by hour. mountCharts(root, data) finds the [data-chart] containers inside root ("timeline", "calibration",
-// "days"), draws each one as its own card with D3 v7 (the global d3) and returns {redraw(data)}.
+// Charts of the folded block "Як прогноз справджувався" on the main tab (#/): the forecast of every hour against
+// what happened, whether its numbers can be trusted, and the hours of the day. mountCharts(root, data) finds the
+// [data-chart] boxes inside root ("timeline", "calibration", "days"), draws each one as its own card with D3 v7 (the
+// global d3) and returns {redraw(data)}; a second call on the same root redraws instead of mounting twice.
+// A hidden box (a closed details, width 0) is never drawn: a ResizeObserver draws it at its real width once it shows,
+// and again whenever its width changes (a phone turned sideways).
 // data is what loadAll() in api.js returns: history (hours, tiers, tiers_since_test, calibration), now and model.
 // Every number comes from the JSON at runtime. The timeline has three forms for the same question, set by data-form
-// on its container: "bars" (default), "line" or "lanes".
+// on its box: "bars" (default), "line" or "lanes".
+// Words follow the copy guide: "атака" is drones flying at Kyiv, a missile threat or a strike in the 3 hours from the
+// forecast hour (busy_3h); a "спокійна година" had no alert and no attack at forecast time (quiet_now).
 
 import { kyivDay, kyivStamp, pct } from './api.js'
 
 const HOUR = 3600e3
 const DAY = 24 * HOUR
-const TIER = { low: 'швидше тихо', medium: 'середній ризик', high: 'високий ризик' }
+const TIER = { low: 'низький ризик', medium: 'середній ризик', high: 'високий ризик' }
 // The test period starts 2026-08-29 12:00 Kyiv (docs/quiet/model.md, "Розробка і тест"); tiers_since_test counts
 // hours from it.
 const TEST_START = Date.parse('2026-08-29T09:00:00Z')
-// Dark end of the sequential palette of the viz skill (white, pink, dark pink); the other two stops are tokens.
-const SEQ_DARK = '#5C0438'
-// Calibration rows with fewer hours are drawn pale because their share is shaky (a display rule, not research).
+// Calibration rows and timeline tiles with fewer hours are drawn pale because their share is shaky (a display rule,
+// not research).
 const FEW = 30
+// The tiles of the days count, for each Kyiv hour, its last 30 days with a known outcome, the same on every screen.
+const TILE_DAYS = 30
 const RANGES = [['7', '7 днів', 7], ['30', '30 днів', 30], ['all', 'усе', Infinity]]
 const FORMS = ['bars', 'line', 'lanes']
-
-const READ = {
-  bars: 'Кожен стовпчик це година: висота показує прогноз моделі, колір показує, що сталося за 3 години після. Добрий прогноз: високі стовпчики рожеві, низькі сірі.',
-  line: 'Лінія це прогноз моделі по годинах, рожеві смуги це години, після яких справді було неспокійно. Добрий прогноз: лінія висока на смугах і низька між ними.',
-  lanes: 'Згори прогноз моделі по годинах, знизу що сталося: рожеві риски це неспокійні вікна, чорні це тривоги. Добрий прогноз: гора стоїть над рисками.',
-}
 const KEYS = {
-  bars: [['busy', 'потім неспокійно'], ['calm', 'потім тихо'], ['unknown', 'ще невідомо'], ['alert', 'тривога'], ['live', 'наживо'], ['limit', 'межі рівнів']],
-  line: [['line', 'прогноз'], ['band', 'потім неспокійно'], ['alert', 'тривога'], ['live', 'наживо'], ['limit', 'межі рівнів']],
-  lanes: [['area', 'прогноз'], ['busy', 'потім неспокійно'], ['alert', 'тривога'], ['live', 'наживо'], ['limit', 'межі рівнів']],
+  bars: [['busy', 'атака за 3 години'], ['calm', 'без атаки'], ['unknown', 'ще невідомо'], ['alert', 'тривога'], ['live', 'показано на сайті'], ['limit', 'межі рівнів ризику']],
+  line: [['line', 'прогноз'], ['band', 'атака за 3 години'], ['alert', 'тривога'], ['live', 'показано на сайті'], ['limit', 'межі рівнів ризику']],
+  lanes: [['area', 'прогноз'], ['busy', 'атака за 3 години'], ['alert', 'тривога'], ['live', 'показано на сайті'], ['limit', 'межі рівнів ризику']],
 }
 
 const PARTS = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Kyiv', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
@@ -36,46 +36,66 @@ const WEEKDAY = new Intl.DateTimeFormat('uk-UA', { timeZone: 'Europe/Kyiv', week
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 const int = (n) => Math.round(n).toLocaleString('uk-UA')
-const share = (v) => (v == null ? 'немає' : pct(v))
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
+const share = (a, b) => (b ? pct(a / b) : 'немає')
 const limPct = (v) => pct(v, Math.abs(v * 100 - Math.round(v * 100)) < 1e-6 ? 0 : 1)
 const hh = (h) => String(h).padStart(2, '0')
 const iso = (ms) => new Date(ms).toISOString()
-const binName = (b) => `${Math.round(b.from * 100)}-${Math.round(b.to * 100)}%`
+const binName = (b) => `від ${Math.round(b.from * 100)}% до ${Math.round(b.to * 100)}%`
+// The 3 hour window of a forecast made at Kyiv hour h: the hours h, h+1 and h+2.
+const window3 = (h) => `з ${hh(h)}:00 до ${hh((h + 3) % 24)}:00`
 const plural = (n, one, few, many) => {
   const a = n % 10, b = n % 100
   return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many
 }
 
 export function mountCharts(root, data) {
-  const st = { data: {}, hours: [], lim: {}, range: '7', anim: true }
+  if (root._charts) {
+    root._charts.redraw(data)
+    return root._charts
+  }
+  const st = { data: {}, hours: [], lim: {}, range: '7', anim: false }
   const boxes = [...root.querySelectorAll('[data-chart]')]
   const widths = new WeakMap()
+  const drawn = new WeakSet()
+  const stale = new Set()
   const set = (next) => {
     st.data = next || {}
     st.hours = prep(st.data.history)
     st.lim = limits(st.data)
+    boxes.forEach((b) => stale.add(b))
   }
+  // Draws a box at its real width; a hidden box (width 0) keeps waiting for the observer below.
   const draw = (box) => {
+    const w = box.clientWidth
     const fn = DRAW[box.dataset.chart]
-    if (!fn) return
+    if (!w || !fn) return
     const focused = [...box.querySelectorAll('.ch-svg')].indexOf(document.activeElement)
+    st.anim = !drawn.has(box)
     fn(box, st)
+    st.anim = false
+    drawn.add(box)
+    widths.set(box, w)
+    stale.delete(box)
     if (focused >= 0) box.querySelectorAll('.ch-svg')[focused]?.focus({ preventScroll: true })
   }
   set(data)
-  for (const box of boxes) {
-    widths.set(box, box.clientWidth)
-    draw(box)
-  }
-  st.anim = false
+  boxes.forEach(draw)
+  // Shown after a closed details opens, or a new width: redraw in the next frame (never inside the observer).
+  const due = new Set()
+  let frame = 0
   const ro = new ResizeObserver((entries) => {
     for (const e of entries) {
       const w = e.target.clientWidth
-      if (w !== widths.get(e.target)) {
-        widths.set(e.target, w)
-        draw(e.target)
-      }
+      if (w && (stale.has(e.target) || w !== widths.get(e.target))) due.add(e.target)
     }
+    if (!due.size || frame) return
+    frame = requestAnimationFrame(() => {
+      frame = 0
+      const list = [...due]
+      due.clear()
+      list.forEach(draw)
+    })
   })
   boxes.forEach((b) => ro.observe(b))
   // A tap outside every chart closes the open tooltips (on a phone there is no pointer leaving).
@@ -83,12 +103,13 @@ export function mountCharts(root, data) {
     if (e.target.closest?.('.ch-plot')) return
     for (const b of boxes) for (const f of b._hide || []) f()
   })
-  return {
+  root._charts = {
     redraw(next) {
       set(next)
       boxes.forEach(draw)
     },
   }
+  return root._charts
 }
 
 const DRAW = { timeline: drawTimeline, calibration: drawCalibration, days: drawDays }
@@ -118,18 +139,14 @@ function limits(data) {
   return { busyAt: num(f.busy_at) ?? num(m.busy_at), highAt: num(f.high_at) ?? num(m.high_at) }
 }
 
-// The scores of the tiles: hours that were quiet at forecast time and whose 3 hour window is over.
+// The tiles of the timeline, one per risk level: calm hours (no alert, no attack at forecast time) whose 3 hour window
+// is over, and how many of them an attack followed. Counted like history.tiers, so "усе" shows the same shares.
 function score(hours) {
   const k = hours.filter((h) => h.quiet_now && h.busy_3h != null)
-  const busy = k.filter((h) => h.busy_3h)
-  const said = k.filter((h) => h.tier === 'low')
-  const part = (a, b) => (b ? a / b : null)
-  return {
-    n: k.length, nBusy: busy.length, nSaid: said.length,
-    busy: part(busy.length, k.length),
-    caught: part(busy.filter((h) => h.tier !== 'low').length, busy.length),
-    quietTrue: part(said.filter((h) => !h.busy_3h).length, said.length),
-  }
+  return Object.fromEntries(Object.keys(TIER).map((t) => {
+    const v = k.filter((h) => h.tier === t)
+    return [t, { n: v.length, busy: v.filter((h) => h.busy_3h).length }]
+  }))
 }
 
 // Contiguous runs of hours that pass a test, as [start, end) in ms.
@@ -145,19 +162,19 @@ function runs(hours, test) {
 }
 
 function happened(h) {
-  if (h.busy_3h == null) return 'ще невідомо, вікно не скінчилось'
-  if (!h.busy_3h) return 'тихо'
+  if (h.busy_3h == null) return 'ще невідомо'
+  if (!h.busy_3h) return 'атаки не було'
   const what = [h.drone_3h && 'дрони', h.missile_3h && 'ракети'].filter(Boolean)
-  return what.length ? `неспокійно, ${what.join(' і ')}` : 'неспокійно'
+  return what.length ? `атака (${what.join(' і ')})` : 'атака'
 }
 
 function hourLines(h) {
   return [
     `${WEEKDAY.format(h.ms)}, ${kyivStamp(h.t)} за Києвом`,
     `Прогноз: ${pct(h.p)}, ${TIER[h.tier] || h.tier}`,
-    `Наступні 3 год: ${happened(h)}`,
+    `${cap(window3(h.hour))}: ${happened(h)}`,
     `Тривога в цю годину: ${h.alert ? 'так' : 'ні'}`,
-    h.source === 'live' ? 'Записано наживо' : 'Відтворення: модель знала лише минуле',
+    h.source === 'live' ? 'Показано на сайті' : 'Перераховано: модель знала лише минуле',
   ]
 }
 
@@ -166,11 +183,12 @@ const hourRow = (h) => ({
   alert: h.alert, busy_3h: h.busy_3h, drone_3h: h.drone_3h, missile_3h: h.missile_3h,
 })
 
-function tierRange(k, { busyAt, highAt }) {
-  if (busyAt == null || highAt == null) return ''
-  if (k === 'low') return `, прогноз до ${limPct(busyAt)}`
-  if (k === 'medium') return `, прогноз ${limPct(busyAt)}-${limPct(highAt)}`
-  return `, прогноз від ${limPct(highAt)}`
+function tierName(k, { busyAt, highAt }) {
+  const name = cap(TIER[k] || k)
+  if (busyAt == null || highAt == null) return name
+  if (k === 'low') return `${name}: до ${limPct(busyAt)}`
+  if (k === 'medium') return `${name}: від ${limPct(busyAt)} до ${limPct(highAt)}`
+  return `${name}: від ${limPct(highAt)}`
 }
 
 // ---- DOM helpers ----
@@ -202,11 +220,13 @@ const calm = (art, text) => art.append(el('p', { class: 'ch-calm', text }))
 const note = (text) => el('p', { class: 'ch-note', text })
 const plotClass = (st) => (st.anim ? 'ch-plot ch-in' : 'ch-plot')
 
+// Key figures: [label, value, what was counted, few]; a row of cards on a wide screen, a list on a phone. A value
+// counted from too few hours (few) is drawn pale.
 function tiles(list) {
-  return el('div', { class: 'ch-tiles' }, list.map(([label, value, sub]) =>
+  return el('div', { class: 'ch-tiles' }, list.map(([label, value, sub, few]) =>
     el('div', { class: 'ch-tile' },
       el('span', { class: 'ch-tile-label', text: label }),
-      el('strong', { class: 'ch-tile-value', text: value }),
+      el('strong', { class: few ? 'ch-tile-value ch-pale' : 'ch-tile-value', text: value }),
       el('span', { class: 'ch-tile-note', text: sub || '' }))))
 }
 
@@ -216,7 +236,7 @@ function legend(items) {
 }
 
 function footer(name, rows) {
-  const raw = el('a', { class: 'ch-raw', href: '#', download: `${name}.csv`, text: 'Сирі дані (CSV)' })
+  const raw = el('a', { class: 'ch-raw', href: '#', download: `${name}.csv` }, icon(DOWNLOAD), 'Завантажити таблицю')
   raw.addEventListener('click', () => {
     const list = rows()
     const cols = list.length ? Object.keys(list[0]) : []
@@ -227,6 +247,19 @@ function footer(name, rows) {
   })
   return el('footer', { class: 'ch-foot' }, raw,
     el('a', { class: 'ch-credit', href: 'https://isakov.fyi', text: 'ЄІ', 'aria-label': 'Автор: isakov.fyi' }))
+}
+
+// A line icon in a 24 unit box, drawn with the text colour.
+const DOWNLOAD = 'M12 4v11M7 10l5 5 5-5M5 20h14'
+function icon(d) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('viewBox', '0 0 24 24')
+  svg.setAttribute('class', 'ch-ico')
+  svg.setAttribute('aria-hidden', 'true')
+  const path = document.createElementNS(svg.namespaceURI, 'path')
+  path.setAttribute('d', d)
+  svg.append(path)
+  return svg
 }
 
 function newSvg(wrap, W, H, label) {
@@ -287,11 +320,11 @@ function bind(box, svg, live, n, start, pick, show, hide) {
   box._hide.push(hide)
 }
 
-// ---- 1. timeline: the forecast of every hour against what happened in the 3 hours after it ----
+// ---- 1. timeline: the forecast of every hour against whether an attack came in the 3 hours from it ----
 
 function drawTimeline(box, st) {
   const form = FORMS.includes(box.dataset.form) ? box.dataset.form : 'bars'
-  const art = card(box, 'timeline', 'Прогноз і що сталося', READ[form])
+  const art = card(box, 'timeline', 'Чи була атака, коли прогноз високий?')
   const all = st.hours
   if (all.length < 2) return calm(art, `Історія прогнозів ще збирається. Графік з'явиться, щойно буде хоча б кілька годин.`)
   const last = all[all.length - 1]
@@ -314,18 +347,18 @@ function drawTimeline(box, st) {
       },
     })))
   const wrap = el('div', { class: plotClass(st) })
-  art.append(pills, tiles([
-    ['Потім було неспокійно', share(s.busy), `тихих годин: ${int(s.n)}`],
-    ['Модель попередила', share(s.caught), `неспокійних вікон: ${int(s.nBusy)}`],
-    ['«Тихо» справдилось', share(s.quietTrue), `прогнозів «тихо»: ${int(s.nSaid)}`],
-  ]), legend(KEYS[form]), wrap,
-  note('Тиха година: на момент прогнозу тривоги й атаки не було; плитки рахують лише такі години. Відтворення: до запуску модель перенавчали щосуботи, як наживо, лише на минулому, і рахували прогноз так, ніби наживо (docs/adr/0013-retrain-cadence.md). Як обрали межі рівнів: docs/quiet/model.md.'),
+  art.append(pills, tiles(['high', 'medium', 'low'].map((t) => [tierName(t, st.lim), share(s[t].busy, s[t].n),
+    s[t].n ? `після ${int(s[t].busy)} з ${int(s[t].n)} таких прогнозів була атака за 3 години${s[t].n < FEW ? '; замало, цифра хитка' : ''}`
+      : 'таких прогнозів не було', s[t].n > 0 && s[t].n < FEW])),
+  legend(KEYS[form]), wrap,
+  note('Цифри вгорі рахують лише спокійні години: на момент прогнозу не було ні тривоги, ні атаки. До запуску сайту прогноз перерахували година за годиною моделлю, яку щосуботи перенавчали лише на минулих даних; далі це прогнози, які сайт справді показав.'),
   footer('prognoz-i-shcho-stalosia', () => shown.map(hourRow)))
 
   const W = wrap.clientWidth
   if (!W) return
   const phone = W < 560
-  const m = { t: 26, r: 12, b: 24, l: 40 }
+  // The right margin holds the two risk limits, so their labels never sit on the bars.
+  const m = { t: 26, r: 46, b: 24, l: 44 }
   const ph = phone ? 150 : 200
   const lanes = form === 'lanes'
   const rows = lanes ? { busy: ph + 10, alert: ph + 28, h: 12 } : { alert: ph + 6, h: 6 }
@@ -335,9 +368,10 @@ function drawTimeline(box, st) {
   const x0 = shown[0].ms, x1 = last.ms + HOUR
   const x = d3.scaleUtc().domain([x0, x1]).range([0, iw])
   const top = Math.max(d3.max(shown, (h) => h.p), st.lim.highAt ?? 0, 0.05)
-  const y = d3.scaleLinear().domain([0, top * 1.08]).nice().range([ph, 0])
+  const y = d3.scaleLinear().domain([0, top * 1.08]).nice(4).range([ph, 0])
+  if (y.domain()[1] > 1) y.domain([0, 1])
   const name = { 7: '7 днів', 30: '30 днів' }[days] || 'усю історію'
-  const svg = newSvg(wrap, W, H, `Прогноз по годинах за ${name}. Стрілки вліво і вправо переходять між годинами.`)
+  const svg = newSvg(wrap, W, H, `Прогноз по годинах за ${name} і чи була атака за 3 години. Стрілки вліво і вправо переходять між годинами.`)
   const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`)
   const span1 = (sel, list, cls, yy, hgt) => sel.selectAll('rect').data(list).join('rect').attr('class', cls)
     .attr('x', (r) => x(r.start)).attr('width', (r) => Math.max(1, x(r.end) - x(r.start))).attr('y', yy).attr('height', hgt)
@@ -347,7 +381,7 @@ function drawTimeline(box, st) {
   g.append('g').attr('class', 'ch-grid').selectAll('line').data(yt).join('line')
     .attr('x1', 0).attr('x2', iw).attr('y1', y).attr('y2', y)
   g.append('g').attr('class', 'ch-tick').selectAll('text').data(yt).join('text')
-    .attr('x', -8).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text((d) => pct(d))
+    .attr('x', -6).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text((d) => pct(d))
 
   const step = iw / ((x1 - x0) / HOUR)
   const line = d3.line().x((h) => x(h.ms + HOUR / 2)).y((h) => y(h.p))
@@ -366,25 +400,41 @@ function drawTimeline(box, st) {
   }
   span1(g.append('g'), runs(shown, (h) => h.alert === true), 'ch-alert', rows.alert, rows.h)
 
-  // live hours: a bracket over the plot; the test start: a thin rule
-  const live = runs(shown, (h) => h.source === 'live')
-  span1(g.append('g'), live, 'ch-live', -9, 3)
-  if (live.length) {
-    const lx = x(live[0].start)
-    const right = lx > iw - 70
-    g.append('text').attr('class', 'ch-lab').attr('x', right ? x(live[0].end) : lx).attr('y', -14)
-      .attr('text-anchor', right ? 'end' : 'start').text('наживо')
+  // The risk limits: dashed lines across the plot, their numbers in the right margin, pushed apart when close.
+  let above = Infinity
+  for (const v of [st.lim.busyAt, st.lim.highAt].filter((v) => v != null && v <= y.domain()[1]).sort((a, b) => a - b)) {
+    g.append('line').attr('class', 'ch-limit').attr('x1', 0).attr('x2', iw).attr('y1', y(v)).attr('y2', y(v))
+    const ly = Math.min(y(v), above - 14)
+    g.append('text').attr('class', 'ch-lab').attr('x', iw + 6).attr('y', ly).attr('dy', '0.32em').text(limPct(v))
+    above = ly
   }
+
+  // The test start: a thin rule, its label right of the rule, else left. Hours the site really showed: a bracket over
+  // the plot, its label only where it does not hit the first one (the legend names the bracket too).
+  const lab = (text) => {
+    const t = g.append('text').attr('class', 'ch-lab').attr('y', -14).text(text)
+    return [t, t.node().getComputedTextLength()]
+  }
+  let taken = null
   if (TEST_START > x0 && TEST_START < x1) {
     const tx = x(TEST_START)
     g.append('line').attr('class', 'ch-test').attr('x1', tx).attr('x2', tx).attr('y1', -8).attr('y2', bottom)
-    g.append('text').attr('class', 'ch-lab').attr('x', tx + 4).attr('y', -14).text(`тест з ${kyivDay(iso(TEST_START))}`)
+    const [t, tw] = lab(`тестові дані з ${kyivDay(iso(TEST_START))}`)
+    const fits = (a) => a >= 2 - m.l && a + tw <= iw + m.r - 2
+    const at = fits(tx + 4) ? tx + 4 : fits(tx - 4 - tw) ? tx - 4 - tw : null
+    if (at == null) t.remove()
+    else {
+      t.attr('x', at)
+      taken = [at, at + tw]
+    }
   }
-  for (const [v, label] of [[st.lim.busyAt, 'середній ризик від'], [st.lim.highAt, 'високий від']]) {
-    if (v == null || v > y.domain()[1]) continue
-    g.append('line').attr('class', 'ch-limit').attr('x1', 0).attr('x2', iw).attr('y1', y(v)).attr('y2', y(v))
-    g.append('text').attr('class', 'ch-lab ch-halo').attr('x', 4).attr('y', y(v) - 5)
-      .text(phone ? limPct(v) : `${label} ${limPct(v)}`)
+  const live = runs(shown, (h) => h.source === 'live')
+  span1(g.append('g'), live, 'ch-live', -9, 3)
+  if (live.length) {
+    const [t, tw] = lab('показано на сайті')
+    const lx = Math.max(0, Math.min(x(live[0].start), iw - tw))
+    if (taken && lx < taken[1] + 8 && lx + tw + 8 > taken[0]) t.remove()
+    else t.attr('x', lx)
   }
 
   // x axis: Kyiv midnights, thinned to fit, the newest day always labelled
@@ -418,7 +468,7 @@ function drawTimeline(box, st) {
     })
 }
 
-// ---- 2. calibration: when the model said X, what share of hours was really busy; and the truth of each tier ----
+// ---- 2. calibration: when the model said X, how often an attack really came; and each risk level ----
 
 function drawCalibration(box, st) {
   const hist = st.data?.history || {}
@@ -427,35 +477,36 @@ function drawCalibration(box, st) {
   const tiers = ['low', 'medium', 'high'].map((k) => ({ k, all: hist.tiers?.[k], test: hist.tiers_since_test?.[k] }))
     .filter((r) => r.all?.hours > 0 || r.test?.hours > 0)
   const N = d3.sum(bins, (b) => b.n)
-  const gap = N ? d3.sum(bins, (b) => b.n * (b.busy_share - b.p_mean)) / N : null
+  const said = N ? d3.sum(bins, (b) => b.n * b.p_mean) / N : null
+  const real = N ? d3.sum(bins, (b) => b.n * b.busy_share) / N : null
+  const gap = N ? real - said : null
   const sub = gap == null ? null
-    : gap > 0.03 ? 'Модель обережна: насправді неспокійно частіше, ніж вона каже. Її відсоток краще читати як нижню межу.'
-      : gap < -0.03 ? 'Модель перестраховується: насправді неспокійно рідше, ніж вона каже.'
+    : gap > 0.03 ? 'Модель занижує: атака буває частіше, ніж вона каже. Її відсоток читай як нижню межу.'
+      : gap < -0.03 ? 'Модель перестраховується: атака буває рідше, ніж вона каже.'
         : 'Цифрам можна вірити: що модель каже, те в середньому й буває.'
-  const art = card(box, 'calibration', 'Чи можна вірити цифрам', sub)
+  const art = card(box, 'calibration', 'Чи можна вірити цифрам?', sub)
   if (!bins.length && !tiers.length) return calm(art, 'Перевірених годин ще немає. Щойно мине 3 години після перших прогнозів, тут буде видно, чи справджуються цифри.')
   const testDay = kyivDay(iso(TEST_START))
   const firstDay = st.hours.length ? kyivDay(st.hours[0].t) : null
-  if (gap != null) {
-    const pts = Math.round(Math.abs(gap) * 100)
+  if (N) {
     art.append(tiles([
-      ['Годин перевірено', int(N), 'на момент прогнозу було тихо'],
-      [gap >= 0 ? 'Насправді частіше, ніж каже' : 'Насправді рідше, ніж каже', `${pts} ${plural(pts, 'пункт', 'пункти', 'пунктів')}`, 'у середньому по всіх годинах'],
+      ['Модель казала в середньому', pct(said), 'ймовірність атаки за 3 години'],
+      ['Атака справді була', pct(real), `після ${int(real * N)} з ${int(N)} спокійних годин`],
     ]))
   }
   if (bins.length) {
     const wrap = el('div', { class: plotClass(st) })
-    art.append(el('h4', { class: 'ch-h4', text: 'Коли модель каже X, як часто справді неспокійно' }),
-      legend([['said', 'модель казала, у середньому'], ['real', 'справді неспокійно']]), wrap)
+    art.append(el('h4', { class: 'ch-h4', text: 'Що казала модель і як часто була атака' }),
+      legend([['said', 'казала модель, у середньому'], ['real', 'як часто була атака']]), wrap)
     drawBins(box, wrap, bins)
   }
   if (tiers.length) {
     const wrap = el('div', { class: plotClass(st) })
-    art.append(el('h4', { class: 'ch-h4', text: 'Кожен рівень: як часто потім справді неспокійно' }),
-      legend([['whole', `уся історія${firstDay ? ` з ${firstDay}` : ''}`], ['test', `з ${testDay}, перевірка на нових годинах`]]), wrap)
+    art.append(el('h4', { class: 'ch-h4', text: 'Рівень ризику і як часто була атака' }),
+      legend([['whole', `уся історія${firstDay ? ` з ${firstDay}` : ''}`], ['test', `тестові дані з ${testDay}`]]), wrap)
     drawTiers(box, wrap, tiers, st.lim, testDay)
   }
-  art.append(note(`Рахуємо лише години, коли на момент прогнозу було тихо і 3 години після вже минули. Рядки, де менше ${FEW} годин, бліді: там цифра хитка. Перевірка з ${testDay}: на цих годинах нічого не підбирали (docs/quiet/model.md).`),
+  art.append(note(`Рахуємо лише спокійні години, після яких 3 години вже минули. Бліді рядки: менше ${FEW} годин, цифра хитка. Тестові дані з ${testDay}: модель і межі ризику обрали до них.`),
     footer('chy-mozhna-viryty-tsyfram', () => [
       ...bins.map((b) => ({ part: 'said_vs_real', group: binName(b), hours: b.n, said_mean: b.p_mean, busy_share: b.busy_share })),
       ...tiers.flatMap((r) => [['tier_whole_history', r.all], ['tier_since_test', r.test]].filter(([, t]) => t)
@@ -467,11 +518,14 @@ function drawBins(box, wrap, bins) {
   const W = wrap.clientWidth
   if (!W) return
   const phone = W < 560
-  const m = { t: 6, r: 48, b: 26, l: 72 }
-  const rh = 32
+  // A phone puts each range and its hours above its row, so the scale keeps the whole width; a wide screen puts them
+  // in a column on the left.
+  const m = phone ? { t: 6, r: 44, b: 26, l: 8 } : { t: 6, r: 48, b: 26, l: 128 }
+  const rh = phone ? 40 : 32
+  const dy = phone ? 8 : 0
   const iw = W - m.l - m.r, ih = bins.length * rh, H = m.t + ih + m.b
   const x = d3.scaleLinear().domain([0, 1]).range([0, iw])
-  const svg = newSvg(wrap, W, H, 'Коли модель каже певний відсоток, яка частка годин справді неспокійна. Стрілки вліво і вправо переходять між рядками.')
+  const svg = newSvg(wrap, W, H, 'Коли модель каже певний відсоток, як часто справді була атака за 3 години. Стрілки вліво і вправо переходять між рядками.')
   const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`)
   const hl = g.append('rect').attr('class', 'ch-hl').attr('x', 2 - m.l).attr('width', W - 4).attr('height', rh).attr('rx', 8)
   const xt = phone ? [0, 0.5, 1] : [0, 0.25, 0.5, 0.75, 1]
@@ -481,12 +535,18 @@ function drawBins(box, wrap, bins) {
     .attr('x', x).attr('text-anchor', (d) => (d === 1 ? 'end' : d === 0 ? 'start' : 'middle')).text((d) => pct(d))
   const row = g.selectAll('g.ch-row').data(bins).join('g').attr('class', (b) => (b.n < FEW ? 'ch-row ch-pale' : 'ch-row'))
     .attr('transform', (b, i) => `translate(0,${i * rh + rh / 2})`)
-  row.append('text').attr('class', 'ch-lab').attr('x', -10).attr('y', -2).attr('text-anchor', 'end').text(binName)
-  row.append('text').attr('class', 'ch-tick').attr('x', -10).attr('y', 12).attr('text-anchor', 'end').text((b) => `${int(b.n)} год`)
-  row.append('line').attr('class', 'ch-seg').attr('x1', (b) => x(b.p_mean)).attr('x2', (b) => x(b.busy_share))
-  row.append('circle').attr('class', 'ch-said').attr('cx', (b) => x(b.p_mean)).attr('r', 5)
-  row.append('circle').attr('class', 'ch-real').attr('cx', (b) => x(b.busy_share)).attr('r', 6)
-  row.append('text').attr('class', 'ch-lab ch-strong').attr('y', 4)
+  if (phone) {
+    const t = row.append('text').attr('class', 'ch-lab ch-halo').attr('x', 0).attr('y', -7)
+    t.append('tspan').text(binName)
+    t.append('tspan').attr('class', 'ch-soft').attr('dx', 4).text((b) => ` ${int(b.n)} год`)
+  } else {
+    row.append('text').attr('class', 'ch-lab').attr('x', -10).attr('y', -4).attr('text-anchor', 'end').text(binName)
+    row.append('text').attr('class', 'ch-tick').attr('x', -10).attr('y', 12).attr('text-anchor', 'end').text((b) => `${int(b.n)} год`)
+  }
+  row.append('line').attr('class', 'ch-seg').attr('x1', (b) => x(b.p_mean)).attr('x2', (b) => x(b.busy_share)).attr('y1', dy).attr('y2', dy)
+  row.append('circle').attr('class', 'ch-said').attr('cx', (b) => x(b.p_mean)).attr('cy', dy).attr('r', 5)
+  row.append('circle').attr('class', 'ch-real').attr('cx', (b) => x(b.busy_share)).attr('cy', dy).attr('r', 6)
+  row.append('text').attr('class', 'ch-lab ch-strong ch-halo').attr('y', dy + 4)
     .attr('x', (b) => x(Math.max(b.p_mean, b.busy_share)) + 10).text((b) => pct(b.busy_share))
   const tip = tipFor(wrap)
   bind(box, svg.node(), srLive(wrap), bins.length, bins.length - 1,
@@ -494,8 +554,8 @@ function drawBins(box, wrap, bins) {
     (i) => {
       const b = bins[i]
       hl.attr('y', i * rh).classed('on', true)
-      const lines = [`Модель казала ${binName(b)}`, `У середньому казала: ${pct(b.p_mean)}`,
-        `Справді неспокійно: ${pct(b.busy_share)}`, `Годин: ${int(b.n)}${b.n < FEW ? ', замало, цифра хитка' : ''}`]
+      const lines = [`Модель казала від ${pct(b.from)} до ${pct(b.to)}`, `У середньому казала: ${pct(b.p_mean)}`,
+        `Атака справді була після ${pct(b.busy_share)} цих годин`, `Годин: ${int(b.n)}${b.n < FEW ? ', замало, цифра хитка' : ''}`]
       tip.show(m.l + x(b.busy_share), m.t + i * rh + 6, lines)
       return lines
     },
@@ -513,7 +573,7 @@ function drawTiers(box, wrap, tiers, lim, testDay) {
   const gh = 62
   const iw = W - m.l - m.r, ih = tiers.length * gh, H = m.t + ih + m.b
   const x = d3.scaleLinear().domain([0, 1]).range([0, iw])
-  const svg = newSvg(wrap, W, H, 'Для кожного рівня прогнозу: яка частка годин потім справді була неспокійною, за всю історію і з початку перевірки. Стрілки вліво і вправо переходять між рівнями.')
+  const svg = newSvg(wrap, W, H, 'Для кожного рівня ризику: як часто потім справді була атака, за всю історію і на тестових даних. Стрілки вліво і вправо переходять між рівнями.')
   const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`)
   const hl = g.append('rect').attr('class', 'ch-hl').attr('x', 2 - m.l).attr('width', W - 4).attr('height', gh - 4).attr('rx', 8)
   const xt = phone ? [0, 0.5, 1] : [0, 0.25, 0.5, 0.75, 1]
@@ -522,7 +582,7 @@ function drawTiers(box, wrap, tiers, lim, testDay) {
   g.append('g').attr('class', 'ch-tick').attr('transform', `translate(0,${ih + 18})`).selectAll('text').data(xt).join('text')
     .attr('x', x).attr('text-anchor', (d) => (d === 1 ? 'end' : d === 0 ? 'start' : 'middle')).text((d) => pct(d))
   const grp = g.selectAll('g.ch-row').data(tiers).join('g').attr('class', 'ch-row').attr('transform', (r, i) => `translate(0,${i * gh})`)
-  grp.append('text').attr('class', 'ch-lab ch-strong').attr('x', 0).attr('y', 14).text((r) => `«${TIER[r.k]}»${tierRange(r.k, lim)}`)
+  grp.append('text').attr('class', 'ch-lab ch-strong').attr('x', 0).attr('y', 14).text((r) => tierName(r.k, lim))
   for (const [key, cls, dy] of [['all', 'ch-whole', 22], ['test', 'ch-testbar', 38]]) {
     grp.each(function (r) {
       const t = r[key]
@@ -533,20 +593,20 @@ function drawTiers(box, wrap, tiers, lim, testDay) {
       }
       const w = Math.max(2, x(t.busy_share))
       gg.append('rect').attr('class', cls).attr('x', 0).attr('y', dy).attr('width', w).attr('height', 12).attr('rx', 3)
-      const label = gg.append('text').attr('class', 'ch-lab').attr('y', dy + 10).text(`${pct(t.busy_share)}, ${int(t.hours)} год`)
+      const label = gg.append('text').attr('class', 'ch-lab ch-halo').attr('y', dy + 10).text(`${pct(t.busy_share)} із ${int(t.hours)} год`)
       const tw = label.node().getComputedTextLength()
       if (w + 6 + tw <= iw) label.attr('x', w + 6)
-      else label.attr('x', w - 6).attr('text-anchor', 'end').classed('ch-on-bar', true)
+      else label.attr('x', w - 6).attr('text-anchor', 'end').classed('ch-on-bar', true).classed('ch-halo', false)
     })
   }
-  const part = (t) => (t && t.hours > 0 && num(t.busy_share) != null ? `${pct(t.busy_share)} із ${int(t.hours)} год` : 'немає даних')
+  const part = (t) => (t && t.hours > 0 && num(t.busy_share) != null ? `атака після ${pct(t.busy_share)} із ${int(t.hours)} год` : 'немає даних')
   const tip = tipFor(wrap)
   bind(box, svg.node(), srLive(wrap), tiers.length, tiers.length - 1,
     (px, py) => Math.max(0, Math.min(tiers.length - 1, Math.floor((py - m.t) / gh))),
     (i) => {
       const r = tiers[i]
       hl.attr('y', i * gh - 2).classed('on', true)
-      const lines = [`Рівень «${TIER[r.k]}»${tierRange(r.k, lim)}`, `Потім неспокійно, уся історія: ${part(r.all)}`, `З ${testDay}: ${part(r.test)}`]
+      const lines = [tierName(r.k, lim), `Уся історія: ${part(r.all)}`, `Тестові дані з ${testDay}: ${part(r.test)}`]
       tip.show(m.l + Math.min(iw * 0.6, x(num(r.test?.busy_share) ?? num(r.all?.busy_share) ?? 0)), m.t + i * gh + 18, lines)
       return lines
     },
@@ -559,41 +619,45 @@ function drawTiers(box, wrap, tiers, lim, testDay) {
 // ---- 3. days by hour: rows are Kyiv days (newest on top), columns the 24 Kyiv hours ----
 
 function drawDays(box, st) {
-  const art = card(box, 'days', 'Коли зазвичай неспокійно',
-    'Рядок це день, клітинка це година за Києвом. Чим темніша клітинка, тим вищий прогноз моделі; крапка означає, що за 3 години після справді було неспокійно.')
+  const art = card(box, 'days', 'О котрій годині атаки частіші?')
   const all = st.hours
   if (all.length < 2) return calm(art, `Днів ще замало: сітка з'явиться, щойно набереться історія прогнозів.`)
+  // White, pink, dark pink: the sequential palette of the viz skill, its dark end mixed from the pink and ink tokens.
   const css = getComputedStyle(document.documentElement)
+  const tok = (n) => css.getPropertyValue(n).trim()
   const seq = d3.scaleSequential(d3.piecewise(d3.interpolateRgb,
-    [css.getPropertyValue('--card').trim(), css.getPropertyValue('--pink').trim(), SEQ_DARK])).domain([0, 1])
-  const head = el('div')
+    [tok('--card'), tok('--pink'), d3.interpolateRgb(tok('--pink'), tok('--ink'))(0.55)])).domain([0, 1])
+  // The tiles: for each Kyiv hour its last TILE_DAYS days with a known outcome (a repeated hour of a day counts once).
+  const per = d3.range(24).map((hour) => {
+    const seen = new Map()
+    for (const h of all) if (h.hour === hour && h.busy_3h != null) seen.set(h.day, seen.get(h.day) || h.busy_3h)
+    const last = [...seen.values()].slice(-TILE_DAYS)
+    return { hour, n: last.length, busy: last.filter(Boolean).length }
+  }).filter((s) => s.n >= 3)
+  const most = d3.greatest(per, (s) => s.busy / s.n)
+  const least = d3.least(per, (s) => s.busy / s.n)
+  const told = (s) => `атака ${window3(s.hour)} у ${s.busy} з ${s.n === TILE_DAYS ? 'останніх ' : ''}${s.n} ${plural(s.n, 'дня', 'днів', 'днів')}`
   const wrap = el('div', { class: plotClass(st) })
   const notes = note('')
-  art.append(head, seqLegend(seq, st.lim), wrap, notes)
+  if (most) art.append(tiles([['Найчастіше', `${hh(most.hour)}:00`, told(most)], ['Найрідше', `${hh(least.hour)}:00`, told(least)]]))
+  art.append(seqLegend(seq, st.lim), wrap, notes)
   const W = wrap.clientWidth
   if (!W) return
   const phone = W < 560
   const keys = [...new Set(all.map((h) => h.day))].sort().reverse().slice(0, phone ? 14 : 30)
   const rowOf = new Map(keys.map((k, i) => [k, i]))
   const cells = all.filter((h) => rowOf.has(h.day))
-  const per = d3.rollups(cells.filter((h) => h.busy_3h != null),
-    (v) => ({ n: v.length, busy: d3.mean(v, (h) => (h.busy_3h ? 1 : 0)) }), (h) => h.hour).filter(([, s]) => s.n >= 3)
-  const most = d3.greatest(per, ([, s]) => s.busy)
-  const least = d3.least(per, ([, s]) => s.busy)
-  head.replaceWith(most ? tiles([
-    ['Найнеспокійніша година', `${hh(most[0])}:00`, `у ${pct(most[1].busy)} днів`],
-    ['Найспокійніша година', `${hh(least[0])}:00`, `у ${pct(least[1].busy)} днів`],
-  ]) : el('span'))
-  notes.textContent = `Останні ${keys.length} днів, нові згори. Порожня клітинка: на цю годину прогнозу немає. Позначки на шкалі це межі рівнів (docs/quiet/model.md).`
+  const n = keys.length
+  notes.textContent = `Сітка: останні ${n} ${plural(n, 'день', 'дні', 'днів')}, нові згори; клітинка це година за Києвом, порожня клітинка: прогнозу немає.`
   art.append(footer('dni-po-hodynakh', () => cells.map(hourRow)))
 
   const m = { t: 22, r: 2, b: 4, l: phone ? 68 : 76 }
   const cw = (W - m.l - m.r) / 24
   const rh = 20
-  const H = m.t + keys.length * rh + m.b
-  const svg = newSvg(wrap, W, H, `Останні ${keys.length} днів по годинах: колір це прогноз, крапка це неспокійне вікно. Стрілки вліво і вправо переходять між годинами.`)
+  const H = m.t + n * rh + m.b
+  const svg = newSvg(wrap, W, H, `Останні ${n} ${plural(n, 'день', 'дні', 'днів')} по годинах: колір це прогноз, крапка це атака за 3 години. Стрілки вліво і вправо переходять між годинами.`)
   const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`)
-  g.append('rect').attr('class', 'ch-gridbg').attr('width', 24 * cw).attr('height', keys.length * rh).attr('rx', 4)
+  g.append('rect').attr('class', 'ch-gridbg').attr('width', 24 * cw).attr('height', n * rh).attr('rx', 4)
   g.append('g').attr('class', 'ch-tick').selectAll('text').data(d3.range(0, 24, phone ? 6 : 3)).join('text')
     .attr('x', (h) => h * cw + cw / 2).attr('y', -8).attr('text-anchor', 'middle').text((h) => `${hh(h)}:00`)
   const firstOf = new Map()
@@ -615,7 +679,7 @@ function drawDays(box, st) {
   bind(box, svg.node(), srLive(wrap), cells.length, cells.length - 1,
     (px, py) => {
       const c = Math.floor((px - m.l) / cw), r = Math.floor((py - m.t) / rh)
-      if (c < 0 || c > 23 || r < 0 || r >= keys.length) return null
+      if (c < 0 || c > 23 || r < 0 || r >= n) return null
       return idx.get(`${keys[r]}|${c}`) ?? null
     },
     (i) => {
@@ -632,7 +696,7 @@ function drawDays(box, st) {
     })
 }
 
-// The color scale of the days: a gradient bar with ticks at the two tier limits.
+// The color scale of the days: a gradient bar with ticks at the two risk limits.
 function seqLegend(seq, lim) {
   const w = 240, ht = 34
   const x = d3.scaleLinear().domain([0, 1]).range([6, w - 6])
@@ -648,6 +712,6 @@ function seqLegend(seq, lim) {
   t.selectAll('line').data(marks).join('line').attr('x1', (d) => x(d[0])).attr('x2', (d) => x(d[0])).attr('y1', 1).attr('y2', 17)
   t.selectAll('text').data(marks).join('text').attr('x', (d) => x(d[0]) + (d[1] === 'end' ? 2 : -2)).attr('y', 30)
     .attr('text-anchor', (d) => d[1]).text((d) => limPct(d[0]))
-  row.append(el('span', { class: 'ch-li' }, el('span', { class: 'ch-key ch-key-dot' }), 'потім неспокійно'))
+  row.append(el('span', { class: 'ch-li' }, el('span', { class: 'ch-key ch-key-dot' }), 'атака за 3 години'))
   return row
 }
