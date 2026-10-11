@@ -7,15 +7,21 @@ VA_Kyiv alert end without a start. That feed is read back only to 3 h before the
 as scripts/bronze/etryvoga_patch.py does for an end, never back to FETCH_FROM.
 Pages come from get() and parse() of scripts/bronze/tg_fetch.py, one request at a time, 1.5 s apart. Only posts newer than
 the newest post_id of the file are appended, so no post_id is written twice. DATA/live.lock (flock) keeps two passes apart:
-a second run exits at once with code 0. Each pass adds one JSON line to DATA/fetch_log.jsonl (not data/bronze/MANIFEST.md)."""
+a second run exits at once with code 0. Each pass adds one JSON line to DATA/fetch_log.jsonl (not data/bronze/MANIFEST.md).
+A channel fetched without error gets its check time, the UTC time just before its first page request of the pass, in
+DATA/bronze/telegram/_checked.json ({channel: ISO UTC}, read by telegram.checks); a failed channel keeps its old entry.
+label_end of silver/threat_hourly.py and data_until of silver/alerts.py take it, so a channel without new posts does not
+hold the data end back."""
 import argparse
 import fcntl
 import importlib.util
 import json
+import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
 
+from .. import telegram
 from ..paths import DATA, FETCH_FROM, ROOT
 from ..silver import signals, threat_hourly
 
@@ -84,6 +90,16 @@ def lock(data):
     return f
 
 
+def record_check(tg, channel, at):
+    """Set the check time of `channel` in tg/_checked.json, keeping the other entries, atomically (a temporary file, then
+    os.replace): a reader sees the old file or the new one, never a part."""
+    checks = telegram.checks(tg)
+    checks[channel] = at
+    tmp = tg / f"{telegram.CHECKED}.tmp"
+    tmp.write_text(json.dumps(checks, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(tmp, tg / telegram.CHECKED)
+
+
 def run_once(data=DATA, channels=CHANNELS, page=tg_page, pause=PAUSE):
     """One pass: a line per channel (new posts, newest published_at, seconds). Returns the exit code."""
     held = lock(data)
@@ -106,6 +122,7 @@ def run_once(data=DATA, channels=CHANNELS, page=tg_page, pause=PAUSE):
                 since = (datetime.strptime(va, TIME_FMT) - FEED_BACK).strftime(TIME_FMT)
             if i:
                 time.sleep(pause)
+            checked = datetime.now(timezone.utc).strftime(TIME_FMT)  # just before the first page request of the channel
             try:
                 rows, _ = newer(ch, max(have[ch]), since, page, pause)
             except (Exception, SystemExit) as e:  # tg_fetch.get() exits after 5 failed tries; the other channels go on
@@ -115,6 +132,7 @@ def run_once(data=DATA, channels=CHANNELS, page=tg_page, pause=PAUSE):
             if rows:
                 with open(tg / f"{ch}.jsonl", "a", encoding="utf-8") as f:
                     f.write("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+            record_check(tg, ch, checked)  # after the append, so the file is complete up to `checked`
             newest = max([*have[ch].values(), *(r["published_at"] for r in rows)])
             log["new"][ch], log["newest"][ch] = len(rows), newest
             print(f"{ch:20} new {len(rows):4}  newest {newest}  {time.time() - start:5.1f} s", flush=True)

@@ -1,5 +1,6 @@
 """Hourly missile strike label for Kyiv city: the Jev classifier of the posts of the 7 Kyiv channels (piece S3a).
-Docs: docs/data/silver/kyiv_threat_hourly.md. Input: data/silver/tg_posts.parquet; bronze only for `fetched_at` (label_end).
+Docs: docs/data/silver/kyiv_threat_hourly.md. Input: data/silver/tg_posts.parquet; bronze only for label_end (`fetched_at`
+and the check times of the live fetch).
 
 Label of hour h = 1 when missiles (ballistic, cruise, hypersonic) exploded over, were shot down over, fell as debris on
 or hit Kyiv city in [h, h+1h). Drones alone, the Kyiv region outside the city and a warning alone do not count.
@@ -189,12 +190,16 @@ def floor_hour(t):
 
 @functools.lru_cache(maxsize=1)
 def label_end():
-    """Data end of the label, ISO UTC: the earliest of the 7 channels of `fetched_at` of the newest post in bronze.
-    Hours h with h + 1h <= label_end are complete in all 7 channels."""
+    """Data end of the label, ISO UTC: the earliest of the 7 channels of the later of `fetched_at` of the newest post in bronze
+    and the check time the live fetch recorded for the channel (telegram.checked_at). Hours h with h + 1h <= label_end are
+    complete in all 7 channels. The check time is there because the live fetch appends only new posts: a quiet channel keeps
+    the old `fetched_at` of its newest post and would hold the end back by hours, although every pass confirms that it has
+    nothing new. Without check times (the research bronze has none) the end is the `fetched_at` one alone, as before."""
     ends = []
     for c in CHANNELS:
-        newest = max(telegram.load(c), key=lambda r: (r["published_at"], r["post_id"]))
-        ends.append(newest["fetched_at"])
+        newest = max(telegram.load(c), key=lambda r: (r["published_at"], r["post_id"]))["fetched_at"]
+        checked = telegram.checked_at(c)
+        ends.append(max(newest, checked, key=parse_utc) if checked else newest)
     return min(ends, key=parse_utc)
 
 

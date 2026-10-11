@@ -15,7 +15,7 @@ import pyarrow.parquet as pq
 
 from ..db import connect, register_layers
 from ..paths import FETCH_FROM, ROOT, SILVER, T0
-from ..telegram import TG, load
+from ..telegram import TG, checked_at, load
 
 TABLE = SILVER / "kyiv_alerts.parquet"
 LEAD = r"^[^0-9A-Za-zА-Яа-яЄєІіЇїҐґ]+"  # leading emoji and signs
@@ -87,11 +87,16 @@ def etryvoga_kyiv_start(text):
 
 
 def build(va=None, etryvoga=None):
-    """Alert rows, the end of the data (last VA_Kyiv post time) and the ids of dropped ends, from the bronze posts
-    (the self-test passes its own). An end without a start takes the last Kyiv start of eTryvoga after the previous end
-    (PARSING 1). The data starts at FETCH_FROM: the first end of the data without a start closes an alert that began
-    before it, so it is not an alert of our period and is dropped, unless eTryvoga has a Kyiv start after FETCH_FROM."""
-    va = load("VA_Kyiv") if va is None else va
+    """Alert rows, the end of the data and the ids of dropped ends, from the bronze posts (the self-test passes its own).
+    The end of the data is the time of the last VA_Kyiv post or, when later, the check time the live fetch recorded for
+    VA_Kyiv in bronze (telegram.checked_at): the live fetch appends only new posts, so without it a quiet hour of VA_Kyiv
+    would hold the end back; the research bronze has no check times. An end without a start takes the last Kyiv start of
+    eTryvoga after the previous end (PARSING 1). The data starts at FETCH_FROM: the first end of the data without a start
+    closes an alert that began before it, so it is not an alert of our period and is dropped, unless eTryvoga has a Kyiv
+    start after FETCH_FROM."""
+    checked = None
+    if va is None:
+        va, checked = load("VA_Kyiv"), checked_at("VA_Kyiv")
     if etryvoga is None:
         etryvoga = load("UkraineAlarmSignal") if (TG / "UkraineAlarmSignal.jsonl").exists() else []
     starts = sorted((r["published_at"], r["post_id"], lvl) for r in etryvoga if (lvl := etryvoga_kyiv_start(r["text"])))
@@ -125,7 +130,8 @@ def build(va=None, etryvoga=None):
                          max_level=a["level"], start_source=a["src"], start_post_id=a["sid"], end_post_id=a["eid"],
                          gap_from_prev_min=(s - prev).total_seconds() / 60 if prev else None, available_at=s))
         prev = e
-    return rows, max(r["published_at"] for r in va), dropped
+    until = max(r["published_at"] for r in va)
+    return rows, max(until, checked, key=ts) if checked else until, dropped
 
 
 def main():

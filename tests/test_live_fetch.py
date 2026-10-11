@@ -1,4 +1,5 @@
-"""Live fetch offline: the incremental append, the lock, the channels, AIRALERTS_DATA in paths and the Jev key mode.
+"""Live fetch offline: the incremental append, the lock, the channels, AIRALERTS_DATA in paths, the Jev key mode and the
+check times of bronze/telegram/_checked.json with the data ends they move (label_end, data_until of the alerts).
 No network.
 
 Under -I the project root is not on sys.path, so `-m unittest tests.test_live_fetch` cannot import the package `tests`.
@@ -14,11 +15,13 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
 
-from airalerts import jev, paths
+from airalerts import jev, paths, telegram
 from airalerts.live import fetch
+from airalerts.silver import threat_hourly
 
 
 def post(i, text="x"):
@@ -124,6 +127,54 @@ class LiveFetch(unittest.TestCase):
                 jev._post({"q": 1})
         self.assertEqual(sent, ["Bearer sk-secret-1"])
         self.assertNotIn("sk-secret", str(e.exception))
+
+    def test_check_times_only_for_channels_without_error(self):
+        tg = self.file.parent
+        (tg / "bad.jsonl").write_text(self.file.read_text(encoding="utf-8"), encoding="utf-8")
+        old = {"bad": "2026-10-11T00:00:00Z", "other": "2026-10-11T01:00:00Z"}
+        (tg / telegram.CHECKED).write_text(json.dumps(old), encoding="utf-8")
+        site, first = Site(range(81, 121)), {}
+
+        def page(channel, before=None):  # notes the time of the first request of each channel; "bad" does not answer
+            first.setdefault(channel, datetime.now(timezone.utc).strftime(fetch.TIME_FMT))
+            if channel == "bad":
+                raise RuntimeError("t.me is down")
+            return site(channel, before)
+
+        start = datetime.now(timezone.utc).strftime(fetch.TIME_FMT)
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = fetch.run_once(self.data, ("bad", "chan", "gone"), page, pause=0)  # "gone" has no file: an error too
+        checks = telegram.checks(tg)
+        self.assertEqual(code, 1)
+        self.assertEqual({k: v for k, v in checks.items() if k != "chan"}, old)  # failed channels keep their old entry
+        self.assertTrue(start <= checks["chan"] <= first["chan"], (start, checks, first))  # just before the first request
+        self.assertEqual(self.ids(), list(range(81, 121)))
+        self.assertEqual(sorted(p.name for p in tg.iterdir()), ["_checked.json", "bad.jsonl", "chan.jsonl"])  # no temp file
+
+    def test_check_times_move_label_end_and_data_until(self):
+        tg = self.file.parent
+        fetched = dict.fromkeys(threat_hourly.CHANNELS, "2026-10-11T20:15:00Z")  # fetched_at of the newest post
+        fetched.update(war_monitor="2026-10-11T10:05:00Z", AerisRimor="2026-10-11T20:17:00Z", kyiv_nebo="2026-10-11T20:16:00Z")
+        for c, at in fetched.items():
+            row = dict(post(1), channel=c, published_at="2026-10-11T09:50:00Z", fetched_at=at)
+            (tg / f"{c}.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
+        code = ["-c", "from airalerts.silver import alerts, threat_hourly as t; print(t.label_end(), alerts.build()[1])"]
+
+        def ends(checks=None):  # label_end and the alerts data_until in a fresh process on this data dir
+            if checks is not None:
+                (tg / telegram.CHECKED).write_text(json.dumps(checks), encoding="utf-8")
+            r = run(self.tmp.name, code)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            return r.stdout.split()
+
+        # no check file, as in the research bronze: the quiet war_monitor holds label_end, the last VA_Kyiv post ends the data
+        self.assertEqual(ends(), ["2026-10-11T10:05:00Z", "2026-10-11T09:50:00Z"])
+        checks = dict.fromkeys(threat_hourly.CHANNELS, "2026-10-11T20:18:00Z")
+        checks["AerisRimor"] = "2026-10-11T20:10:00Z"  # older than the fetched_at of its newest post, which stays
+        del checks["kyiv_nebo"]  # no entry: its fetched_at stays and is now the earliest
+        self.assertEqual(ends(checks), ["2026-10-11T20:16:00Z", "2026-10-11T20:18:00Z"])
+        checks["VA_Kyiv"] = "2026-10-11T09:00:00Z"  # older than the last VA_Kyiv post, which stays the end of the data
+        self.assertEqual(ends(checks), ["2026-10-11T20:15:00Z", "2026-10-11T09:50:00Z"])
 
 
 if __name__ == "__main__":
