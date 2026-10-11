@@ -9,9 +9,10 @@ Usage:
 
 Writes site/data/kyiv_map.json in SVG coordinates (viewBox width 1000): the city boundary, the Dnipro water
 with islands, the river centreline, the 'west' (right bank) and 'east' (left bank) clip regions, the bridges
-over the Dnipro from north to south, the M1 and M3 river crossings, landmark points and label anchors.
+over the Dnipro from north to south, the M1 and M3 river crossings,
+the metro lines M1, M2 and M3 along their routes, landmark points and label anchors.
 Projection: equirectangular, x = (lon - lon_min) * cos_lat * scale, y = (lat_max - lat) * scale.
-Paths are simplified with Douglas-Peucker (the tolerance grows until the file is under 200 KB) and rounded
+Paths are simplified with Douglas-Peucker (the tolerance grows until the file is under 160 KB) and rounded
 to 1 decimal; fill them with fill-rule nonzero. Data: (c) OpenStreetMap contributors, ODbL.
 """
 import argparse
@@ -36,7 +37,7 @@ ENDPOINTS = ('https://overpass-api.de/api/interpreter', 'https://overpass.kumi.s
 UA = 'airalers-kyianyn-routine/1.0 (https://kyianyn-routine.isakov.fyi; student project, map of Kyiv)'
 QBOX = '50.17,30.19,50.63,30.87'  # south,west,north,east: a little wider than the city
 WIDTH = 1000.0
-MAX_BYTES = 200_000
+MAX_BYTES = 160_000
 ATTRIBUTION = '© OpenStreetMap contributors, ODbL'
 ROADS = '^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|construction)(_link)?$'
 
@@ -297,6 +298,32 @@ def trim(pts, mid, limit):
 
 def length(pts):
     return sum(math.dist(a, b) for a, b in zip(pts, pts[1:]))
+
+
+def join_lines(lines):
+    """Join open polylines that share an end point, so a metro line draws as few strokes as possible."""
+    key = lambda p: (round(p[0], 1), round(p[1], 1))
+    rest, out = [list(x) for x in lines if len(x) >= 2], []
+    while rest:
+        cur, grew = rest.pop(0), True
+        while grew:
+            grew = False
+            for i, x in enumerate(rest):
+                if key(x[0]) == key(cur[-1]):
+                    cur += x[1:]
+                elif key(x[-1]) == key(cur[-1]):
+                    cur += x[::-1][1:]
+                elif key(x[-1]) == key(cur[0]):
+                    cur = x + cur[1:]
+                elif key(x[0]) == key(cur[0]):
+                    cur = x[::-1] + cur[1:]
+                else:
+                    continue
+                rest.pop(i)
+                grew = True
+                break
+        out.append(cur)
+    return out
 
 
 def assemble(lines):
@@ -624,6 +651,16 @@ def build():
                 if m['type'] == 'way':
                     route_of.setdefault(m['ref'], x['tags'])
 
+    # the metro lines along their routes: the track members (empty role) of the route relations of both directions
+    tracks = defaultdict(dict)
+    for x in river:
+        if x['type'] == 'relation' and x.get('tags', {}).get('route') == 'subway' and line_id(x['tags']):
+            for m in x.get('members', []):
+                pts = [P(g['lat'], g['lon']) for g in m.get('geometry') or [] if g] or geo.get(m['ref'], [])
+                if m['type'] == 'way' and not m.get('role') and len(pts) >= 2:
+                    tracks[line_id(x['tags'])].setdefault(m['ref'], pts)
+    routes = {lid: join_lines(list(ws.values())) for lid, ws in sorted(tracks.items())}
+
     def grow(w0, pool, limit):
         nodes, pts, used = list(w0['nodes']), list(geo[w0['id']]), {w0['id']}
         for _ in range(2):
@@ -728,6 +765,7 @@ def build():
                         for i, b in enumerate(bridges)],
             'metro': {m['line']: {'bridge': m['bridge'], 'path': path_pts(dp(m['pts'], 0.3), False),
                                   'mid': rnd(m['mid']), 'line_from': m['how']} for m in by_order},
+            'lines': {lid: ''.join(path_pts(dp(r, max(tol, 0.5)), False) for r in rs) for lid, rs in routes.items()},
             'landmarks': marks,
             'labels': {'banks': [{'id': 'west', 'text': 'Правий берег', 'x': round(aw[0], 1), 'y': round(aw[1], 1)},
                                  {'id': 'east', 'text': 'Лівий берег', 'x': round(ae[0], 1), 'y': round(ae[1], 1)}],
@@ -760,6 +798,7 @@ def build():
               f"lat {b['lat']}{', construction' if b.get('construction') else ''}")
     for k2, m in doc['metro'].items():
         print(f"metro {k2}: crosses on {m['bridge']} (line from {m['line_from']})")
+    print('metro lines: ' + ', '.join(f"{k2} {v.count('M')} strokes, {pc(v)} points" for k2, v in doc['lines'].items()))
     print(f"landmarks: {len(marks)}; " + '; '.join(f"{m['name']} {m['lat']},{m['lon']} ({m['osm']})" for m in marks))
     print('not found in OSM: ' + (', '.join(missing) if missing else 'none'))
     print(f"labels: banks {doc['labels']['banks']}; islands {[i['name'] for i in island_labels]}")
