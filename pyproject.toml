@@ -3,7 +3,7 @@ name = "airalerts"
 version = "0.1.0"
 description = "Missile strike forecast for Kyiv: bronze, silver and gold data layers"
 requires-python = ">=3.11"
-dependencies = ["duckdb==1.5.6", "pyarrow==26.0.0"]
+dependencies = ["duckdb==1.5.6", "pyarrow==26.0.0", "lightgbm==4.7.0", "numpy==2.5.4", "scipy==1.18.1", "narwhals==2.27.1"]
 
 [build-system]
 requires = ["setuptools>=68"]
