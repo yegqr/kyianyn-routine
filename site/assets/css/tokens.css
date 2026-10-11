@@ -24,6 +24,10 @@
   --m1: #E31E24;
   --m2: #0072BC;
   --m3: #00984F;
+  /* The map: the Dnipro and the night sky. */
+  --water: #D6EAF6;
+  --water-line: #8CC0E3;
+  --night: #1E1B2E;
 
   --font: 'Onest', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Unbounded', sans-serif;
