@@ -1,9 +1,10 @@
-# Every day at 04:00 Kyiv time, as in the replay of the history (airalerts.live.model replay).
+# Every week on Saturday at 12:00 Kyiv time, the weekly fold origins (docs/adr/0013-retrain-cadence.md), as in the
+# replay of the history (airalerts.live.model replay).
 [Unit]
-Description=Livii bereh: daily retrain at 04:00 Kyiv
+Description=Livii bereh: weekly retrain, Saturday 12:00 Kyiv
 
 [Timer]
-OnCalendar=*-*-* 04:00:00 Europe/Kyiv
+OnCalendar=Sat *-*-* 12:00:00 Europe/Kyiv
 Persistent=true
 
 [Install]

@@ -1,12 +1,13 @@
-"""The model service of the live site: the quiet finalist logit_signals (docs/quiet/model.md) retrained every day,
-exported as JSON (the site's api/model.json), run from that JSON in plain Python, and a daily-retrain replay of the
-history. The thresholds stay frozen at the development values of quiet/forecast.py; nothing here refits them.
+"""The model service of the live site: the quiet finalist logit_signals (docs/quiet/model.md) retrained at CADENCE
+(docs/adr/0013-retrain-cadence.md), exported as JSON (the site's api/model.json), run from that JSON in plain Python,
+and a replay of the history at any cadence of CADENCES. The thresholds stay frozen at the development values of
+quiet/forecast.py; nothing here refits them.
 
 The hours table is airalerts.live.features.build() when that works, else the frozen gold kyiv_quiet (same columns).
 DATA is paths.DATA: ROOT/data, or AIRALERTS_DATA when that is set (data/live for the live product).
 
     .venv/bin/python -I -m airalerts.live.model train [--at ISO] [--gold]   fit on the hours known now, write DATA/live_model/
-    .venv/bin/python -I -m airalerts.live.model replay [--gold]             retrain at 04:00 Kyiv every day: tier stats
+    .venv/bin/python -I -m airalerts.live.model replay [--cadence NAME] [--gold]   retrain at a cadence (default CADENCE): tier stats
 """
 import argparse
 import json
@@ -14,7 +15,7 @@ import math
 import os
 import sys
 from bisect import bisect_right
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -34,8 +35,15 @@ INPUTS = tuple(dict.fromkeys(name for name, _ in linear.SIGNALS))  # the 7 colum
 NEEDED = ("t_utc", *INPUTS, "quiet_now", "alert_active", TARGET, DRONE, MISSILE)
 BUSY_AT, HIGH_AT = forecast.BUSY_AT, forecast.HIGH_AT
 START = "2026-07-04T09:00:00Z"   # the first development fold, 2026-07-04 12:00 Kyiv
-RETRAIN_HOUR = 4                 # Kyiv time
-MAX_AGE = timedelta(hours=26)    # an older saved model is retrained before use
+RETRAIN_HOUR = 4                 # Kyiv time, of the daily cadence
+CADENCES = {  # when the model retrains, on the Kyiv clock: (hours of the day, weekday or None for every day)
+    "hourly": (tuple(range(24)), None),
+    "6h": ((4, 10, 16, 22), None),
+    "daily": ((RETRAIN_HOUR,), None),
+    "weekly": ((12,), 5),        # Saturday 12:00 Kyiv: the weekly fold origins of evaluation/split.py
+}
+CADENCE = "weekly"               # the choice of docs/adr/0013-retrain-cadence.md
+MAX_AGE = timedelta(days=7, hours=2)  # the cadence plus 2 h: an older saved model is retrained before use
 DOCS = {"development": (0.83, 0.50), "test": (0.83, 0.80)}  # docs/quiet/forecast.md: low tier quiet, high tier busy
 UTC, KYIV = ZoneInfo("UTC"), ZoneInfo("Europe/Kyiv")
 
@@ -155,25 +163,28 @@ def tier(p):
     return "low" if p < BUSY_AT else ("medium" if p < HIGH_AT else "high")
 
 
-def retrains(first, last, hour_kyiv=RETRAIN_HOUR):
-    """Retrain moments (naive UTC) at hour_kyiv o'clock Kyiv time: the last one at or before first, then daily to last."""
-    day = (first.replace(tzinfo=UTC).astimezone(KYIV) - timedelta(hours=hour_kyiv)).date()
-    out = []
-    while (r := utc(datetime.combine(day, time(hour_kyiv), KYIV))) <= last:
-        out.append(r)
-        day += timedelta(days=1)
-    return out
+def retrains(first, last, cadence=CADENCE):
+    """Retrain moments (naive UTC) of a cadence of CADENCES on the Kyiv clock, as the systemd timer runs: the last one
+    at or before first, then each one up to last."""
+    hours, weekday = CADENCES[cadence]
+    t, out = first.replace(minute=0, second=0, microsecond=0) - timedelta(days=8), []
+    while t <= last:
+        k = t.replace(tzinfo=UTC).astimezone(KYIV)
+        if k.hour in hours and weekday in (None, k.weekday()):
+            out.append(t)
+        t += timedelta(hours=1)
+    return out[max(bisect_right(out, first) - 1, 0):]
 
 
-def replay(table, start=START, retrain_hour_kyiv=RETRAIN_HOUR):
-    """The history as the live service would have made it: every day at retrain_hour_kyiv Kyiv time a model fitted on
-    the hours known at that moment predicts each hour up to the next retrain. [{t, p, tier}] from start, in time order."""
+def replay(table, start=START, cadence=CADENCE):
+    """The history as the live service would have made it: at each retrain moment of the cadence a model fitted on the
+    hours known at that moment predicts each hour up to the next retrain. [{t, p, tier}] from start, in time order."""
     table = prepare(table)
     ready = has_inputs(table)
     hours = ready.filter(pc.greater_equal(ready["t_utc"], pa.scalar(utc(start), pa.timestamp("us")))).to_pylist()
     if not hours:
         return []
-    moments = retrains(hours[0]["t_utc"], hours[-1]["t_utc"], retrain_hour_kyiv)
+    moments = retrains(hours[0]["t_utc"], hours[-1]["t_utc"], cadence)
     out, k, m = [], None, None
     for r in hours:
         j = bisect_right(moments, r["t_utc"]) - 1
@@ -210,10 +221,10 @@ def current(table, data, now):
     return m
 
 
-def report(rep, table):
+def report(rep, table, cadence=CADENCE):
     """Tier stats of the replay on quiet-now hours with a known target, next to the docs numbers."""
     s = scored(rep, {r["t_utc"]: r for r in table.to_pylist()})
-    print(f"replay of {NAME}: retrain every day at {RETRAIN_HOUR:02d}:00 Kyiv on the hours known then, "
+    print(f"replay of {NAME}: retrain {cadence} (docs/adr/0013-retrain-cadence.md) on the hours known then, "
           f"{iso(rep[0]['t'])}..{iso(rep[-1]['t'])}, {len(rep)} hours, thresholds {BUSY_AT} and {HIGH_AT} frozen")
     print("quiet-now hours with a known target; docs numbers: weekly refit, docs/quiet/forecast.md")
     for part, lo, hi in (("development", utc(START), split.TEST_START), ("test", split.TEST_START, datetime.max)):
@@ -233,6 +244,7 @@ def main(argv=None):
     ap.add_argument("command", choices=("train", "replay"))
     ap.add_argument("--at", help="train as of this UTC time, ISO (default: the current hour)")
     ap.add_argument("--gold", action="store_true", help="read the gold kyiv_quiet, not the live features")
+    ap.add_argument("--cadence", choices=tuple(CADENCES), default=CADENCE, help="replay: how often to retrain")
     a = ap.parse_args(argv)
     table, source = load(a.gold)
     if a.command == "train":
@@ -241,7 +253,7 @@ def main(argv=None):
               f"busy share {m['busy_share']:.3f}")
     else:
         print(f"hours from {source}")
-        report(replay(table), table)
+        report(replay(table, cadence=a.cadence), table, a.cadence)
 
 
 if __name__ == "__main__":

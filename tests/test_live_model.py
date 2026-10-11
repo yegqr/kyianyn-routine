@@ -1,5 +1,5 @@
 """Tests of the live model service (src/airalerts/live/model.py and publish.py): the JSON model gives what sklearn gives,
-a fit at `at` sees only what is known at `at`, the replay retrains once a day without looking ahead, the person's
+a fit at `at` sees only what is known at `at`, the replay retrains at its cadence (daily, every 6 hours) without looking ahead, the person's
 forecast gets the same p, and the publisher writes every key of the site's four files.
 
 Run from the project root with either of:
@@ -19,6 +19,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from airalerts import paths
+from airalerts.evaluation import split
 from airalerts.gold import kyiv_quiet as quiet_table
 from airalerts.live import model, publish
 from airalerts.quiet import forecast, linear
@@ -96,7 +97,7 @@ class LiveModelTest(unittest.TestCase):
         not know changes nothing before the next retrain."""
         end = datetime(2026, 9, 12, 9)
         part = self.table.filter(pc.less(self.table["t_utc"], pa.scalar(end, pa.timestamp("us"))))
-        rep = model.replay(part, "2026-09-10T09:00:00Z")
+        rep = model.replay(part, "2026-09-10T09:00:00Z", "daily")
         self.assertEqual([x["t"] for x in rep], [datetime(2026, 9, 10, 9) + k * HOUR for k in range(48)])
         models = {}
         for x in rep:
@@ -109,9 +110,31 @@ class LiveModelTest(unittest.TestCase):
             self.assertEqual(x["tier"], model.tier(x["p"]))
         first, second = sorted(models)[:2]
         self.assertEqual((first, len(models)), (datetime(2026, 9, 10, 1), 3))
-        again = model.replay(flipped(part, first - 3 * HOUR), "2026-09-10T09:00:00Z")
+        again = model.replay(flipped(part, first - 3 * HOUR), "2026-09-10T09:00:00Z", "daily")
         self.assertEqual([x["p"] for x in again if x["t"] < second], [x["p"] for x in rep if x["t"] < second])
         self.assertNotEqual([x["p"] for x in again], [x["p"] for x in rep])
+
+    def test_replay_at_a_non_daily_cadence(self):
+        """Every 6 hours (04, 10, 16, 22 Kyiv): each replay hour equals a model trained at its last retrain moment r,
+        and flipping every target r could not know (t + 3 h > r) leaves the hours of r as they were. The weekly
+        moments are the fold origins of split.py."""
+        start, end = datetime(2026, 9, 10, 9), datetime(2026, 9, 11, 9)
+        part = self.table.filter(pc.less(self.table["t_utc"], pa.scalar(end, pa.timestamp("us"))))
+        rep = model.replay(part, start, "6h")
+        self.assertEqual([x["t"] for x in rep], [start + k * HOUR for k in range(24)])
+        moment = {x["t"]: x["t"] - (x["t"].replace(tzinfo=UTC).astimezone(KYIV).hour - 4) % 6 * HOUR for x in rep}
+        models = {r: exported(self.table, r) for r in set(moment.values())}
+        self.assertEqual(len(models), 5)
+        for x in rep:
+            self.assertAlmostEqual(x["p"], model.predict(models[moment[x["t"]]], self.rows[x["t"]])[0], delta=1e-12)
+        for r in sorted(models):
+            again = model.replay(flipped(part, r - 3 * HOUR), start, "6h")
+            mine = [k for k, x in enumerate(rep) if moment[x["t"]] == r]
+            self.assertEqual([again[k]["p"] for k in mine], [rep[k]["p"] for k in mine])
+            if r == min(models):  # the flips do reach the later retrains
+                self.assertNotEqual([x["p"] for x in again], [x["p"] for x in rep])
+        origins = [split.TEST_START - k * split.WEEK for k in range(split.DEV_FOLDS, -1, -1)]
+        self.assertEqual(model.retrains(origins[0], origins[-1], "weekly"), origins)
 
     def test_same_p_as_the_person_forecast(self):
         both = forecast.tables()

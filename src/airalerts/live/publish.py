@@ -1,9 +1,11 @@
 """The publisher of the live site: writes the four JSON files the site reads into DIR/api (now, history, model, meta),
-each atomically (a temporary file, then os.replace), from the hours table and the daily model of live/model.py.
+each atomically (a temporary file, then os.replace), from the hours table and the model of live/model.py, retrained at
+model.CADENCE (docs/adr/0013-retrain-cadence.md).
 
 - now: the forecast for the latest hour with all its inputs, from the saved model (trained first when it is missing or
-  older than 26 h); that forecast is appended once per hour to DATA/live_forecasts.jsonl, which is never rewritten;
-- history: the daily-retrain replay before the first logged hour, the log from it; targets once the table knows them;
+  older than model.MAX_AGE, the cadence plus 2 h); that forecast is appended once per hour to DATA/live_forecasts.jsonl,
+  which is never rewritten;
+- history: the replay at model.CADENCE before the first logged hour, the log from it; targets once the table knows them;
 - tiers, calibration and kind: replay hours that are quiet now with a known target. busy_share and alert_share are
   shares of those hours, missile_share and drone_only_share shares of their busy windows; alert_share counts only the
   hours whose y_alert_3h is known (null when the table has no such column);
