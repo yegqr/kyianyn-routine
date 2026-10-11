@@ -30,6 +30,8 @@ src/airalerts/gold/kyiv_hourly.py  gold з features() усіх класів і �
 src/airalerts/modeling/split.py    поділ gold на розробку і тест за часом, фолди walk-forward
 src/airalerts/modeling/naive.py    наївна модель; кожна модель пише прогнози в data/predictions/ (не в git)
 src/airalerts/modeling/evaluate.py один оцінювач для всіх моделей, таблиця reports/leaderboard.md
+src/airalerts/modeling/runner.py   walk-forward для моделей з fit і predict: навчання лише на відомих мітках, прогноз без мітки
+src/airalerts/modeling/share_table.py, logistic.py, lgbm.py  три моделі; опис кожної в docs/models/<назва>.md
 tests/                             тести на витік: gold, поділ, моделі; мірила проти перерахунку в лоб
 scripts/verify/                    зовнішня перевірка мітки і сигналів, Workflow агентів, промпти еталонів, аудит gold
 ```
@@ -69,7 +71,7 @@ scripts/verify/                    зовнішня перевірка мітк�
 2. silver: `.venv/bin/python -I -m airalerts.silver.<модуль>` у порядку `alerts`, `telegram_posts`, `threat_hourly classify`, потім `threat_hourly`, `signals`, `rf_strikes`, `weather`, `astro`, `calendar_dates`, `political_events`. Відповіді Jev беруться з кешу, тож повтор безкоштовний.
 3. gold: `.venv/bin/python -I -m airalerts.gold.kyiv_hourly`, потім `.venv/bin/python -I -m airalerts.db` (view у `data/airalerts.duckdb`).
 4. тести на витік (gold і поділ): `.venv/bin/python -I -m unittest discover -s tests -v`; звіт поділу: `.venv/bin/python -I -m airalerts.modeling.split`.
-5. моделі: `.venv/bin/python -I -m airalerts.modeling.naive`, потім `.venv/bin/python -I -m airalerts.modeling.evaluate` (лише розробка); тест відкриває `evaluate final`, один раз наприкінці.
+5. моделі: `.venv/bin/python -I -m airalerts.modeling.<naive|share_table|logistic|lgbm>`, потім `.venv/bin/python -I -m airalerts.modeling.evaluate` (лише розробка); тест відкриває `evaluate final`, один раз наприкінці.
 6. зовнішня перевірка (не перебудовує дані): `.venv/bin/python -I scripts/verify/label_check.py`; сигнали за docstring `scripts/verify/signals_check.py`; незалежний перерахунок усього gold: `.venv/bin/python -I scripts/verify/audit_recompute.py`.
 
 ## Рішення
@@ -81,3 +83,4 @@ scripts/verify/                    зовнішня перевірка мітк�
 - [ADR-0006](adr/0006-external-verification.md): зовнішня перевірка мітки і сигналів, виправлення мітки вручну.
 - [ADR-0007](adr/0007-audit-before-modelling.md): аудит перед моделюванням, 15 годин мітки, пости, переписані після публікації, невідоме як NULL.
 - [ADR-0008](adr/0008-time-split.md): поділ на розробку і тест за часом, тест з 2026-08-29, тижневий walk-forward.
+- [ADR-0009](adr/0009-three-models.md): три моделі з пошуку агентами і правила проти перенавчання.
