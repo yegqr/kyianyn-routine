@@ -11,6 +11,20 @@
   --paper: #FAF7F8;
   --card: #FFFFFF;
 
+  /* Status colours of the answer, the alert level and the crossings (green yes, amber risky, red no),
+     and the official colours of the Kyiv metro lines. Text in a status colour: --go, --risk, --stop;
+     big fills: --risk-fill; backgrounds: the -soft ones. */
+  --go: #0B7A3B;
+  --go-soft: #E2F5E9;
+  --risk: #B45309;
+  --risk-fill: #F59E0B;
+  --risk-soft: #FEF3DC;
+  --stop: #D42020;
+  --stop-soft: #FDE8E6;
+  --m1: #E31E24;
+  --m2: #0072BC;
+  --m3: #00984F;
+
   --font: 'Onest', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Unbounded', sans-serif;
 
