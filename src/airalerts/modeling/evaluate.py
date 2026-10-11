@@ -7,6 +7,8 @@ Evaluation hours: the evaluation weeks of the development folds and of the test 
 
     .venv/bin/python -I -m airalerts.modeling.evaluate          score the development folds of every model
     .venv/bin/python -I -m airalerts.modeling.evaluate final    also score the test: the final evaluation
+    .venv/bin/python -I -m airalerts.modeling.evaluate check NAME    print the development tables of NAME and naive_7d,
+                                                                    write nothing
 """
 import random
 import sys
@@ -169,9 +171,11 @@ def bootstrap(h, models, groups, thr, metrics):
     return {k: (sorted(v)[int(0.025 * len(v))], sorted(v)[int(0.975 * len(v)) - 1]) for k, v in vals.items()}
 
 
-def load_models(at):
+def load_models(at, only=None):
     models, about = {}, {}
     for f in sorted(PREDICTIONS.glob("*.parquet")):
+        if only and f.stem not in only:
+            continue
         t = pq.read_table(f)
         if t["t_utc"].to_pylist() != at:
             raise ValueError(f"{f.name}: not the evaluation hours; rewrite it with evaluate.save()")
@@ -265,11 +269,13 @@ WITH_TEST = ("Фінальна оцінка з тестом. Тест чисти
 
 def main(argv=None):
     cmd = sys.argv[1:] if argv is None else list(argv)
-    if cmd not in ([], ["final"]):
-        sys.exit("usage: python -I -m airalerts.modeling.evaluate [final]    (final opens the test: once, at the end)")
+    if not (cmd in ([], ["final"]) or (len(cmd) == 2 and cmd[0] == "check")):
+        sys.exit("usage: python -I -m airalerts.modeling.evaluate [final | check NAME]    (final opens the test: once, at the end)")
     final = cmd == ["final"]
     h = Hours(split.load())
-    models, about = load_models(h.at)
+    models, about = load_models(h.at, {REFERENCE, cmd[1]} if cmd[:1] == ["check"] else None)
+    if cmd[:1] == ["check"] and cmd[1] not in models:
+        sys.exit(f"no data/predictions/{cmd[1]}.parquet")
     dev = [not k for k in h.test]
     thr = {m: best_threshold([h.y[i] for i, k in enumerate(dev) if k], [p[i] for i, k in enumerate(dev) if k])
            for m, p in models.items()}
@@ -282,6 +288,9 @@ def main(argv=None):
         lines += subsets_table(h, models, thr, h.test, "тест") + calibration_table(h, models, [True] * len(h.at), "розробка і тест")
     else:
         lines += subsets_table(h, models, thr, dev, "розробка") + calibration_table(h, models, dev, "розробка")
+    if cmd[:1] == ["check"]:
+        print("\n".join(lines[lines.index("## Моделі"):]))
+        return
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(lines).rstrip() + "\n")
     print("\n".join(lines))

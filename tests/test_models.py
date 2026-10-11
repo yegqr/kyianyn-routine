@@ -4,15 +4,27 @@ Run from the project root with either of:
     .venv/bin/python -I -m unittest discover -s tests -v
     .venv/bin/python -I tests/test_models.py
 """
+import importlib
+import pkgutil
 import random
+import sys
 import unittest
+from pathlib import Path
 
 import pyarrow as pa
 
+from airalerts import modeling
 from airalerts.gold.kyiv_hourly import LABEL
-from airalerts.modeling import evaluate, naive, split
+from airalerts.modeling import evaluate, naive, runner, split
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I leaves the tests folder off the path
+from test_no_leakage import reaches  # noqa: E402
 
 SEED = 20261011
+# fit and predict see only the rows they are given: neither they nor a function of their module that they reach may
+# mention a way to read data on their own
+FORBIDDEN = ("read_table", "ParquetFile", "dataset", "duckdb", "connect", "load", "PATH", "GOLD", "open", "split",
+             "evaluate", "runner")
 
 
 class NaiveTest(unittest.TestCase):
@@ -49,6 +61,62 @@ class NaiveTest(unittest.TestCase):
         at = evaluate.hours(self.t)
         with self.assertRaises(ValueError):
             evaluate.save("bad", "", at[1:], [0.0] * (len(at) - 1))
+
+
+def fitted_models():
+    """Every module of airalerts.modeling with NAME, fit and predict: the models that runner.py runs."""
+    mods = (importlib.import_module(f"airalerts.modeling.{m.name}") for m in pkgutil.iter_modules(modeling.__path__))
+    return [m for m in mods if all(hasattr(m, a) for a in ("NAME", "fit", "predict"))]
+
+
+def reads_outside(mod, fns):
+    return [n for n in FORBIDDEN if any(reaches(mod, f, n, set()) for f in fns)]
+
+
+def _share_fit(rows):
+    ys = rows[LABEL].to_pylist()
+    return sum(ys) / len(ys)
+
+
+def _share_predict(model, rows):
+    return [model] * rows.num_rows
+
+
+def _leaky_predict(model, rows):
+    split.load()
+    return [model] * rows.num_rows
+
+
+class FittedModelsTest(unittest.TestCase):
+    """Every fitted model: fit sees only labels known at the fold origin, predict sees no label, neither reads data on its
+    own, and the output is reproducible probabilities."""
+
+    @classmethod
+    def setUpClass(cls):
+        t = split.load()
+        dev, test = split.dev_folds(t), split.test_folds(t)
+        cls.folds = [dev[0], dev[-1], test[-2]]
+
+    def check(self, mod, fit, predict):
+        self.assertEqual(reads_outside(mod, (fit, predict)), [])
+        for o, rows, ev in self.folds:
+            self.assertLessEqual(max(rows["t_utc"].to_pylist()) + split.H * split.HOUR, o)
+            x = runner.features_only(ev)
+            self.assertNotIn(LABEL, x.column_names)
+            p = list(predict(fit(rows), x))
+            self.assertEqual(len(p), ev.num_rows)
+            self.assertTrue(all(0 <= v <= 1 for v in p))
+            self.assertEqual(p, list(predict(fit(rows), x)))
+
+    def test_the_check_passes_a_clean_model_and_catches_a_file_read(self):
+        here = sys.modules[__name__]
+        self.check(here, _share_fit, _share_predict)
+        self.assertEqual(reads_outside(here, (_share_fit, _leaky_predict)), ["load", "split"])
+
+    def test_every_fitted_model(self):
+        for mod in fitted_models():
+            with self.subTest(model=mod.NAME):
+                self.check(mod, mod.fit, mod.predict)
 
 
 class MetricsTest(unittest.TestCase):
