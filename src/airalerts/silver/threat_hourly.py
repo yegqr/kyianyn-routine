@@ -95,14 +95,32 @@ CORRECTIONS = {
                                                                                # "У столиці працюють сили ППО. Київ під обстрілом балістикою"
     "2026-08-27T16": (False, ()),  # debris on a dormitory at 16:55Z during a jet drone attack; the ballistic threat of 16:24Z was
                                    # called off at 16:37Z (kpszsu 74865), so no missile reached the city
+    # Audit of 2026-10-11 (docs/data/VERIFICATION.md): the last hour of an attack where the posts only report damage after the
+    # missiles (p_strike 0.7-0.9 for "уламки впали", "пожежа"), and the fresh gate still sees the alarms of the attack 90 min back.
+    # Every hour was read: no explosion, shoot-down or hit in it, only reports, "чисто" and the all clear.
+    "2026-05-14T01": (False, ()),  # 01:02 kyiv_airdef "Київ надалі чисто"; damage reports from Obolon, Darnytsia
+    "2026-06-02T05": (False, ()),  # 14-47 min after the all clear of 04:49: "Наслідки прильоту", the overnight recap of the Air Force
+    "2026-07-02T01": (False, ()),  # explosions at 00:59; in the hour a recap "нарахував 17 балістик", damage, 01:34 "Київ наразі чисто"
+    "2026-07-06T01": (False, ()),  # photo reports of earlier hits; cruise missiles approached at 01:34, 01:54 "Не фіксується"
+    "2026-07-11T01": (False, ()),  # damage reports, 01:20 kyiv_airdef "Очікуємо на відбій"
+    "2026-07-19T00": (False, ()),  # missiles at 23:36-23:41, all clear 00:14; fire and casualty reports only
+    "2026-08-08T01": (False, ()),  # 26 min after the all clear of 00:35, a past tense video "Вибух за вибухом лунали у місті"
+    "2026-08-16T00": (False, ()),  # all clear 00:22-00:23, then fire and debris reports of the attack at 23:47
+    "2026-08-19T23": (False, ()),  # one post "Наслідки влучання біля багатоповерхівки"
+    "2026-08-27T01": (False, ()),  # a jet drone (01:05 "Реактивний на Водосховище"), debris at 01:48; no missile in the hour
+    "2026-09-01T00": (False, ()),  # 00:02 "Є влучання в житлові будинки" after the ballistic all clear of 23:46
+    "2026-09-17T00": (False, ()),  # 39-47 min after the all clear of 23:55, damage reports
+    "2026-09-23T23": (False, ()),  # debris and damage reports, an Iskander that did not detonate; all clear 23:27
+    "2026-09-28T23": (False, ()),  # ballistic all clear 22:59-23:02, then a report of an earlier hit; the 23:46 explosion was a drone
+    "2026-10-07T01": (False, ()),  # only VA_Kyiv 01:19, a repeat of Klitschko's 00:53 report of burning debris
 }
 EXAMPLE_HOURS = ("2026-10-07T00:00:00Z", "2026-10-07T01:00:00Z", "2026-10-10T11:00:00Z", "2026-06-15T00:00:00Z", "2026-08-16T06:00:00Z",
                  "2026-05-14T10:00:00Z", "2026-05-24T09:00:00Z", "2026-09-15T13:00:00Z", "2026-09-28T17:00:00Z", "2026-10-07T14:00:00Z")
-# Hours read by hand (the posts and their texts), not a ground truth. Strike: 6 from the S3a pilot, 4 from the verification of S3b.
+# Hours read by hand (the posts and their texts), not a ground truth. Strike: 5 from the S3a pilot, 4 from the verification of S3b.
 # No strike: 18 from the S3a pilot; 6 that the verification of S3b read as drones only or damage reports after the attack; 10 threat
 # hours without a strike that the verification found right; 3 read in the fix of S3b (an overnight summary, a crater found
-# after the attack, a drone that fell).
-READ_TRUE = ("2026-06-02T01", "2026-06-15T00", "2026-08-16T06", "2026-10-07T00", "2026-10-07T01", "2026-10-10T11",
+# after the attack, a drone that fell); 1 from the audit of 2026-10-11 (a repeat of an earlier damage report).
+READ_TRUE = ("2026-06-02T01", "2026-06-15T00", "2026-08-16T06", "2026-10-07T00", "2026-10-10T11",
              "2026-05-24T02", "2026-06-27T23", "2026-09-08T02", "2026-09-16T23")
 READ_FALSE = ("2026-05-14T10", "2026-05-24T09", "2026-06-02T09", "2026-08-19T09", "2026-08-20T09", "2026-05-24T07", "2026-06-10T09",
               "2026-07-08T03", "2026-08-08T07", "2026-08-18T16", "2026-09-01T07", "2026-09-01T08", "2026-09-09T07", "2026-09-15T13",
@@ -110,7 +128,8 @@ READ_FALSE = ("2026-05-14T10", "2026-05-24T09", "2026-06-02T09", "2026-08-19T09"
               "2026-09-22T14", "2026-09-30T19", "2026-05-24T08", "2026-08-20T05", "2026-10-02T14", "2026-10-03T19",
               "2026-04-17T16", "2026-04-21T08", "2026-05-06T23", "2026-05-07T19", "2026-05-13T17", "2026-06-30T11", "2026-08-11T16",
               "2026-08-15T22", "2026-09-10T19", "2026-09-20T07",
-              "2026-06-02T03", "2026-07-13T22", "2026-09-25T01")
+              "2026-06-02T03", "2026-07-13T22", "2026-09-25T01",
+              "2026-10-07T01")
 
 # ---------------------------------------------------------------- questions (English, post texts stay as they are)
 _LEAD = ('Post "{pid}" (a post without a place name from a Kyiv channel is about the city of Kyiv; '
@@ -876,7 +895,7 @@ def selftest(log=print):
     ok("evidence and first_strike_at exist exactly for strike hours, first_strike_at inside the hour",
        all(bool(r["evidence"]) == r["missile_strike"] == (r["first_strike_at"] is not None) and
            (r["first_strike_at"] is None or r["hour_utc"] <= r["first_strike_at"] < r["hour_utc"] + HOUR) for r in rows))
-    known = ("2026-10-07T00:00:00Z", "2026-10-07T01:00:00Z", "2026-10-10T11:00:00Z")
+    known = ("2026-10-07T00:00:00Z", "2026-10-10T11:00:00Z")
     ok("known strike hours are missile_strike", all(flags[parse_utc(s)]["missile_strike"] for s in known), ", ".join(known))
     for s in known:
         r = flags[parse_utc(s)]
