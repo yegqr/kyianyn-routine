@@ -1,11 +1,14 @@
 // Scene 1 of the methodology deck: why the project asks "will the next 3 hours be quiet".
 // Crossing facts: city announcements quoted by the media, checked 2026-10-11 (the same facts as ../crossing.js).
 // The tier thresholds are read at runtime from api/model.json (busy_at, high_at), now.json is the fallback.
+// Colours: the metro lines in their official colours (--m1, --m2, --m3), states in status colours
+// (--go open, --risk limited, --stop closed), pink only for the brand accents: the river and the 3 hour window.
 import { h, s, canvas, put, stagger } from '../how.js'
 import { pct } from '../api.js'
 
 const ID = 'question'
 const LEFT = 'left center'
+const TOP = 'center top'
 
 const CSS = `
 .scene-question text { font-family: var(--font); font-size: 22px; fill: var(--ink); }
@@ -15,21 +18,32 @@ const CSS = `
 .scene-question .river { fill: var(--pink-soft); }
 .scene-question .deck { fill: none; stroke: var(--soft); stroke-opacity: .45; stroke-width: 6; stroke-linecap: round; }
 .scene-question .line { fill: none; stroke-width: 8; stroke-linecap: round; }
-.scene-question .m1 { stroke: var(--pink); }
-.scene-question .m3 { stroke: var(--ink); }
+.scene-question .m1 { stroke: var(--m1); }
+.scene-question .m2 { stroke: var(--m2); }
+.scene-question .m3 { stroke: var(--m3); }
 .scene-question .station { fill: var(--card); stroke-width: 3; }
-.scene-question .fill-pink { fill: var(--pink); }
-.scene-question .fill-ink { fill: var(--ink); }
-.scene-question .pill-out { fill: var(--card); stroke: var(--ink); stroke-width: 2; }
+.scene-question .fill-m1 { fill: var(--m1); }
+.scene-question .fill-m2 { fill: var(--m2); }
+.scene-question .fill-m3 { fill: var(--m3); }
+.scene-question .pill-yellow { fill: var(--risk-soft); stroke: var(--risk-fill); stroke-width: 2; }
+.scene-question .pill-red { fill: var(--stop); }
+.scene-question .risk-text { fill: var(--risk); font-weight: 600; }
 .scene-question .train { fill: var(--card); stroke: var(--ink); stroke-width: 2.5; }
-.scene-question .stop circle { fill: var(--card); stroke: var(--pink); stroke-width: 3; }
-.scene-question .stop path { fill: none; stroke: var(--pink); stroke-width: 3; stroke-linecap: round; }
+.scene-question .stop circle { fill: var(--card); stroke: var(--stop); stroke-width: 3; }
+.scene-question .stop path { fill: none; stroke: var(--stop); stroke-width: 3; stroke-linecap: round; }
 .scene-question .cell { fill: var(--pink-soft); stroke: var(--pink); stroke-width: 2; }
 .scene-question .tick { fill: none; stroke: var(--ink); stroke-width: 2; }
 .scene-question .lead { fill: none; stroke: var(--soft); stroke-width: 1.5; }
-.scene-question .tier-0 { fill: var(--pink-soft); }
-.scene-question .tier-1 { fill: var(--pink); fill-opacity: .5; }
-.scene-question .tier-2 { fill: var(--pink); }
+.scene-question .bar-none { fill: var(--pink-soft); }
+.scene-question .bar-0 { fill: var(--go); }
+.scene-question .bar-1 { fill: var(--risk-fill); }
+.scene-question .bar-2 { fill: var(--stop); }
+.scene-question .pill-0 { fill: var(--go-soft); stroke: var(--go); stroke-width: 2; }
+.scene-question .pill-1 { fill: var(--risk-soft); stroke: var(--risk-fill); stroke-width: 2; }
+.scene-question .pill-2 { fill: var(--stop-soft); stroke: var(--stop); stroke-width: 2; }
+.scene-question .txt-0 { fill: var(--go); font-weight: 600; }
+.scene-question .txt-1 { fill: var(--risk); font-weight: 600; }
+.scene-question .txt-2 { fill: var(--stop); font-weight: 600; }
 .scene-question.tip { position: fixed; z-index: 20; display: none; max-width: 280px; padding: 6px 10px; border-radius: var(--r-small);
   background: var(--ink); color: var(--card); font: 500 14px/1.35 var(--font); pointer-events: none; }
 `
@@ -37,6 +51,8 @@ const CSS = `
 const RIVER = 'M285 0C255 120 315 260 280 400L370 400C405 260 345 120 375 0Z'
 // Bridge decks from north to south: Північний, Подільсько-Воскресенський, Метро (M1), Патона, Дарницький, Південний (M3)
 const DECKS = [70, 115, 175, 230, 285, 345]
+// The blue line M2 runs north to south on the right bank only: it meets M1 and M3 at transfer stations and never crosses the river
+const M2X = 94
 const ROAD_TIPS = [
   [70, 'Північний міст: авто без обмежень під час тривоги'],
   [115, 'Подільсько-Воскресенський міст: під час тривоги стоп 15 хв на початку і після відбою'],
@@ -58,8 +74,8 @@ const T = (x, y, text, cls = '', anchor) => s('text', { x, y, class: cls, 'text-
 const fmt = (p) => pct(p, 1).replace('.0%', '%')
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 
-const badge = (y, label, cls) => s('g', {},
-  s('rect', { x: 20, y: y - 16, width: 46, height: 32, rx: 16, class: cls }), T(43, y + 8, label, 'on-dark', 'middle'))
+const badge = (y, label, cls, cx = 43) => s('g', {},
+  s('rect', { x: cx - 23, y: y - 16, width: 46, height: 32, rx: 16, class: cls }), T(cx, y + 8, label, 'on-dark', 'middle'))
 const levelPill = (label, cls, tcls) => s('g', {},
   s('rect', { x: 200, y: 6, width: 240, height: 40, rx: 20, class: cls }), T(320, 34, label, tcls, 'middle'))
 const train = (cx, cy) => s('rect', { x: cx - 16, y: cy - 8, width: 32, height: 16, rx: 8, class: 'train' })
@@ -92,8 +108,8 @@ export default {
   lead: 'Тривога забирає метро через річку, тому питання «чи встигну» стає прогнозом на 3 години.',
   steps: [
     {
-      note: '<p>Київ стоїть на двох берегах Дніпра, на схемі північ угорі. Метро перетинає річку двічі: червона лінія M1 мостом Метро і зелена M3 Південним мостом, а синя M2 через Дніпро не йде. Для авто й автобусів шість мостів: Північний, Подільсько-Воскресенський, Метро, Патона, Дарницький і Південний.</p>'
-        + '<p><small>Схема, не мапа: M1 рожева, M3 темна. Джерела: УНІАН, 07.09.2026; Укрінформ, 03.10.2026.</small></p>',
+      note: '<p>Київ стоїть на двох берегах Дніпра, на схемі північ угорі. Метро перетинає річку двічі: червона лінія M1 мостом Метро і зелена M3 Південним мостом. Синя M2 лишається на правому березі, тож для переїзду під час тривоги важать лише M1 і M3. Для авто й автобусів шість мостів: Північний, Подільсько-Воскресенський, Метро, Патона, Дарницький і Південний.</p>'
+        + '<p><small>Схема, не мапа, кольори ліній як у метро. Джерела: УНІАН, 07.09.2026; Укрінформ, 03.10.2026.</small></p>',
     },
     {
       note: '<p>Жовтий рівень означає загрозу дронів. Будь-яка тривога зупиняє M1 над Дніпром: поїзди ходять лише під землею Академмістечко - Арсенальна, бо відкрита ділянка задовга. Зелена M3 і далі їде Південним мостом, у піки там по одному поїзду.</p>'
@@ -115,7 +131,7 @@ export default {
 
   mount(stage, data) {
     stage.append(h('style', { text: CSS }))
-    const svg = canvas(stage, 'Схема Києва: Дніпро, шість мостів і дві лінії метро через річку, далі шкала прогнозу на 3 години')
+    const svg = canvas(stage, 'Схема Києва: Дніпро, шість мостів, лінії метро M1 і M3 через річку і M2 лише на правому березі, далі шкала прогнозу на 3 години')
     svg.classList.add(`scene-${ID}`)
 
     const busy = num(data?.model?.busy_at) ?? num(data?.now?.forecast?.busy_at)
@@ -133,8 +149,12 @@ export default {
     const m3Bridge = s('g', {}, s('path', { d: 'M245 345H465', class: 'line m3' }), stations([420], 345, 'm3'))
     const m3East = s('g', {}, s('path', { d: 'M465 345H612', class: 'line m3' }),
       s('circle', { cx: 465, cy: 345, r: 6, class: 'station m3' }), stations([515, 565, 612], 345, 'm3'))
-    const b1 = badge(175, 'M1', 'fill-pink')
-    const b3 = badge(345, 'M3', 'fill-ink')
+    const m2 = s('g', {}, s('path', { d: `M${M2X} 100V382`, class: 'line m2' }),
+      s('circle', { cx: M2X, cy: 128, r: 5, class: 'station m2' }), s('circle', { cx: M2X, cy: 382, r: 6, class: 'station m2' }))
+    const m2Hubs = s('g', {}, [175, 345].map((cy) => s('circle', { cx: M2X, cy, r: 6, class: 'station m2' })))
+    const b1 = badge(175, 'M1', 'fill-m1')
+    const b2 = badge(80, 'M2', 'fill-m2', M2X)
+    const b3 = badge(345, 'M3', 'fill-m3')
     const t1 = train(305, 175)
     const t3 = train(300, 345)
     const stop1 = stop(300, 175)
@@ -142,10 +162,10 @@ export default {
     const lblA = T(238, 155, 'Арсенальна', '', 'end')
     const lblV = T(242, 325, 'Видубичі', '', 'end')
     const lblO = T(468, 325, 'Осокорки')
-    const map = s('g', {}, river, decks, banks, dnipro, m1Out, m1Under, m3Bridge, m3West, m3East, b1, b3,
+    const map = s('g', {}, river, decks, banks, dnipro, m2, m1Out, m1Under, m3Bridge, m3West, m3East, m2Hubs, b1, b2, b3,
       t1, t3, stop1, stop3, lblA, lblV, lblO)
-    const yellow = levelPill('Жовтий рівень', 'pill-out', 'bold')
-    const red = levelPill('Червоний рівень', 'fill-pink', 'on-dark')
+    const yellow = levelPill('Жовтий рівень', 'pill-yellow', 'risk-text')
+    const red = levelPill('Червоний рівень', 'pill-red', 'on-dark')
 
     // Step 4: the 3 hour window and the probability scale with the two thresholds
     const fq = T(320, 34, 'Чи буде тихо 3 години?', 'bold', 'middle')
@@ -158,7 +178,7 @@ export default {
     const fCap = T(320, 168, 'ймовірність, що прилетить', 'soft', 'middle')
     const xs = (TH ? [0, TH.busy, TH.high, 1] : [0, 1]).map((e) => X0 + (X1 - X0) * e)
     const fBar = s('g', {}, xs.slice(1).map((b, i) => s('rect', {
-      x: xs[i] + 1, y: 202, width: Math.max(1, b - xs[i] - 2), height: 16, rx: 3, class: TH ? `tier-${i}` : 'tier-0',
+      x: xs[i] + 1, y: 202, width: Math.max(1, b - xs[i] - 2), height: 16, rx: 3, class: TH ? `bar-${i}` : 'bar-none',
     })))
     const fScale = s('g', {}, T(X0, 244, '0%', 'soft'), T(X1, 244, '100%', 'soft', 'end'),
       TH ? [
@@ -170,8 +190,8 @@ export default {
       const cx = PILL_X[i] + PILL_W / 2
       return s('g', {},
         TH ? s('path', { d: `M${(xs[i] + xs[i + 1]) / 2} 224L${cx} 274`, class: 'lead' }) : null,
-        s('rect', { x: PILL_X[i], y: 276, width: PILL_W, height: 40, rx: 20, class: `tier-${i}` }),
-        T(cx, 303, name, i === 2 ? 'on-dark' : 'bold', 'middle'),
+        s('rect', { x: PILL_X[i], y: 276, width: PILL_W, height: 40, rx: 20, class: `pill-${i}` }),
+        T(cx, 303, name, `txt-${i}`, 'middle'),
         ranges[i] ? T(cx, 350, ranges[i], 'soft', 'middle') : null)
     })
     const fc = s('g', {}, fq, fTicks, fCells, fCap, fBar, fScale, fTier)
@@ -193,15 +213,19 @@ export default {
         }
         return 'Ймовірність, що за 3 години прилетять дрони чи ракети або буде ракетна загроза'
       }
+      const onBridge = x > 240 && x < 420
       if (Math.abs(y - 175) < 20) {
-        return cur === 0 ? 'M1, міст Метро: поїзди їдуть через Дніпро'
-          : 'M1 за будь-якої тривоги: лише під землею Академмістечко - Арсенальна'
+        if (cur === 0) return 'M1, міст Метро: поїзди їдуть через Дніпро'
+        return 'M1 за будь-якої тривоги: лише під землею Академмістечко - Арсенальна'
+          + (cur === 2 && onBridge ? '. Авто мостом Метро їдуть без обмежень' : '')
       }
       if (Math.abs(y - 345) < 20) {
-        return cur < 2 ? 'M3, Південний міст: їде через Дніпро, у піки по одному поїзду на мосту'
-          : 'M3 за червоного рівня: Сирець - Видубичі і Осокорки - Червоний хутір, через Дніпро не їде'
+        if (cur < 2) return 'M3, Південний міст: їде через Дніпро, у піки по одному поїзду на мосту'
+        return 'M3 за червоного рівня: Сирець - Видубичі і Осокорки - Червоний хутір, через Дніпро не їде'
+          + (onBridge ? '. Авто Південним мостом з правого берега на лівий стоять 15 хв від початку тривоги' : '')
       }
-      const road = ROAD_TIPS.find(([by]) => Math.abs(y - by) < 16 && x > 240 && x < 420)
+      if (Math.abs(x - M2X) < 18 && y > 60) return 'M2, синя лінія: лише правий берег, через Дніпро не йде'
+      const road = ROAD_TIPS.find(([by]) => Math.abs(y - by) < 16 && onBridge)
       return road ? road[1] : MAP_TIPS[cur]
     }
     function say(e) {
@@ -220,7 +244,8 @@ export default {
 
     // Start state of every moving part, committed before the first show() so the first step animates in
     const PRE = [
-      [river, { o: 0 }], ...decks.map((n) => [n, { kx: 0 }, LEFT]), [banks, { o: 0 }], [dnipro, { o: 0 }], [b1, { o: 0 }], [b3, { o: 0 }],
+      [river, { o: 0 }], ...decks.map((n) => [n, { kx: 0 }, LEFT]), [banks, { o: 0 }], [dnipro, { o: 0 }],
+      [b1, { o: 0 }], [b2, { o: 0 }], [b3, { o: 0 }], [m2, { ky: 0 }, TOP], [m2Hubs, { o: 0 }],
       [m1Under, { kx: 0 }, LEFT], [m1Out, { kx: 0 }, LEFT], [m3West, { kx: 0 }, LEFT], [m3Bridge, { kx: 0 }, LEFT], [m3East, { kx: 0 }, LEFT],
       [t1, { o: 0, x: -24 }], [t3, { o: 0, x: -24 }], [stop1, { o: 0, k: 0.5 }], [stop3, { o: 0, k: 0.5 }],
       [lblA, { o: 0 }], [lblV, { o: 0 }], [lblO, { o: 0 }], [yellow, { o: 0, y: -6 }], [red, { o: 0, y: -6 }],
@@ -241,7 +266,10 @@ export default {
       A(banks, { o: 1 }, 250)
       A(dnipro, { o: 1 }, 350)
       A(b1, { o: 1 }, 400)
+      A(b2, { o: 1 }, 400)
       A(b3, { o: 1 }, 400)
+      A(m2, { ky: 1 }, 450, 400, TOP)
+      A(m2Hubs, { o: 1 }, 850, 300)
       A(m1Under, { kx: 1 }, 450, 400, LEFT)
       A(m1Out, { kx: 1, o: step >= 1 ? 0.18 : 1 }, step >= 1 ? 250 : 650, 400, LEFT)
       A(m3West, { kx: 1, x: step >= 2 ? -12 : 0 }, step >= 2 ? 300 : 450, 400, LEFT)
