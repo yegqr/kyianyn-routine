@@ -75,6 +75,7 @@ def build_table(h):
         row["attack_last_night"] = bool(past[0])
         row["attack_nights_7"] = sum(bool(v) for v in past[:7])
         row["attack_nights_14"] = sum(bool(v) for v in past[:14])
+        row["attack_nights_28"] = sum(bool(v) for v in past[:28])
         row["nights_since_attack"] = next((n for n, v in enumerate(past, 1) if v), NO_ATTACK_NIGHTS)
         row["night_date"] = d
         row[LABEL] = targets.get(d)

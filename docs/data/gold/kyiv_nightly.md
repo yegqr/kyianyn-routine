@@ -2,7 +2,7 @@
 
 ## Що це
 
-Один рядок це одна ніч D для рішення о 22:00 за Києвом: спати в коридорі чи в кімнаті ([ADR-0010](../../adr/0010-night-question.md)). Файл `data/gold/kyiv_nightly.parquet`: 159 ночей з 2026-05-04 по 2026-10-09, 62 колонки, ракетних ночей 30. Код `src/airalerts/gold/kyiv_nightly.py`, тест `tests/test_nights.py`.
+Один рядок це одна ніч D для рішення о 22:00 за Києвом: спати в коридорі чи в кімнаті ([ADR-0010](../../adr/0010-night-question.md)). Файл `data/gold/kyiv_nightly.parquet`: 159 ночей з 2026-05-04 по 2026-10-09, 63 колонки, ракетних ночей 30. Код `src/airalerts/gold/kyiv_nightly.py`, тест `tests/test_nights.py`.
 
 ## Звідки
 
@@ -16,7 +16,7 @@
 | `s4_drone_waves_24h` | сума `s4_drone_waves_6h` рядків t, t - 6, t - 12, t - 18 год |
 | `threat_hours_48h`, `ballistic_hours_48h`, `alert_minutes_48h` | сума відповідної 24-годинної ознаки рядків t і t - 24 год |
 | `attack_last_night` | ціль ночі D - 1 (відома о 08:00 D) |
-| `attack_nights_7`, `attack_nights_14` | ракетних ночей серед 7 і 14 ночей перед D |
+| `attack_nights_7`, `attack_nights_14`, `attack_nights_28` | ракетних ночей серед 7, 14 і 28 ночей перед D (ночі до 2026-05-04 рахуються як тихі: ударів до 2026-05-14 у даних немає) |
 | `nights_since_attack` | ночей від останньої ракетної ночі, 30 якщо такої немає за 30 ночей |
 | `night_date` | дата D (за Києвом) |
 | `y_night` | ціль: ракетний удар по Києву з 22:00 D до 08:00 D+1 |
