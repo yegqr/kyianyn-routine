@@ -72,3 +72,19 @@ for part, r in out.items():
     said_quiet = [v for v in r if v[0] == LEVELS[0]]
     print(f"        right answers if 'quiet' = no alert: {sum(not v[2] for v in said_quiet)}/{len(said_quiet)}; "
           f"'always not quiet' rule right on {sum(v[2] for v in r)}/{len(r)} hours")
+
+print("\n4. More than a copy of 'alert now'? ROC AUC on all hours of the rule that only knows whether it is quiet now,")
+print("   and the model during an alert or attack against the rule 'the longer the alert, the longer it lasts' (weekly walk-forward)")
+dur_rows = [r for _, _, e in folds for r in e.select(["alert_active_min"]).to_pylist()]
+p = models["logit_signals"]
+for part, keep in (("dev ", lambda x: x < split.TEST_START), ("test", lambda x: x >= split.TEST_START)):
+    idx = [i for i, x in enumerate(at) if keep(x)]
+    y = [int(rows[i][quiet.LABEL]) for i in idx]
+    copy = [0.0 if rows[i]["quiet_now"] else 1.0 for i in idx]
+    print(f"  {part} all hours: copy {evaluate.roc_auc(y, copy):.3f}, model {evaluate.roc_auc(y, [p[i] for i in idx]):.3f}")
+    s = [i for i in idx if not rows[i]["quiet_now"]]
+    yy = [int(rows[i][quiet.LABEL]) for i in s]
+    print(f"       alert or attack now {len(s)} h, busy next 3 h {sum(yy) / len(yy):.0%}: model {evaluate.roc_auc(yy, [p[i] for i in s]):.3f}, "
+          f"longer alert {evaluate.roc_auc(yy, [dur_rows[i]['alert_active_min'] for i in s]):.3f}; " + "; ".join(
+              f"p {lo:.1f}..{min(hi, 1):.1f} {len(g)} h busy {sum(rows[i][quiet.LABEL] for i in g) / len(g):.0%}"
+              for lo, hi in ((0, 0.5), (0.5, 0.8), (0.8, 1.01)) for g in [[i for i in s if lo <= p[i] < hi]] if g))
