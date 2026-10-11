@@ -63,12 +63,6 @@ class NaiveTest(unittest.TestCase):
             evaluate.save("bad", "", at[1:], [0.0] * (len(at) - 1))
 
 
-def fitted_models():
-    """Every module of airalerts.modeling with NAME, fit and predict: the models that runner.py runs."""
-    mods = (importlib.import_module(f"airalerts.modeling.{m.name}") for m in pkgutil.iter_modules(modeling.__path__))
-    return [m for m in mods if all(hasattr(m, a) for a in ("NAME", "fit", "predict"))]
-
-
 def reads_outside(mod, fns):
     return [n for n in FORBIDDEN if any(reaches(mod, f, n, set()) for f in fns)]
 
@@ -114,9 +108,12 @@ class FittedModelsTest(unittest.TestCase):
         self.assertEqual(reads_outside(here, (_share_fit, _leaky_predict)), ["load", "split"])
 
     def test_every_fitted_model(self):
-        for mod in fitted_models():
-            with self.subTest(model=mod.NAME):
-                self.check(mod, mod.fit, mod.predict)
+        """Every module of airalerts.modeling with NAME, fit and predict, each in its own subtest."""
+        for m in pkgutil.iter_modules(modeling.__path__):
+            with self.subTest(module=m.name):
+                mod = importlib.import_module(f"airalerts.modeling.{m.name}")
+                if all(hasattr(mod, a) for a in ("NAME", "fit", "predict")):
+                    self.check(mod, mod.fit, mod.predict)
 
 
 class MetricsTest(unittest.TestCase):
