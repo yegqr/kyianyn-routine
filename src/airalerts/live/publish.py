@@ -169,12 +169,13 @@ def hour_row(t, p, tier, source, row, issued=None):
 
 
 def history(rep, live, rows):
-    """Every hour from the replay start: the replay before the first logged hour, the live log from it."""
-    first = min((utc(e["t"]) for e in live), default=datetime.max)
-    hours = [hour_row(x["t"], x["p"], x["tier"], "replay", rows.get(x["t"])) for x in rep if x["t"] < first]
-    for e in sorted(live, key=lambda e: e["t"]):
-        hours.append(hour_row(utc(e["t"]), e["p"], e["tier"], "live", rows.get(utc(e["t"])), e))
-    return hours
+    """Every hour from the replay start: the forecast issued live where the log has the hour, the replay for every
+    other hour, so a pause of the service leaves no hole."""
+    issued = {utc(e["t"]): e for e in live}
+    hours = {x["t"]: hour_row(x["t"], x["p"], x["tier"], "replay", rows.get(x["t"])) for x in rep}
+    for t, e in issued.items():
+        hours[t] = hour_row(t, e["p"], e["tier"], "live", rows.get(t), e)
+    return [hours[t] for t in sorted(hours)]
 
 
 def jev_spend():

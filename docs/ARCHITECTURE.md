@@ -97,7 +97,7 @@ flowchart LR
 | цикл | `AIRALERTS_DATA=data/live .venv/bin/python -I -m airalerts.live.cycle --out /var/www/kyianyn-routine` | таймер `kyianyn-routine-cycle`, кожні 5 хв |
 | перенавчання | `AIRALERTS_DATA=data/live .venv/bin/python -I -m airalerts.live.model train` | таймер `kyianyn-routine-train`, субота 12:00 за Києвом ([ADR-0013](adr/0013-retrain-cadence.md)) |
 | ознаки проти gold | `.venv/bin/python -I -m airalerts.live.features check` | після зміни коду |
-| сайт на сервер | `rsync -a --delete --exclude api/ --exclude dev/ site/ /var/www/kyianyn-routine/` | після зміни сайту |
+| сайт на сервер | `.venv/bin/python -I scripts/site/deploy.py` (лише закомічене, з версіями файлів проти кешу Cloudflare) | після зміни сайту |
 
 Юніти й конфіг nginx: `deploy/systemd/`, `deploy/nginx/kyianyn-routine.conf`; ключ Jev: `deploy/secrets/live.env` (`TYPESAFE_API_KEY`, не в git, папка лише для власника). Журнал: `journalctl -u kyianyn-routine-cycle`.
 
