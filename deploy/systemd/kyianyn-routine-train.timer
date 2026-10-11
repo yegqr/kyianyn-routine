@@ -1,7 +1,7 @@
 # Every week on Saturday at 12:00 Kyiv time, the weekly fold origins (docs/adr/0013-retrain-cadence.md), as in the
 # replay of the history (airalerts.live.model replay).
 [Unit]
-Description=Livii bereh: weekly retrain, Saturday 12:00 Kyiv
+Description=Kyianyn Routine: weekly retrain, Saturday 12:00 Kyiv
 
 [Timer]
 OnCalendar=Sat *-*-* 12:00:00 Europe/Kyiv

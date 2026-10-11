@@ -8,7 +8,7 @@
 |---|---|
 | `src/airalerts/` | код пакета: спільне (`paths`, `db`, `telegram`, `jev`), рівні даних `silver/` і `gold/`, спільна оцінка `evaluation/`, моделі трьох питань `strikes/`, `nights/`, `quiet/`, живий сайт `live/` |
 | `scripts/` | `bronze/` збирачі сирих даних, `verify/` зовнішня перевірка і аудит, `analysis/` описовий аналіз тесту (лише друк), `site/` вивантаження чисел розробки для сторінки методології |
-| `site/` | статичний сайт livii-bereh.isakov.fyi: `index.html` (головна і методологія), `assets/` (стилі, код, сцени методології, D3), `data/` (числа розробки); `api/` пише цикл, не в git |
+| `site/` | статичний сайт kyianyn-routine.isakov.fyi: `index.html` (головна і методологія), `assets/` (стилі, код, сцени методології, D3), `data/` (числа розробки); `api/` пише цикл, не в git |
 | `deploy/` | конфіг nginx і юніти systemd живого сайту; `secrets/live.env` з ключем Jev не в git |
 | `tests/` | тести на витік у gold і поділі, тести моделей кожного питання, мірила проти перерахунку в лоб |
 | `data/` | `bronze/` і `silver/` (не в git), `gold/` (у git, версія в [DATASET.md](data/DATASET.md)), `predictions/<strikes\|nights\|quiet>/` (не в git), `verification/` (у git), `live/` живі дані сайту (не в git) |
@@ -26,7 +26,7 @@
 | 2. Ночі (`nights/`) | о 22:00: спати в коридорі чи в кімнаті | [ADR-0010](adr/0010-night-question.md) | [nights_leaderboard.md](../reports/nights_leaderboard.md): о 22:00 не передбачити; тримається лише «ніч після атаки тиха» (23 з 23, тест 6 з 7) |
 | 3. Спокій (`quiet/`) | чи будуть наступні 3 год тихими, дрони враховано; прогноз для людини | [ADR-0011](adr/0011-quiet-hours.md), [forecast.md](quiet/forecast.md), фінальна модель від А до Я: [model.md](quiet/model.md) | [quiet_leaderboard.md](../reports/quiet_leaderboard.md): тишу не гарантує, але рівні ризику втримались від розробки до тесту; «швидше тихо» правдиве у 83% і там, і там |
 | 4. Важливість | які змінні фіналіста спокою важать і що треба парсити для живого продукту | | [importance.md](quiet/importance.md), [sources.md](quiet/sources.md) |
-| 5. Живий сайт (`live/`, `site/`) | чи встигну перетнути Дніпро за 3 години: збір кожні 5 хв, перенавчання щотижня, сайт | [ADR-0012](adr/0012-live-site.md), [ADR-0013](adr/0013-retrain-cadence.md), [crossing.md](product/crossing.md) | livii-bereh.isakov.fyi |
+| 5. Живий сайт (`live/`, `site/`) | чи встигну перетнути Дніпро за 3 години: збір кожні 5 хв, перенавчання щотижня, сайт | [ADR-0012](adr/0012-live-site.md), [ADR-0013](adr/0013-retrain-cadence.md), [crossing.md](product/crossing.md) | kyianyn-routine.isakov.fyi |
 
 ## Три рівні даних
 
@@ -94,12 +94,12 @@ flowchart LR
 | Що | Команда | Коли |
 |---|---|---|
 | створити живі дані | `.venv/bin/python -I -m airalerts.live.datadir init data/live` | один раз |
-| цикл | `AIRALERTS_DATA=data/live .venv/bin/python -I -m airalerts.live.cycle --out /var/www/livii-bereh` | таймер `livii-bereh-cycle`, кожні 5 хв |
-| перенавчання | `AIRALERTS_DATA=data/live .venv/bin/python -I -m airalerts.live.model train` | таймер `livii-bereh-train`, субота 12:00 за Києвом ([ADR-0013](adr/0013-retrain-cadence.md)) |
+| цикл | `AIRALERTS_DATA=data/live .venv/bin/python -I -m airalerts.live.cycle --out /var/www/kyianyn-routine` | таймер `kyianyn-routine-cycle`, кожні 5 хв |
+| перенавчання | `AIRALERTS_DATA=data/live .venv/bin/python -I -m airalerts.live.model train` | таймер `kyianyn-routine-train`, субота 12:00 за Києвом ([ADR-0013](adr/0013-retrain-cadence.md)) |
 | ознаки проти gold | `.venv/bin/python -I -m airalerts.live.features check` | після зміни коду |
-| сайт на сервер | `rsync -a --delete --exclude api/ --exclude dev/ site/ /var/www/livii-bereh/` | після зміни сайту |
+| сайт на сервер | `rsync -a --delete --exclude api/ --exclude dev/ site/ /var/www/kyianyn-routine/` | після зміни сайту |
 
-Юніти й конфіг nginx: `deploy/systemd/`, `deploy/nginx/livii-bereh.conf`; ключ Jev: `deploy/secrets/live.env` (`TYPESAFE_API_KEY`, не в git, папка лише для власника). Журнал: `journalctl -u livii-bereh-cycle`.
+Юніти й конфіг nginx: `deploy/systemd/`, `deploy/nginx/kyianyn-routine.conf`; ключ Jev: `deploy/secrets/live.env` (`TYPESAFE_API_KEY`, не в git, папка лише для власника). Журнал: `journalctl -u kyianyn-routine-cycle`.
 
 **Що читає сайт** (`site/api/`, schema 1, час у UTC):
 - `now.json`: `hour` і `window_end` (вікно [t, t + 3 год)), `now` (тривога, рівень, «зараз тихо»), `forecast` (`p`, `tier` low/medium/high, межі, 3 причини, `kind`: що було в минулому на цьому рівні), `stale` і `stale_reason`, `waves` (хвилі дронів за 6 год);

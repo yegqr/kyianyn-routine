@@ -1,5 +1,5 @@
 """One live cycle of the site (docs/ARCHITECTURE.md, "Живий сайт"): fetch the new posts, rebuild the silver tables the
-finalist reads, then publish api/*.json from the live features. The systemd timer livii-bereh-cycle runs it every 5 minutes.
+finalist reads, then publish api/*.json from the live features. The systemd timer kyianyn-routine-cycle runs it every 5 minutes.
 
 - DATA/cycle.lock keeps two cycles apart: a second one exits at once with code 0.
 - The silver steps run only when the fetch brought new posts (or a step failed last time); else only the JSON is

@@ -1,0 +1,18 @@
+# One live cycle of kyianyn-routine.isakov.fyi: new Telegram posts, silver, live features, api/*.json (docs/ARCHITECTURE.md).
+# Installed into /etc/systemd/system; started every 5 minutes by kyianyn-routine-cycle.timer.
+[Unit]
+Description=Kyianyn Routine: fetch, rebuild and publish the 3 hour forecast
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ye
+Group=ye
+WorkingDirectory=/home/ye/PROJECTS/ai-school/airalers
+Environment=AIRALERTS_DATA=/home/ye/PROJECTS/ai-school/airalers/data/live
+EnvironmentFile=-/home/ye/PROJECTS/ai-school/airalers/deploy/secrets/live.env
+ExecStart=/home/ye/PROJECTS/ai-school/airalers/.venv/bin/python -I -m airalerts.live.cycle --out /var/www/kyianyn-routine
+Nice=10
+OOMScoreAdjust=500
+TimeoutStartSec=15min

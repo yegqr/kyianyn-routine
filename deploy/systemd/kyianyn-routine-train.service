@@ -1,6 +1,6 @@
 # The weekly retrain (docs/adr/0013-retrain-cadence.md) of the frozen model logit_signals on every hour whose 3 hours already passed (docs/ARCHITECTURE.md).
 [Unit]
-Description=Livii bereh: retrain the forecast model
+Description=Kyianyn Routine: retrain the forecast model
 
 [Service]
 Type=oneshot
