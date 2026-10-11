@@ -4,8 +4,10 @@ strike_points  one row per strike point of a day (country RU or UA): place, regi
                the articles behind it; flags is_energy, is_moscow, occupied (occupied Ukraine that the site files under RU).
 strike_days    one row per (day, country): drones and missiles launched (min, max) and intercepted, from the site's daily totals
                (RU: Russian MoD briefings; UA: Ukrainian Air Force).
-The site gives a day (UTC, checked against the MoD reports: the RU intercepted total of day d is the sum of the MoD reports
-published on UTC day d) and no time of day, no publication time and no revision history. So a day is known only from
+The site gives a day and no time of day, no publication time and no revision history. For RU the day is the UTC day of the MoD
+reports (the RU intercepted total of day d is the sum of the MoD reports published on UTC day d); for UA it is the Air Force
+reporting day, 18:00 Kyiv of d - 1 to 18:00 Kyiv of d (15:00Z to 15:00Z in summer; it files 33 of 34 Kyiv missile attacks,
+the UTC day 25, audit of 2026-10-11). Both end by d + 1 day 00:00Z. So a day is known only from
 d + 1 day + 6 h (user decision 2026-10-11): available_at = d 00:00Z + 30 h. Bronze is one snapshot per fetch; the newest
 snapshot is used. Gold: features(con, t_table). Documentation: docs/data/silver/rf_strikes.md
 

@@ -83,8 +83,8 @@
 | `rf_energy_1d` | int32 | `strike_points` | точок, чий опис цілі називає НПЗ, нафто- чи паливну базу, енергомережу, електростанцію, підстанцію, газовий об'єкт, за день |
 | `rf_energy_3d` | int32 | `strike_points` | те саме за три дні |
 | `rf_moscow_3d` | int32 | `strike_points` | 1, якщо за три дні є точка в Москві чи Московській області |
-| `rf_drones_intercepted_1d` | int32 | `strike_days` | дронів, яких МО РФ заявило збитими за найновіший відомий день |
-| `ua_missiles_launched_1d` | int32 | `strike_days` | ракет, запущених по Україні за найновіший відомий день (Повітряні сили, верх діапазону) |
+| `rf_drones_intercepted_1d` | int32 | `strike_days` | дронів (без ракет), яких МО РФ заявило збитими за найновіший відомий день |
+| `ua_missiles_launched_1d` | int32 | `strike_days` | ракет, запущених по Україні за найновіший відомий день (Повітряні сили, верх діапазону); null, коли сайт не має числа ракет для цього дня |
 | `ua_drones_launched_1d` | int32 | `strike_days` | дронів, запущених по Україні за той самий день |
 | `hours_since_rf_energy` | double | `strike_points` | годин від `available_at` останньої точки енергетики до t; не більше 336 |
 | `y_strike_3h` | bool | `kyiv_threat_hourly` | ціль: див. нижче |
@@ -93,11 +93,11 @@
 
 `y_strike_3h` = true, якщо хоч одна година з `[t, t + 3 год)` має `missile_strike` у `kyiv_threat_hourly`. Це єдина колонка, що дивиться вперед, і її рахує лише `labels()`. Null, коли t + 3 год пізніше за `label_end`: три останні рядки, 2026-10-10T15:00Z, 16:00Z, 17:00Z.
 
-Рядків з міткою 3906: true 151, false 3755, база 151/3906 = 0.0387. Годин `missile_strike` у `kyiv_threat_hourly` від T0 77 (з 3908 годин таблиці від T0). Перша така година 2026-05-14T00:00Z, до T0 жодної.
+Рядків з міткою 3906: true 138, false 3768, база 138/3906 = 0.0353. Годин `missile_strike` у `kyiv_threat_hourly` від T0 62 (з 3908 годин таблиці від T0), з них 17 виправлено вручну (`CORRECTIONS`, [kyiv_threat_hourly.md](../silver/kyiv_threat_hourly.md)). Перша така година 2026-05-14T00:00Z, до T0 жодної. 138 рядків true дають 35 серій поспіль (атак); у 33 з них удар був і в останні 3 години (атака вже йде), тож прогноз початку атаки варто оцінювати окремо.
 
 ## Null
 
-Null лише в `y_strike_3h`: 3 з 3909, частка 0.000767. В інших 51 колонці null немає (частка 0.000000), зокрема в `wx_*`, `dark_share_3h` і `moon_illum`. Частки по колонках друкує `report` (блок `null share per column`).
+Null у двох колонках: `y_strike_3h` 3 з 3909 (частка 0.000767) і `ua_missiles_launched_1d` 1114 (0.284983: сайт не має числа ракет для 55 днів; модель має заповнити це сама, 0 тут означав би «ракет не було»). В інших 50 колонках null немає, зокрема в `wx_*`, `dark_share_3h` і `moon_illum`. Частки по колонках друкує `report` (блок `null share per column`).
 
 ## Як перебудувати
 
@@ -131,9 +131,9 @@ choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v   # тес�
 
 | команда | результат |
 |---|---|
-| `.venv/bin/python -I -m airalerts.gold.kyiv_hourly report` | `rows 3909, columns 52`, `hours from T0 to cutoff inclusive 3909`, `rows = hours True, unique True, continuous (every step 1 h) True`; `labelled rows 3906, true 151, false 3755, null 3`; `base rate = true / labelled = 151/3906 = 0.0387`; `strike hours ... from T0: 77 of 3908`; null лише в `y_strike_3h`: 3; 5 випадкових рядків з усіма колонками |
+| `.venv/bin/python -I -m airalerts.gold.kyiv_hourly report` | `rows 3909, columns 52`, `hours from T0 to cutoff inclusive 3909`, `rows = hours True, unique True, continuous (every step 1 h) True`; `labelled rows 3906, true 138, false 3768, null 3`; `base rate = true / labelled = 138/3906 = 0.0353`; `strike hours ... from T0: 62 of 3908`; null у `y_strike_3h` 3 і в `ua_missiles_launched_1d` 1114; 5 випадкових рядків з усіма колонками |
 | `.venv/bin/python -I -m airalerts.db` | 12 view: 11 silver і `kyiv_hourly` |
-| `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT count(*), count(*) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone())"` | `(3909, 151)` |
+| `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT count(*), count(*) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone())"` | `(3909, 138)` |
 | `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT min(t_utc) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone()[0])"` | `2026-05-13 22:00:00` |
 | `choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v` | `Ran 7 tests`, `OK`; `50 random t (seed 20261011) ... 2400 feature values compared ... differences 0` |
 | `.venv/bin/python -I -m unittest tests/test_no_leakage.py` | `ModuleNotFoundError: No module named 'tests'` |
