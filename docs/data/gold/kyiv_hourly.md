@@ -2,7 +2,7 @@
 
 ## Що це
 
-Один рядок це одна година t (UTC, початок години): ознаки, відомі до t, і ціль `y_strike_3h`, чи буде ракетний удар по місту Київ у `[t, t + 3 год)`. Файл `data/gold/kyiv_hourly.parquet`: 3909 рядків, 48 колонок, від 2026-04-30T21:00Z (2026-05-01 00:00 за Києвом) до зрізу 2026-10-10T17:00Z. Код `src/airalerts/gold/kyiv_hourly.py`, тест `tests/test_no_leakage.py`. Jev не викликається, усе береться з silver.
+Один рядок це одна година t (UTC, початок години): ознаки, відомі до t, і ціль `y_strike_3h`, чи буде ракетний удар по місту Київ у `[t, t + 3 год)`. Файл `data/gold/kyiv_hourly.parquet`: 3909 рядків, 46 колонок, від 2026-04-30T21:00Z (2026-05-01 00:00 за Києвом) до зрізу 2026-10-10T17:00Z. Код `src/airalerts/gold/kyiv_hourly.py`, тест `tests/test_no_leakage.py`. Jev не викликається, усе береться з silver.
 
 ## Входи
 
@@ -73,12 +73,10 @@
 | `hol_ua_symb_today` | double | `calendar_dates` | те саме для групи UA |
 | `hol_high_tomorrow` | bool | `calendar_dates` | наступний день має дату `high` будь-якої групи |
 | `hol_days_to_next_high` | int32 | `calendar_dates` | цілих днів від d до найближчої дати `high`: 0 сьогодні; не більше 14 (14 і коли такої немає) |
-| `kyiv_imp_today` | int32 | `political_events` | найбільший `importance` (0..5) подій класу `kyiv` з `event_date <= d <= end_date` і `available_at < t`; 0, якщо подій немає |
+| `kyiv_imp_today` | int32 | `political_events` | найбільший `importance` (0..5) подій класу `kyiv` з `event_date <= d <= end_date` і `available_at < t` (для події з Вікіпедії її остання версія, відома до t); 0, якщо подій немає. Класу `world` немає (рішення користувача 2026-10-11) |
 | `russia_imp_today` | int32 | `political_events` | те саме для класу `russia` |
-| `world_imp_today` | int32 | `political_events` | те саме для класу `world` |
 | `kyiv_days_to_imp4` | int32 | `political_events` | цілих днів від d до найближчої події класу `kyiv` з `importance >= 4`, `end_date >= d`, `available_at < t`; 0, якщо вона сьогодні або триває; не більше 14 (14 і коли такої немає) |
 | `russia_days_to_imp4` | int32 | `political_events` | те саме для класу `russia` |
-| `world_days_to_imp4` | int32 | `political_events` | те саме для класу `world` |
 | `rf_imp_max_24h` | double | `rf_strike_events` | максимум `importance` подій з `available_at` у `[t - 24 год, t)`; 0, якщо немає |
 | `rf_imp_max_72h` | double | `rf_strike_events` | те саме у `[t - 72 год, t)` |
 | `rf_drones_downed_24h` | int64 | `rf_mod_reports` | сума `drones_n` звітів з `available_at` у `[t - 24 год, t)`; 0, якщо немає |
@@ -93,7 +91,7 @@
 
 ## Null
 
-Null лише в `y_strike_3h`: 3 з 3909, частка 0.000767. В інших 47 колонках null немає (частка 0.000000), зокрема в `wx_*`, `dark_share_3h` і `moon_illum`. Частки по колонках друкує `report` (блок `null share per column`).
+Null лише в `y_strike_3h`: 3 з 3909, частка 0.000767. В інших 45 колонках null немає (частка 0.000000), зокрема в `wx_*`, `dark_share_3h` і `moon_illum`. Частки по колонках друкує `report` (блок `null share per column`).
 
 ## Як перебудувати
 
@@ -119,7 +117,7 @@ choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v   # тес�
 6. жодна колонка ознак не дорівнює `y_strike_3h` чи її запереченню;
 7. `labels()` не викликає жодна `features()`: статично (імена в коді `features()` і функцій того ж модуля, на які вона посилається) і динамічно (`labels` замінено на заглушку, що падає).
 
-Результат: 7 тестів OK. У тесті 3 порівняно 2200 значень (50 t, 8 модулів, 44 колонки ознак), різниць 0.
+Результат: 7 тестів OK. У тесті 3 порівняно 2100 значень (50 t, 8 модулів, 42 колонки ознак), різниць 0.
 
 Команда `.venv/bin/python -I -m unittest tests/test_no_leakage.py` падає на імпорті (`ModuleNotFoundError: No module named 'tests'`): `-I` прибирає поточну теку з `sys.path`. Працюють `discover -s tests` (вище), `.venv/bin/python -I tests/test_no_leakage.py` і та сама команда без `-I`.
 
@@ -127,11 +125,11 @@ choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v   # тес�
 
 | команда | результат |
 |---|---|
-| `.venv/bin/python -I -m airalerts.gold.kyiv_hourly report` | `rows 3909, columns 48`, `hours from T0 to cutoff inclusive 3909`, `rows = hours True, unique True, continuous (every step 1 h) True`; `labelled rows 3906, true 151, false 3755, null 3`; `base rate = true / labelled = 151/3906 = 0.0387`; `strike hours ... from T0: 77 of 3908`; null лише в `y_strike_3h`: 3; 5 випадкових рядків з усіма колонками |
+| `.venv/bin/python -I -m airalerts.gold.kyiv_hourly report` | `rows 3909, columns 46`, `hours from T0 to cutoff inclusive 3909`, `rows = hours True, unique True, continuous (every step 1 h) True`; `labelled rows 3906, true 151, false 3755, null 3`; `base rate = true / labelled = 151/3906 = 0.0387`; `strike hours ... from T0: 77 of 3908`; null лише в `y_strike_3h`: 3; 5 випадкових рядків з усіма колонками |
 | `.venv/bin/python -I -m airalerts.db` | 13 view: 12 silver і `kyiv_hourly` |
 | `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT count(*), count(*) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone())"` | `(3909, 151)` |
 | `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT min(t_utc) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone()[0])"` | `2026-05-13 22:00:00` |
-| `choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v` | `Ran 7 tests`, `OK`; `50 random t (seed 20261011) ... 2200 feature values compared ... differences 0` |
+| `choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v` | `Ran 7 tests`, `OK`; `50 random t (seed 20261011) ... 2100 feature values compared ... differences 0` |
 | `.venv/bin/python -I -m unittest tests/test_no_leakage.py` | `ModuleNotFoundError: No module named 'tests'` |
 | `.venv/bin/python -I -c "from airalerts.silver import rf_strikes; print(rf_strikes.last_full_hour())"` | `2026-10-10 12:00:00` |
 | `.venv/bin/python -I -c "from airalerts.silver import political_events; print(political_events.data_end())"` | `2026-10-10 17:00:00` |
