@@ -1,17 +1,22 @@
 """Jev (TypeSafe System One) client shared by silver builders. How to ask good questions: docs/JEV.md.
 
-- The API key never enters this process: each request goes through `vault call typesafe-general`.
+- Each request goes through `vault call typesafe-general`, so the API key never enters this process. On a server
+  without the vault, set TYPESAFE_API_KEY: the request then goes straight to the API with `Authorization: Bearer`;
+  the key is never printed, logged or cached.
 - The model is pinned to jev-1.13.0, so reruns do not change when the jev-latest alias moves.
 - Every answer is cached in data/silver/_jev_cache/<tag>/ under a hash of the whole request:
   a rerun with the same state and questions costs nothing and returns the same answer.
 - HTTP 429, 529 and 5xx are retried with exponential backoff; any other error raises JevError.
 """
 import hashlib
+import http.client
 import json
 import os
 import subprocess
 import tempfile
 import time
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 from .paths import SILVER
@@ -26,8 +31,29 @@ class JevError(RuntimeError):
     pass
 
 
+def _post_key(body, key, timeout=120):
+    """One HTTPS call with the key from TYPESAFE_API_KEY, the same request as through the vault. Returns (status, body
+    text); a network error or timeout is 599, retried like a 5xx. An error text never carries the key."""
+    key = key.strip()  # a key saved with its line end
+    if not key or not key.isascii() or not key.isprintable() or " " in key:
+        # http.client would refuse such a header with the whole key in its error, so stop here and name no key
+        raise JevError("TYPESAFE_API_KEY is not a valid key: printable ASCII without spaces expected")
+    req = urllib.request.Request(URL, data=json.dumps(body, ensure_ascii=False).encode("utf-8"), method="POST",
+                                 headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status, r.read().decode("utf-8").strip()
+    except urllib.error.HTTPError as e:
+        status, text = e.code, e.read().decode("utf-8", "replace")
+    except (OSError, http.client.HTTPException) as e:  # URLError, timeouts, resets
+        status, text = 599, type(e).__name__
+    return status, text.replace(key, "<key>").strip()
+
+
 def _post(body, timeout=120):
-    """One HTTPS call through the vault broker. Returns (status, body text)."""
+    """One HTTPS call: with TYPESAFE_API_KEY when it is set, else through the vault broker. Returns (status, body text)."""
+    if key := os.environ.get("TYPESAFE_API_KEY"):
+        return _post_key(body, key, timeout)
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(body, f, ensure_ascii=False)
     try:

@@ -6,3 +6,5 @@ data/bronze/*
 data/silver/
 data/airalerts.duckdb*
 data/predictions/
+data/live/
+site/api/
