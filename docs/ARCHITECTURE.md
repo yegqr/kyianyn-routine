@@ -14,7 +14,7 @@
 
 ```mermaid
 flowchart LR
-  B[bronze: Telegram, Open-Meteo, Kremlin, Вікіпедія, календар] --> S[silver: таблиця на клас]
+  B[bronze: Telegram, Open-Meteo, Kremlin, Вікіпедія, календар, dronestrikemap] --> S[silver: таблиця на клас]
   J[Jev: мітки і оцінки] --> S
   S --> G[gold: kyiv_hourly]
 ```
@@ -47,7 +47,7 @@ tests/                             тест на витік
 | silver | `tg_posts` | `silver/telegram_posts.py` | [tg_posts.md](data/silver/tg_posts.md) |
 | silver | `kyiv_threat_hourly`, `kyiv_threat_posts` | `silver/threat_hourly.py` | [kyiv_threat_hourly.md](data/silver/kyiv_threat_hourly.md) |
 | silver | `prep_signal_events` | `silver/signals.py` | [prep_signal_events.md](data/silver/prep_signal_events.md) |
-| silver | `rf_mod_reports`, `rf_strike_events`, `rf_energy_hits` | `silver/rf_strikes.py` | [rf_strikes.md](data/silver/rf_strikes.md) |
+| silver | `strike_points`, `strike_days` | `silver/rf_strikes.py` | [rf_strikes.md](data/silver/rf_strikes.md) |
 | silver | `weather_runs` | `silver/weather.py` | [weather_runs.md](data/silver/weather_runs.md) |
 | silver | `astro_hourly` | `silver/astro.py` | [astro_hourly.md](data/silver/astro_hourly.md) |
 | silver | `calendar_dates` | `silver/calendar_dates.py` | [calendar_dates.md](data/silver/calendar_dates.md) |
@@ -59,7 +59,8 @@ tests/                             тест на витік
 1. bronze (`python3 -I scripts/bronze/<збирач>`, журнал запусків у `data/bronze/MANIFEST.md`):
    - Telegram: `scripts/bronze/tg_backfill.sh A`, `B`, `C`; довгий канал ділиться на частини (`tg_fetch.py` з `before stop_id`) і зливається `tg_fetch.py merge`; `etryvoga_patch.py` для відбою без старту;
    - погода і астрономія: `wx_backfill.py`, `kyiv_astro.py build data/bronze/astro`;
-   - календар і події: `calendar_dates.py`, `kremlin_fetch.py`, `wiki_fetch.py`, `president_fetch.py` (зараз 403).
+   - календар і події: `calendar_dates.py`, `kremlin_fetch.py`, `wiki_fetch.py`, `president_fetch.py` (зараз 403);
+   - удари по РФ і запуски по Україні: `dronestrikemap_fetch.py` (знімок API на кожен запуск).
 2. silver: `.venv/bin/python -I -m airalerts.silver.<модуль>` у порядку `alerts`, `telegram_posts`, `threat_hourly classify`, потім `threat_hourly`, `signals`, `rf_strikes`, `weather`, `astro`, `calendar_dates`, `political_events`. Відповіді Jev беруться з кешу, тож повтор безкоштовний.
 3. gold: `.venv/bin/python -I -m airalerts.gold.kyiv_hourly`, потім `.venv/bin/python -I -m airalerts.db` (view у `data/airalerts.duckdb`).
 4. тест на витік: `.venv/bin/python -I -m unittest discover -s tests -v`.

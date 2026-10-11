@@ -2,7 +2,7 @@
 
 ## Що це
 
-Один рядок це одна година t (UTC, початок години): ознаки, відомі до t, і ціль `y_strike_3h`, чи буде ракетний удар по місту Київ у `[t, t + 3 год)`. Файл `data/gold/kyiv_hourly.parquet`: 3909 рядків, 46 колонок, від 2026-04-30T21:00Z (2026-05-01 00:00 за Києвом) до зрізу 2026-10-10T17:00Z. Код `src/airalerts/gold/kyiv_hourly.py`, тест `tests/test_no_leakage.py`. Jev не викликається, усе береться з silver.
+Один рядок це одна година t (UTC, початок години): ознаки, відомі до t, і ціль `y_strike_3h`, чи буде ракетний удар по місту Київ у `[t, t + 3 год)`. Файл `data/gold/kyiv_hourly.parquet`: 3909 рядків, 52 колонки, від 2026-04-30T21:00Z (2026-05-01 00:00 за Києвом) до зрізу 2026-10-10T17:00Z. Код `src/airalerts/gold/kyiv_hourly.py`, тест `tests/test_no_leakage.py`. Jev не викликається, усе береться з silver.
 
 ## Входи
 
@@ -17,7 +17,7 @@
 | `astro` | `astro_hourly` | [astro_hourly.md](../silver/astro_hourly.md) |
 | `calendar_dates` | `calendar_dates` | [calendar_dates.md](../silver/calendar_dates.md) |
 | `political_events` | `political_events` | [political_events.md](../silver/political_events.md) |
-| `rf_strikes` | `rf_strike_events`, `rf_mod_reports` | [rf_strikes.md](../silver/rf_strikes.md) |
+| `rf_strikes` | `strike_points`, `strike_days` | [rf_strikes.md](../silver/rf_strikes.md) |
 
 Кожен модуль використовує власний `ASOF` як написано: `threat_hourly` бере `available_at <= t` (година, що закінчується в t, відома в t); `kyiv_alerts` ховає кінець тривоги, що не раніший за t, а `prep_signal_events` ховає колонки, відомі лише після останнього поста події; решта бере `available_at < t`.
 
@@ -77,10 +77,16 @@
 | `russia_imp_today` | int32 | `political_events` | те саме для класу `russia` |
 | `kyiv_days_to_imp4` | int32 | `political_events` | цілих днів від d до найближчої події класу `kyiv` з `importance >= 4`, `end_date >= d`, `available_at < t`; 0, якщо вона сьогодні або триває; не більше 14 (14 і коли такої немає) |
 | `russia_days_to_imp4` | int32 | `political_events` | те саме для класу `russia` |
-| `rf_imp_max_24h` | double | `rf_strike_events` | максимум `importance` подій з `available_at` у `[t - 24 год, t)`; 0, якщо немає |
-| `rf_imp_max_72h` | double | `rf_strike_events` | те саме у `[t - 72 год, t)` |
-| `rf_drones_downed_24h` | int64 | `rf_mod_reports` | сума `drones_n` звітів з `available_at` у `[t - 24 год, t)`; 0, якщо немає |
-| `hours_since_rf_imp4` | double | `rf_strike_events` | годин від найпізнішої події з `importance >= 4` і `available_at < t` до t; не більше 336 (і коли такої немає) |
+| `rf_points_1d` | int32 | `strike_points` | точок ударів по Росії (без окупованих територій України) найновішого відомого дня: `available_at` у `[t - 24 год, t)`; день d відомий з d + 30 год |
+| `rf_points_3d` | int32 | `strike_points` | те саме за три найновіші відомі дні: `[t - 72 год, t)` |
+| `rf_regions_3d` | int32 | `strike_points` | різних регіонів Росії серед цих точок за три дні |
+| `rf_energy_1d` | int32 | `strike_points` | точок, чий опис цілі називає НПЗ, нафто- чи паливну базу, енергомережу, електростанцію, підстанцію, газовий об'єкт, за день |
+| `rf_energy_3d` | int32 | `strike_points` | те саме за три дні |
+| `rf_moscow_3d` | int32 | `strike_points` | 1, якщо за три дні є точка в Москві чи Московській області |
+| `rf_drones_intercepted_1d` | int32 | `strike_days` | дронів, яких МО РФ заявило збитими за найновіший відомий день |
+| `ua_missiles_launched_1d` | int32 | `strike_days` | ракет, запущених по Україні за найновіший відомий день (Повітряні сили, верх діапазону) |
+| `ua_drones_launched_1d` | int32 | `strike_days` | дронів, запущених по Україні за той самий день |
+| `hours_since_rf_energy` | double | `strike_points` | годин від `available_at` останньої точки енергетики до t; не більше 336 |
 | `y_strike_3h` | bool | `kyiv_threat_hourly` | ціль: див. нижче |
 
 ## Ціль
@@ -91,7 +97,7 @@
 
 ## Null
 
-Null лише в `y_strike_3h`: 3 з 3909, частка 0.000767. В інших 45 колонках null немає (частка 0.000000), зокрема в `wx_*`, `dark_share_3h` і `moon_illum`. Частки по колонках друкує `report` (блок `null share per column`).
+Null лише в `y_strike_3h`: 3 з 3909, частка 0.000767. В інших 51 колонці null немає (частка 0.000000), зокрема в `wx_*`, `dark_share_3h` і `moon_illum`. Частки по колонках друкує `report` (блок `null share per column`).
 
 ## Як перебудувати
 
@@ -117,7 +123,7 @@ choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v   # тес�
 6. жодна колонка ознак не дорівнює `y_strike_3h` чи її запереченню;
 7. `labels()` не викликає жодна `features()`: статично (імена в коді `features()` і функцій того ж модуля, на які вона посилається) і динамічно (`labels` замінено на заглушку, що падає).
 
-Результат: 7 тестів OK. У тесті 3 порівняно 2100 значень (50 t, 8 модулів, 42 колонки ознак), різниць 0.
+Результат: 7 тестів OK. У тесті 3 порівняно 2400 значень (50 t, 8 модулів, 48 колонок ознак), різниць 0.
 
 Команда `.venv/bin/python -I -m unittest tests/test_no_leakage.py` падає на імпорті (`ModuleNotFoundError: No module named 'tests'`): `-I` прибирає поточну теку з `sys.path`. Працюють `discover -s tests` (вище), `.venv/bin/python -I tests/test_no_leakage.py` і та сама команда без `-I`.
 
@@ -125,13 +131,13 @@ choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v   # тес�
 
 | команда | результат |
 |---|---|
-| `.venv/bin/python -I -m airalerts.gold.kyiv_hourly report` | `rows 3909, columns 46`, `hours from T0 to cutoff inclusive 3909`, `rows = hours True, unique True, continuous (every step 1 h) True`; `labelled rows 3906, true 151, false 3755, null 3`; `base rate = true / labelled = 151/3906 = 0.0387`; `strike hours ... from T0: 77 of 3908`; null лише в `y_strike_3h`: 3; 5 випадкових рядків з усіма колонками |
+| `.venv/bin/python -I -m airalerts.gold.kyiv_hourly report` | `rows 3909, columns 52`, `hours from T0 to cutoff inclusive 3909`, `rows = hours True, unique True, continuous (every step 1 h) True`; `labelled rows 3906, true 151, false 3755, null 3`; `base rate = true / labelled = 151/3906 = 0.0387`; `strike hours ... from T0: 77 of 3908`; null лише в `y_strike_3h`: 3; 5 випадкових рядків з усіма колонками |
 | `.venv/bin/python -I -m airalerts.db` | 13 view: 12 silver і `kyiv_hourly` |
 | `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT count(*), count(*) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone())"` | `(3909, 151)` |
 | `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT min(t_utc) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone()[0])"` | `2026-05-13 22:00:00` |
-| `choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v` | `Ran 7 tests`, `OK`; `50 random t (seed 20261011) ... 2100 feature values compared ... differences 0` |
+| `choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v` | `Ran 7 tests`, `OK`; `50 random t (seed 20261011) ... 2400 feature values compared ... differences 0` |
 | `.venv/bin/python -I -m unittest tests/test_no_leakage.py` | `ModuleNotFoundError: No module named 'tests'` |
-| `.venv/bin/python -I -c "from airalerts.silver import rf_strikes; print(rf_strikes.last_full_hour())"` | `2026-10-10 12:00:00` |
+| `.venv/bin/python -I -c "from airalerts.silver import rf_strikes; print(rf_strikes.data_end())"` | `2026-10-11 08:00:00` |
 | `.venv/bin/python -I -c "from airalerts.silver import political_events; print(political_events.data_end())"` | `2026-10-10 17:00:00` |
 | `.venv/bin/python -I -c "import pyarrow.parquet as pq; print(pq.read_metadata('data/silver/prep_signal_events.parquet').metadata[b'data_until'].decode())"` | `2026-10-10T11:36:43Z` |
 | `.venv/bin/python -I -c "from airalerts.db import connect, register_layers; print(register_layers(connect()).execute('SELECT min(hour_utc) FROM kyiv_threat_hourly WHERE missile_strike').fetchone()[0])"` | `2026-05-14 00:00:00` |
@@ -139,7 +145,8 @@ choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v   # тес�
 ## Пастки
 
 - Три останні рядки (2026-10-10T15:00Z, 16:00Z, 17:00Z) мають `y_strike_3h` null: для навчання їх відкинути.
-- Дані двох модулів закінчуються раніше за зріз, а їхні `features()` t не відхиляють: `rf_strikes.last_full_hour()` = 2026-10-10 12:00:00 (година, до якої повні всі чотири канали РФ за останнім постом), `prep_signal_events` має `data_until` 2026-10-10T11:36:43Z (останній пост `war_monitor`). Для t після цих моментів `rf_*`, `hours_since_rf_imp4`, `s1_*`, `s2_*`, `s4_*` не бачать постів, яких немає в silver: їх не було або bronze їх не забрав, gold цього не розрізняє. `political_events` повні до зрізу (`data_end()` = 2026-10-10 17:00:00).
+- `rf_*` і `ua_*` бачать день лише через 30 год після його початку (UTC): ознака о t описує вчорашній або позавчорашній день, не останні години. `rf_strikes.data_end()` = 2026-10-11 08:00:00 (знімок dronestrikemap), пізніші t модуль відхиляє.
+- Дані одного модуля закінчуються раніше за зріз, а його `features()` t не відхиляє: `prep_signal_events` має `data_until` 2026-10-10T11:36:43Z (останній пост `war_monitor`). Для t після цього `s1_*`, `s2_*`, `s4_*` не бачать постів, яких немає в silver: їх не було або bronze їх не забрав, gold цього не розрізняє. `political_events` повні до зрізу (`data_end()` = 2026-10-10 17:00:00).
 - До 2026-05-14T00:00Z у `kyiv_threat_hourly` немає годин удару (до T0 теж): у рядку T0 `strikes_14d` 0 і `hours_since_strike` 336 (стеля), ціль false для всіх t до 2026-05-13T22:00Z.
 - Мітки сусідніх годин перекриваються: `[t, t + 3 год)` і `[t + 1 год, t + 4 год)` мають спільні 2 години.
 - `hour_kyiv`, `dow_kyiv`, `hol_*` і політичні колонки рахуються за київським часом: UTC+3 до 2026-10-25, далі UTC+2. Зріз раніший за цю дату; після неї `hour_kyiv` = година UTC + 2.
