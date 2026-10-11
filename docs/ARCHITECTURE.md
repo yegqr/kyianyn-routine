@@ -11,7 +11,7 @@
 | `tests/` | тести на витік у gold і поділі, тести моделей кожного питання, мірила проти перерахунку в лоб |
 | `data/` | `bronze/` і `silver/` (не в git), `gold/` (у git, версія в [DATASET.md](data/DATASET.md)), `predictions/<strikes\|nights\|quiet>/` (не в git), `verification/` (у git) |
 | `reports/` | таблиці порівняння моделей `strikes_leaderboard.md`, `nights_leaderboard.md`, `quiet_leaderboard.md`; їх пишуть оцінювачі, вручну не редагувати |
-| `docs/` | `ASSIGNMENT`, `METHODOLOGY`, `ARCHITECTURE`, `HISTORY`, `HANDOFF`; `adr/` рішення; `data/` (`PARSING`, `JEV`, `VERIFICATION`, `DATASET`, `silver/`, `gold/`); `strikes/`, `nights/`, `quiet/` опис кожного модуля моделей простими словами |
+| `docs/` | `ASSIGNMENT`, `METHODOLOGY`, `ARCHITECTURE`, `HISTORY`, `HANDOFF`; `adr/` рішення; `data/` (`PARSING`, `JEV`, `VERIFICATION`, `DATASET`, `silver/`, `gold/`); `strikes/`, `nights/`, `quiet/` опис кожного модуля моделей простими словами; у `quiet/` ще [forecast.md](quiet/forecast.md), [model.md](quiet/model.md), [importance.md](quiet/importance.md), [sources.md](quiet/sources.md) |
 
 ## Епохи
 
@@ -22,8 +22,8 @@
 | 0. Дані | bronze, silver, gold з Telegram, тривог, погоди, календарів, ударів по РФ; мітка Jev; зовнішня перевірка й аудит | [ADR-0002](adr/0002-data-levels.md)..[ADR-0007](adr/0007-audit-before-modelling.md), [VERIFICATION.md](data/VERIFICATION.md) | [DATASET.md](data/DATASET.md) |
 | 1. Удари (`strikes/`) | ракетний удар по Києву в наступні 3 год, щогодини | [ADR-0008](adr/0008-time-split.md), [ADR-0009](adr/0009-three-models.md) | [strikes_leaderboard.md](../reports/strikes_leaderboard.md): ловить нічні атаки, коли вони вже почались; обидві денні атаки тесту пропущено |
 | 2. Ночі (`nights/`) | о 22:00: спати в коридорі чи в кімнаті | [ADR-0010](adr/0010-night-question.md) | [nights_leaderboard.md](../reports/nights_leaderboard.md): о 22:00 не передбачити; тримається лише «ніч після атаки тиха» (23 з 23, тест 6 з 7) |
-| 3. Спокій (`quiet/`) | чи будуть наступні 3 год тихими, дрони враховано; прогноз для людини | [ADR-0011](adr/0011-quiet-hours.md), [forecast.md](quiet/forecast.md) | [quiet_leaderboard.md](../reports/quiet_leaderboard.md): тишу не гарантує, але рівні ризику втримались від розробки до тесту; «швидше тихо» правдиве у 83% і там, і там |
-| 4. Важливість | які змінні фіналіста спокою важать і що треба парсити для живого продукту | | `docs/quiet/importance.md` |
+| 3. Спокій (`quiet/`) | чи будуть наступні 3 год тихими, дрони враховано; прогноз для людини | [ADR-0011](adr/0011-quiet-hours.md), [forecast.md](quiet/forecast.md), фінальна модель від А до Я: [model.md](quiet/model.md) | [quiet_leaderboard.md](../reports/quiet_leaderboard.md): тишу не гарантує, але рівні ризику втримались від розробки до тесту; «швидше тихо» правдиве у 83% і там, і там |
+| 4. Важливість | які змінні фіналіста спокою важать і що треба парсити для живого продукту | | [importance.md](quiet/importance.md), [sources.md](quiet/sources.md) |
 
 ## Три рівні даних
 

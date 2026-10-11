@@ -2,6 +2,8 @@
 
 Модуль `src/airalerts/quiet/linear.py`, прогнози `data/predictions/quiet/{logit_small,logit_signals,two_heads,logit_all_l2}.parquet`, тести `tests/test_quiet.py` (підтест module=linear) і `tests/test_quiet_linear.py`. Питання: чи будуть наступні 3 години в Києві спокійними, дрони враховано ([ADR-0011](../adr/0011-quiet-hours.md)).
 
+Фінальна модель `logit_signals` від А до Я (входи, ваги, параметри, «що якщо»): [model.md](model.md).
+
 Коротко: три моделі з ознаками, вибраними за змістом, надійно кращі за `naive_7d` на годинах «зараз тихо». Найкращий BSS у `two_heads` (0.103), `logit_signals` майже стільки ж (0.094) з 7 ознаками замість 11. Негативний контроль `logit_all_l2` на всіх 66 колонках гірший (0.025): більше ознак тут шкодить. Поріг 95% називає тихими лише 0..2% годин.
 
 ## Спільне

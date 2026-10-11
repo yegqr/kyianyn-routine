@@ -2,6 +2,8 @@
 
 Код: `src/airalerts/quiet/forecast.py`. Тест: `tests/test_quiet_forecast.py`. Перевірка: `scripts/analysis/quiet_forecast_check.py`. Питання і правила: [ADR-0011](../adr/0011-quiet-hours.md).
 
+Модель за прогнозом від А до Я (входи, ваги, параметри, «що якщо»): [model.md](model.md).
+
 ## Що він каже
 
 Для будь-якої години t:
