@@ -1,0 +1,95 @@
+/* The crossing picture of tab 1 (hero.js): a live line map of the bridges over the Dnipro inside #hero-map.
+   Colours only from tokens.css; line widths are screen px (vector-effect: non-scaling-stroke). */
+
+/* A taller box on a phone, so all 7 bridges read at 358 px wide; the loading skeleton keeps the same size. */
+@media (max-width: 560px) {
+  .hero-map, .sk-map { aspect-ratio: 4 / 3; }
+}
+
+.hero-map.hm::after { content: ""; position: absolute; inset: 0; border: 1px solid var(--line); border-radius: inherit; pointer-events: none; }
+.hm-svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: hidden; }
+.hm-over { pointer-events: none; }
+.hm-svg path, .hm-svg circle, .hm-svg rect, .hm-svg ellipse { vector-effect: non-scaling-stroke; }
+
+/* Land, water, sky */
+.hm-west { fill: var(--pink-soft); }
+.hm-east { fill: var(--line); fill-opacity: .5; }
+.hm-water { fill: var(--water); stroke: var(--water-line); stroke-width: .8px; stroke-linejoin: round; }
+.hm-isle { fill: var(--card); stroke: var(--water-line); stroke-width: .8px; stroke-linejoin: round; }
+.hm-sky-band { pointer-events: none; }
+.hm-sky-a { stop-color: var(--water); stop-opacity: .75; }
+.hm-sky-b { stop-color: var(--water); stop-opacity: 0; }
+.is-night .hm-sky-a { stop-color: var(--night); stop-opacity: .82; }
+.is-night .hm-sky-b { stop-color: var(--night); stop-opacity: 0; }
+.hm-sun { color: var(--risk-fill); }
+.hm-moon { color: var(--card); }
+.hm-star { fill: var(--card); opacity: .85; }
+.hm-base:not(.is-night) .hm-moon, .hm-base.is-night .hm-sun { display: none; }
+
+/* Bridges in the status colour of the road traffic on them now */
+.hm-deck-case { fill: none; stroke: var(--card); stroke-width: 8.5px; stroke-linecap: round; stroke-linejoin: round; }
+.hm-deck { fill: none; stroke: var(--soft); stroke-width: 5px; stroke-linecap: round; stroke-linejoin: round; }
+.is-open .hm-deck { stroke: var(--go); }
+.is-limited .hm-deck { stroke: var(--risk); }
+.is-closed .hm-deck { stroke: var(--stop); }
+.is-rail .hm-deck { stroke: var(--soft); stroke-width: 3px; }
+.is-rail .hm-deck-case { stroke-width: 6px; }
+.hm-bridge[data-id="metro"] .hm-deck, .hm-bridge[data-id="pivdennyi"] .hm-deck { stroke-width: 8px; }
+.hm-bridge[data-id="metro"] .hm-deck-case, .hm-bridge[data-id="pivdennyi"] .hm-deck-case { stroke-width: 11px; }
+.hm-hit { fill: none; stroke: transparent; stroke-width: 18px; stroke-linecap: round; pointer-events: stroke; cursor: pointer; }
+/* Only the wide hit line of a bridge takes the pointer: a metro line, a stop mark or the sky on top of it let it through */
+.hm-lines, .hm-stops, .hm-sky { pointer-events: none; }
+
+/* Metro lines in their official colours; the river segment of a line that cannot cross now dims */
+.hm-line-case { fill: none; stroke: var(--card); stroke-width: 4px; stroke-linecap: round; stroke-linejoin: round; }
+.hm-line { fill: none; stroke-width: 2.6px; stroke-linecap: round; stroke-linejoin: round; }
+.hm-M1 .hm-line { stroke: var(--m1); }
+.hm-M2 .hm-line { stroke: var(--m2); }
+.hm-M3 .hm-line { stroke: var(--m3); }
+.hm-cut { opacity: .3; }
+.hm-stop circle { fill: var(--stop); stroke: var(--card); stroke-width: 1.5px; }
+.hm-stop rect { fill: var(--card); }
+
+/* Landmarks and labels */
+.hm-mark { color: var(--ink); opacity: .7; cursor: pointer; transition: opacity 240ms var(--ease); }
+.hm-mark:hover { opacity: 1; }
+.hm-mark-hit { fill: transparent; }
+.hm-label { font-family: var(--font); font-weight: 600; letter-spacing: .02em; fill: var(--soft); paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+.hm-river { font-style: italic; letter-spacing: .02em; fill: var(--m2); stroke: var(--water); pointer-events: auto; cursor: pointer; }
+
+/* What flies, the train and the easter eggs */
+.hm-drone { color: var(--ink); pointer-events: auto; cursor: pointer; }
+.hm-drone-hit { fill: transparent; }
+.hm-missile, .hm-boat { color: var(--ink); }
+.hm-trail-a { stop-color: var(--stop); stop-opacity: 0; }
+.hm-trail-b { stop-color: var(--stop); stop-opacity: .75; }
+.hm-cloud { color: var(--water-line); }
+.hm-train { color: var(--m1); }
+.hm-train-bg { fill: var(--card); }
+.hm-burst { color: var(--risk-fill); }
+.hm-chestnut { color: var(--risk); }
+.hm-glow-soft { fill: var(--pink); opacity: .75; }
+.hm-glow-core { fill: var(--pink); }
+.hm-rainbow path { fill: none; stroke-width: 2.4px; stroke-linecap: round; }
+.hm-rb-m1 { stroke: var(--m1); }
+.hm-rb-risk { stroke: var(--risk-fill); }
+.hm-rb-m3 { stroke: var(--m3); }
+.hm-rb-m2 { stroke: var(--m2); }
+.hm-boat-body { fill: var(--card); stroke: var(--ink); stroke-width: 1.3px; stroke-linejoin: round; }
+.hm-boat-cabin { fill: none; stroke: var(--ink); stroke-width: 1.3px; stroke-linejoin: round; }
+.hm-boat-foil { fill: none; stroke: var(--pink); stroke-width: 1.3px; stroke-linecap: round; }
+.hm-fx g g { transform-box: fill-box; transform-origin: center; }
+
+/* The train button sits on the train, the tooltip and the attribution over the map */
+.hm-go { position: absolute; z-index: 2; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0; border: 0; border-radius: var(--r-pill); background: transparent; cursor: pointer; }
+.hm-go:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.hm-tip { position: absolute; z-index: 3; width: max-content; max-width: min(300px, calc(100% - 12px)); margin: 0; padding: 6px 10px; border-radius: var(--r-small); background: var(--ink); color: var(--card); font-size: 13px; line-height: 1.35; text-align: left; box-shadow: var(--shadow-pink); pointer-events: none; animation: hm-in 200ms var(--ease) both; }
+.hm-osm { position: absolute; right: 6px; bottom: 5px; z-index: 2; padding: 0 6px; border-radius: var(--r-pill); background: var(--card); color: var(--soft); font-size: 10.5px; line-height: 16px; text-decoration: none; opacity: .9; }
+.hm-osm:hover { color: var(--pink); }
+.hm-osm:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+@keyframes hm-in { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-tip { animation: none; }
+  .hm-mark { transition: none; }
+}
