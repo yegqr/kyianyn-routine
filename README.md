@@ -197,6 +197,15 @@ python3 -m venv .venv
 
 **Що далі** (ще не зроблено): живий забір і заміри затримки (скільки секунд відповідає Jev і як швидко пост з'являється на `t.me/s`, не міряли); перевірка 10-хвилинного прогнозу на розробці з правилом, записаним наперед; варіант без Jev на київських каналах; рішення, чи переводити сайт на 5 входів замість 7.
 
+## Живий сайт
+
+[kyianyn-routine.isakov.fyi](https://kyianyn-routine.isakov.fyi) відповідає на одне питання: «Чи встигнеш переїхати на інший берег за наступні 3 години?». Будь-яка тривога зупиняє червону лінію метро через Дніпро, червоний рівень зупиняє все метро через річку ([crossing.md](docs/product/crossing.md)), тому «чи встигну» це «чи буде атака на Київ у наступні 3 години», тобто ціль фіналіста епохи 3. Нової моделі немає: та сама логістична регресія з тими самими межами 19.7% і 30%.
+
+- **Цикл кожні 5 хвилин** (таймер systemd): нові пости 11 каналів з `t.me/s`, мітки Jev, silver, ознаки фіналіста і JSON для сайту. Живі ознаки на історії збігаються з gold `kyiv_quiet` на всіх 3909 годинах (тест). Ймовірність щогодини, статус тривоги кожні 5 хвилин ([ADR-0012](docs/adr/0012-live-site.md)).
+- **Перенавчання щосуботи о 12:00** на всіх годинах, чиї 3 години вже минули. Частоту обрало правило, записане до підрахунку: найрідша з частот, чий BSS на розробці в межах 0.01 від найкращої (щогодини 0.098, щотижня 0.094) ([ADR-0013](docs/adr/0013-retrain-cadence.md)).
+- **Чесна історія:** години до запуску сайту відтворено так, ніби він уже працював (модель щосуботи навчали лише на минулому); живий прогноз лягає поверх лише тоді, коли його видано у свою годину. Якщо даних за останню годину немає, сайт так і пише.
+- **«Як це працює»:** анімована презентація з 12 розділів, від питання до агентів, зі справжніми промптами і з тим, наскільки можна вірити моделі.
+
 ## Висновки
 
 **Що працює.**
@@ -228,10 +237,14 @@ src/airalerts/            код пакета
   strikes/                  епоха 1: naive, share_table, logistic, lgbm, score
   nights/                   епоха 2: rules, stats, ml, score
   quiet/                    епоха 3: baselines, linear, trees, score, forecast
+  live/                     живий сайт: забір, ознаки, модель, JSON, цикл
 scripts/
   bronze/                   збирачі сирих даних (лише stdlib)
   verify/                   зовнішня перевірка мітки і сигналів, аудит gold
   analysis/                 аналіз тесту і важливості, лише друк
+  site/                     дані для презентації (мапа, довіра, прогнози розробки) і викладка сайту
+site/                       статичний сайт: головна і презентація
+deploy/                     systemd, nginx
 tests/                      витік, поділ, моделі кожного питання (72 тести)
 data/                       gold і verification у git; bronze, silver, predictions ні
 reports/                    таблиці порівняння, пишуть лише оцінювачі
@@ -241,7 +254,7 @@ docs/                       документи нижче
 ## Документи
 
 - Постановка і стан: [ASSIGNMENT.md](docs/ASSIGNMENT.md) (завдання KSE), [METHODOLOGY.md](docs/METHODOLOGY.md) (постановка і методи), [ARCHITECTURE.md](docs/ARCHITECTURE.md) (рівні, контракт, усі команди), [HISTORY.md](docs/HISTORY.md) (як дійшли і від чого відмовились; [моделювання по епохах](docs/HISTORY.md#моделювання-по-епохах)), [HANDOFF.md](docs/HANDOFF.md) (стан для наступної сесії).
-- Рішення: [0002 рівні даних](docs/adr/0002-data-levels.md), [0003 Jev](docs/adr/0003-jev.md), [0004 удари по РФ](docs/adr/0004-rf-strikes-dronestrikemap.md), [0005 політичні події](docs/adr/0005-political-events-without-world.md), [0006 зовнішня перевірка](docs/adr/0006-external-verification.md), [0007 аудит](docs/adr/0007-audit-before-modelling.md), [0008 поділ за часом](docs/adr/0008-time-split.md), [0009 три моделі](docs/adr/0009-three-models.md), [0010 нічне питання](docs/adr/0010-night-question.md), [0011 спокійні години](docs/adr/0011-quiet-hours.md).
+- Рішення: [0002 рівні даних](docs/adr/0002-data-levels.md), [0003 Jev](docs/adr/0003-jev.md), [0004 удари по РФ](docs/adr/0004-rf-strikes-dronestrikemap.md), [0005 політичні події](docs/adr/0005-political-events-without-world.md), [0006 зовнішня перевірка](docs/adr/0006-external-verification.md), [0007 аудит](docs/adr/0007-audit-before-modelling.md), [0008 поділ за часом](docs/adr/0008-time-split.md), [0009 три моделі](docs/adr/0009-three-models.md), [0010 нічне питання](docs/adr/0010-night-question.md), [0011 спокійні години](docs/adr/0011-quiet-hours.md), [0012 живий сайт](docs/adr/0012-live-site.md), [0013 частота перенавчання](docs/adr/0013-retrain-cadence.md); як переїхати Дніпро під час тривоги: [crossing.md](docs/product/crossing.md).
 - Дані: [PARSING.md](docs/data/PARSING.md), [JEV.md](docs/data/JEV.md), [VERIFICATION.md](docs/data/VERIFICATION.md), [DATASET.md](docs/data/DATASET.md).
 - Silver: [kyiv_alerts](docs/data/silver/kyiv_alerts.md), [tg_posts](docs/data/silver/tg_posts.md), [kyiv_threat_hourly](docs/data/silver/kyiv_threat_hourly.md), [prep_signal_events](docs/data/silver/prep_signal_events.md), [rf_strikes](docs/data/silver/rf_strikes.md), [weather_runs](docs/data/silver/weather_runs.md), [astro_hourly](docs/data/silver/astro_hourly.md), [calendar_dates](docs/data/silver/calendar_dates.md), [political_events](docs/data/silver/political_events.md).
 - Gold: [kyiv_hourly](docs/data/gold/kyiv_hourly.md), [kyiv_nightly](docs/data/gold/kyiv_nightly.md), [kyiv_quiet](docs/data/gold/kyiv_quiet.md).
