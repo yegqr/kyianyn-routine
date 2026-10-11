@@ -32,5 +32,5 @@ export function ago(iso, now = Date.now()) {
   if (min < 1) return 'щойно'
   if (min < 60) return `${min} хв тому`
   const h = Math.floor(min / 60)
-  return h < 24 ? `${h} год ${min % 60} хв тому` : `${Math.floor(h / 24)} дн тому`
+  return h < 24 ? `${h} год тому` : `${Math.floor(h / 24)} дн тому`
 }

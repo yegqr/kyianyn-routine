@@ -1,9 +1,9 @@
-// The shell of livii-bereh.isakov.fyi: two tabs by hash (#/ and #/how/<scene>/<step>), keys, the help dialog,
+// The shell of kyianyn-routine.isakov.fyi: two tabs by hash (#/ "Відповідь" and #/how/<scene>/<step>), keys, the help dialog,
 // the live pill and the data loop. The JSON files are loaded at start and every 2 minutes, the small ones first and
 // history.json (only the charts use it) after, and only what changed is redrawn. Until the first answer the hero
 // shows a skeleton (body.is-loading). The deck (how.js) loads on the first visit of its tab and shares the data.
 
-import { ago, kyivStamp } from './api.js'
+import { ago, kyivStamp, kyivTime, kyivDay } from './api.js'
 import { renderDashboard, mountChartsInto, runTrain } from './dashboard.js'
 
 const $ = (sel) => document.querySelector(sel)
@@ -14,6 +14,7 @@ const help = $('#help')
 const live = $('#live')
 const liveWord = $('#live-word')
 const liveAgo = $('#live-ago')
+const liveMore = $('#live-more')
 const toast = $('#toast')
 const RM = window.matchMedia('(prefers-reduced-motion: reduce)')
 const SMALL = ['now', 'model', 'meta'] // a few KB each: the answer and every block but the charts
@@ -87,19 +88,32 @@ const tick = () => refresh().catch((err) => {
   return new Set()
 })
 
+// The live pill: a green dot and "оновлено N хв тому"; stale data: an amber chip "дані за HH:MM, оновлюємо" (on a
+// phone just "дані за HH:MM"); no data yet: a grey dot.
 function pill() {
   const now = data.now
   const stale = Boolean(now?.stale)
   live.classList.toggle('is-stale', stale)
+  live.classList.toggle('is-empty', !now)
   liveWord.hidden = !now || stale
+  liveMore.hidden = !now || !stale
   if (!now) {
-    liveAgo.textContent = 'дані ще не готові'
+    liveAgo.textContent = 'чекаю на дані'
     live.title = 'Дані ще не готові'
+    live.setAttribute('aria-label', 'Дані ще не готові. Перейти до джерел')
     return
   }
   const reason = now.stale_reason || 'дані застаріли'
   const fresh = now.generated_at ? ago(now.generated_at) : 'невідомо коли'
-  liveAgo.textContent = stale ? reason : fresh
+  if (stale) {
+    const at = now.hour || now.data_until
+    const date = document.createElement('span')
+    date.className = 'live-date'
+    date.textContent = at && kyivDay(at) !== kyivDay(new Date().toISOString()) ? `${kyivDay(at)} ` : ''
+    liveAgo.replaceChildren('дані за ', date, at ? kyivTime(at) : '?')
+  } else {
+    liveAgo.textContent = fresh
+  }
   live.title = stale ? `Дані застаріли: ${reason}`
     : `Оновлено ${now.generated_at ? kyivStamp(now.generated_at) : ''}${now.data_until ? `, найсвіжіший пост ${kyivStamp(now.data_until)}` : ''}`
   live.setAttribute('aria-label', `${stale ? `Дані застаріли: ${reason}` : `Оновлено ${fresh}`}. Перейти до джерел`)
@@ -162,7 +176,8 @@ function train() {
     setTimeout(train, 80)
     return
   }
-  const btn = $('#train')
+  const btn = $('#hero-map') || $('#train')
+  if (!btn) return
   const r = btn.getBoundingClientRect()
   if (r.top < 60 || r.bottom > window.innerHeight) btn.scrollIntoView({ behavior: behavior(), block: 'center' })
   runTrain()
@@ -240,13 +255,13 @@ window.addEventListener('hashchange', (e) => {
   if (old.startsWith('#/how/')) lastHow = old
   route()
 })
-$('#train').addEventListener('click', () => runTrain())
 $('#help-open').addEventListener('click', openHelp)
 $('#help-close').addEventListener('click', () => help.close())
 help.addEventListener('click', (e) => { if (e.target === help) help.close() })
 live.addEventListener('click', () => {
   const go = () => {
     const box = $('#sources')
+    box.querySelector('details')?.setAttribute('open', '')
     box.scrollIntoView({ behavior: behavior(), block: 'start' })
     box.focus({ preventScroll: true })
   }

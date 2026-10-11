@@ -3,8 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Лівий берег: чи встигну перетнути Дніпро</title>
-<meta name="description" content="Чи встигну перетнути Дніпро в Києві за наступні 3 години: ймовірність, що прилетять дрони або ракети, що зараз їде через річку і чому така відповідь. Оновлюється щогодини.">
+<title>Kyianyn Routine: чи встигнеш на інший берег за 3 години?</title>
+<meta name="description" content="Чи встигнеш переїхати на інший берег Дніпра в Києві за наступні 3 години: відповідь так чи ні, ймовірність, що прилетять дрони або ракети, і що зараз їде через річку. Оновлюється щогодини.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:title" content="Kyianyn Routine: чи встигнеш на інший берег за 3 години?">
+<meta property="og:description" content="Так чи ні для переїзду через Дніпро в Києві і ймовірність, що прилетять дрони або ракети. Оновлюється щогодини.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Чи встигнеш на інший берег за 3 години?">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,61 +18,50 @@
 <link rel="stylesheet" href="assets/css/site.css">
 <link rel="stylesheet" href="assets/css/how.css">
 <link rel="stylesheet" href="assets/css/charts.css">
-<noscript><style>.hero-sk { display: none !important; } .is-loading .hero-text { display: block !important; }</style></noscript>
+<noscript><style>.hero-sk { display: none !important; } .is-loading .hero > .hero-q { display: block !important; }</style></noscript>
 <script defer src="assets/vendor/d3.v7.9.0.min.js"></script>
 <script type="module" src="assets/js/app.js"></script>
 </head>
 <body class="is-loading">
 <header class="top">
   <div class="wrap top-in">
-    <a class="logo" href="#/" aria-label="Лівий берег, на головну"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M5 15Q16 1 27 15"/><path d="M3 15h26"/><path d="M4 21.5q3-2.6 6 0t6 0 6 0 6 0"/><path d="M4 27q3-2.6 6 0t6 0 6 0 6 0"/></svg><span>Лівий берег</span></a>
+    <a class="logo" href="#/" aria-label="Kyianyn Routine, на головну"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M5 15Q16 1 27 15"/><path d="M3 15h26"/><path d="M4 21.5q3-2.6 6 0t6 0 6 0 6 0"/><path d="M4 27q3-2.6 6 0t6 0 6 0 6 0"/></svg><span class="logo-name">Kyianyn Routine</span></a>
     <nav class="tabs" aria-label="Вкладки">
-      <a class="tab" data-tab="main" href="#/" aria-current="page">Чи встигну?</a>
+      <a class="tab" data-tab="main" href="#/" aria-current="page">Відповідь</a>
       <a class="tab" data-tab="how" href="#/how">Як це працює</a>
     </nav>
     <button id="live" class="live" type="button" aria-label="Перейти до джерел">
       <span class="live-dot" aria-hidden="true"></span>
       <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.1"/></svg></span>
-      <span class="live-text"><span id="live-word" class="live-word">оновлено </span><span id="live-ago">завантажую</span></span>
+      <span class="live-text"><span id="live-word" class="live-word">оновлено </span><span id="live-ago">завантажую</span><span id="live-more" class="live-more" hidden>, оновлюємо</span></span>
     </button>
     <button id="help-open" class="help-btn" type="button" aria-haspopup="dialog" aria-label="Гарячі клавіші">?</button>
   </div>
 </header>
 
 <main id="main" class="wrap app">
-  <noscript><p class="calm">Для прогнозу потрібен JavaScript.</p></noscript>
+  <noscript><p class="calm">Для відповіді потрібен JavaScript.</p></noscript>
   <div id="tab-main" class="tab-main">
-    <section id="hero" class="block hero" tabindex="-1" aria-labelledby="hero-q" aria-busy="true">
-      <!-- Until the first data: a skeleton in the place and about the size of the answer; the other blocks wait
-           hidden (site.css, "Loading"), so nothing on screen moves when the answer lands. -->
-      <div class="hero-sk" role="status">
-        <span class="sk sk-q"></span>
-        <span class="sk sk-q"></span>
-        <span class="sk sk-q"></span>
-        <p class="hero-window">Завантажую прогноз...</p>
-        <span class="sk sk-answer"></span>
-        <span class="sk sk-answer"></span>
-        <span class="sk sk-tier"></span>
-        <span class="sk sk-scale"></span>
-        <span class="sk sk-line"></span>
-        <span class="sk sk-line"></span>
-        <span class="sk sk-line"></span>
+    <section id="hero" class="block hero" data-tier="none" tabindex="-1" aria-labelledby="hero-q" aria-busy="true">
+      <!-- Until the first data: a skeleton in the place and about the size of the answer, the picture and the number;
+           the real parts wait hidden (site.css, "Loading"), so nothing on screen moves when the answer lands. -->
+      <div class="hero-sk" role="status" aria-label="Завантажую відповідь">
+        <span class="sk sk-answer"></span><span class="sk sk-line"></span><span class="sk sk-q"></span><span class="sk sk-map"></span><span class="sk sk-p"></span>
       </div>
-      <div class="hero-sk hero-sk-train" aria-hidden="true"><span class="sk sk-pic"></span><span class="sk sk-hint"></span><span class="sk sk-scale"></span></div>
-      <div class="hero-text">
-        <h1 id="hero-q" class="hero-q">Чи встигну я перетнути Дніпро за наступні 3 години?</h1>
-        <div data-part="answer"></div>
-      </div>
-      <div class="hero-scale" data-part="scale"></div>
-      <div class="hero-more" data-part="more"></div>
-      <div class="hero-train">
-        <button id="train" class="train" type="button" aria-label="Потяг через Дніпро: натисни, і він поїде, клавіша T" aria-describedby="train-hint">
-          <svg class="train-svg" viewBox="0 0 400 150" aria-hidden="true" focusable="false">
-            <path class="bank" d="M0 88h96v62H0z"/>
-            <path class="bank" d="M304 88h96v62h-96z"/>
-            <path class="river" d="M96 98h208v52H96z"/>
-            <path class="wave" d="M108 116q13-7 26 0t26 0 26 0 26 0 26 0 26 0 26 0"/>
-            <path class="wave" d="M121 132q13-7 26 0t26 0 26 0 26 0 26 0 26 0"/>
+      <div class="hero-alert" data-part="alert"></div>
+      <div class="hero-answer" data-part="answer"></div>
+      <p class="hero-line" data-part="line"></p>
+      <h1 id="hero-q" class="hero-q">Чи встигнеш переїхати на інший берег за наступні 3 години?</h1>
+      <p class="hero-window" data-part="window" title="За київським часом"></p>
+      <div id="hero-map" class="hero-map">
+        <button id="train" class="train" type="button" aria-label="Потяг червоної лінії через Дніпро: натисни, і він поїде, клавіша T" aria-describedby="train-hint">
+          <svg class="train-svg" viewBox="0 30 400 200" aria-hidden="true" focusable="false">
+            <path class="bank" d="M0 88h96v142H0z"/>
+            <path class="bank" d="M304 88h96v142h-96z"/>
+            <path class="river" d="M96 98h208v132H96z"/>
+            <path class="wave" d="M108 122q13-7 26 0t26 0 26 0 26 0 26 0 26 0 26 0"/>
+            <path class="wave" d="M121 146q13-7 26 0t26 0 26 0 26 0 26 0 26 0"/>
+            <path class="wave" d="M108 170q13-7 26 0t26 0 26 0 26 0 26 0 26 0 26 0"/>
             <path class="arch" d="M96 98Q148 70 200 98M200 98Q252 70 304 98"/>
             <path class="pier" d="M96 84v14M200 84v14M304 84v14"/>
             <path class="deck" d="M4 84h392"/>
@@ -75,34 +70,28 @@
               <rect x="30" y="69" width="20" height="13" rx="4"/>
               <path class="win" d="M12 74h5M21 74h3M34 74h5M43 74h3"/>
             </g>
-            <text x="48" y="114">правий</text><text x="48" y="131">берег</text>
-            <text x="352" y="114">лівий</text><text x="352" y="131">берег</text>
-            <text x="200" y="147">Дніпро</text>
+            <text x="48" y="124">правий</text><text x="48" y="142">берег</text>
+            <text x="352" y="124">лівий</text><text x="352" y="142">берег</text>
+            <text class="river-name" x="200" y="208">Дніпро</text>
           </svg>
         </button>
         <p id="train-tip" class="train-tip" role="tooltip" hidden></p>
-        <p id="train-hint" class="train-hint" aria-live="polite">Натисни або T: потяг перетне Дніпро.</p>
+        <p id="train-hint" class="sr-only" aria-live="polite"></p>
       </div>
+      <div class="hero-p" data-part="prob"></div>
+      <div class="hero-chips" data-part="chips"></div>
     </section>
 
-    <section id="crossings" class="block" tabindex="-1" aria-labelledby="h-crossings">
+    <section id="crossings" class="block strip" tabindex="-1" aria-labelledby="h-crossings">
       <h2 id="h-crossings">Що зараз перетинає Дніпро</h2>
       <div data-part="crossings"><p class="calm">Завантажую...</p></div>
     </section>
 
-    <section id="reasons" class="block" tabindex="-1" aria-labelledby="h-reasons">
-      <h2 id="h-reasons">Чому така відповідь</h2>
-      <div data-part="reasons"><p class="calm">Завантажую...</p></div>
-    </section>
-
-    <section id="kind" class="block" tabindex="-1" aria-labelledby="h-kind">
-      <h2 id="h-kind">Якщо прилетить, то що</h2>
-      <div data-part="kind"><p class="calm">Завантажую...</p></div>
-    </section>
-
-    <section id="glossary" class="block" tabindex="-1" aria-labelledby="h-glossary">
-      <h2 id="h-glossary">Словничок</h2>
-      <div data-part="glossary"><p class="calm">Завантажую...</p></div>
+    <section id="reasons" class="block fold-block" tabindex="-1" aria-labelledby="h-reasons">
+      <details class="fold">
+        <summary><h2 id="h-reasons">Чому так</h2><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+        <div class="fold-body" data-part="reasons"><p class="calm">Завантажую...</p></div>
+      </details>
     </section>
 
     <section id="charts" class="block" tabindex="-1" aria-labelledby="h-charts">
@@ -113,9 +102,18 @@
       <div data-chart="days"><p class="calm chart-wait">Графік ще готується.</p></div>
     </section>
 
-    <section id="sources" class="block" tabindex="-1" aria-labelledby="h-sources">
-      <h2 id="h-sources">Джерела наживо</h2>
-      <div data-part="sources"><p class="calm">Завантажую...</p></div>
+    <section id="glossary" class="block fold-block" tabindex="-1" aria-labelledby="h-glossary">
+      <details class="fold">
+        <summary><h2 id="h-glossary">Словничок</h2><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+        <div class="fold-body" data-part="glossary"><p class="calm">Завантажую...</p></div>
+      </details>
+    </section>
+
+    <section id="sources" class="block fold-block" tabindex="-1" aria-labelledby="h-sources">
+      <details class="fold">
+        <summary><h2 id="h-sources">Джерела наживо</h2><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+        <div class="fold-body" data-part="sources"><p class="calm">Завантажую...</p></div>
+      </details>
     </section>
   </div>
 
@@ -135,7 +133,7 @@
   <div class="help-in">
     <h2 id="help-title">Гарячі клавіші</h2>
     <dl class="keys">
-      <div><dt><kbd>1</kbd></dt><dd>вкладка «Чи встигну?»</dd></div>
+      <div><dt><kbd>1</kbd></dt><dd>вкладка «Відповідь»</dd></div>
       <div><dt><kbd>2</kbd></dt><dd>вкладка «Як це працює»</dd></div>
       <div><dt><kbd>↑</kbd><kbd>↓</kbd></dt><dd>попередній або наступний розділ</dd></div>
       <div><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>крок назад або вперед у «Як це працює»</dd></div>
