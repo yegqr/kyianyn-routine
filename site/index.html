@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лівий берег: чи встигну перетнути Дніпро</title>
+<meta name="description" content="Чи встигну перетнути Дніпро в Києві за наступні 3 години: ймовірність, що прилетять дрони або ракети, що зараз їде через річку і чому така відповідь. Оновлюється щогодини.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/site.css">
+<link rel="stylesheet" href="assets/css/how.css">
+<link rel="stylesheet" href="assets/css/charts.css">
+<noscript><style>.hero-sk { display: none !important; } .is-loading .hero-text { display: block !important; }</style></noscript>
+<script defer src="assets/vendor/d3.v7.9.0.min.js"></script>
+<script type="module" src="assets/js/app.js"></script>
+</head>
+<body class="is-loading">
+<header class="top">
+  <div class="wrap top-in">
+    <a class="logo" href="#/" aria-label="Лівий берег, на головну"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M5 15Q16 1 27 15"/><path d="M3 15h26"/><path d="M4 21.5q3-2.6 6 0t6 0 6 0 6 0"/><path d="M4 27q3-2.6 6 0t6 0 6 0 6 0"/></svg><span>Лівий берег</span></a>
+    <nav class="tabs" aria-label="Вкладки">
+      <a class="tab" data-tab="main" href="#/" aria-current="page">Чи встигну?</a>
+      <a class="tab" data-tab="how" href="#/how">Як це працює</a>
+    </nav>
+    <button id="live" class="live" type="button" aria-label="Перейти до джерел">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.1"/></svg></span>
+      <span class="live-text"><span id="live-word" class="live-word">оновлено </span><span id="live-ago">завантажую</span></span>
+    </button>
+    <button id="help-open" class="help-btn" type="button" aria-haspopup="dialog" aria-label="Гарячі клавіші">?</button>
+  </div>
+</header>
+
+<main id="main" class="wrap app">
+  <noscript><p class="calm">Для прогнозу потрібен JavaScript.</p></noscript>
+  <div id="tab-main" class="tab-main">
+    <section id="hero" class="block hero" tabindex="-1" aria-labelledby="hero-q" aria-busy="true">
+      <!-- Until the first data: a skeleton in the place and about the size of the answer; the other blocks wait
+           hidden (site.css, "Loading"), so nothing on screen moves when the answer lands. -->
+      <div class="hero-sk" role="status">
+        <span class="sk sk-q"></span>
+        <span class="sk sk-q"></span>
+        <span class="sk sk-q"></span>
+        <p class="hero-window">Завантажую прогноз...</p>
+        <span class="sk sk-answer"></span>
+        <span class="sk sk-answer"></span>
+        <span class="sk sk-tier"></span>
+        <span class="sk sk-scale"></span>
+        <span class="sk sk-line"></span>
+        <span class="sk sk-line"></span>
+        <span class="sk sk-line"></span>
+      </div>
+      <div class="hero-sk hero-sk-train" aria-hidden="true"><span class="sk sk-pic"></span><span class="sk sk-hint"></span><span class="sk sk-scale"></span></div>
+      <div class="hero-text">
+        <h1 id="hero-q" class="hero-q">Чи встигну я перетнути Дніпро за наступні 3 години?</h1>
+        <div data-part="answer"></div>
+      </div>
+      <div class="hero-scale" data-part="scale"></div>
+      <div class="hero-more" data-part="more"></div>
+      <div class="hero-train">
+        <button id="train" class="train" type="button" aria-label="Потяг через Дніпро: натисни, і він поїде, клавіша T" aria-describedby="train-hint">
+          <svg class="train-svg" viewBox="0 0 400 150" aria-hidden="true" focusable="false">
+            <path class="bank" d="M0 88h96v62H0z"/>
+            <path class="bank" d="M304 88h96v62h-96z"/>
+            <path class="river" d="M96 98h208v52H96z"/>
+            <path class="wave" d="M108 116q13-7 26 0t26 0 26 0 26 0 26 0 26 0 26 0"/>
+            <path class="wave" d="M121 132q13-7 26 0t26 0 26 0 26 0 26 0 26 0"/>
+            <path class="arch" d="M96 98Q148 70 200 98M200 98Q252 70 304 98"/>
+            <path class="pier" d="M96 84v14M200 84v14M304 84v14"/>
+            <path class="deck" d="M4 84h392"/>
+            <g id="train-car" class="train-car">
+              <rect x="8" y="69" width="20" height="13" rx="4"/>
+              <rect x="30" y="69" width="20" height="13" rx="4"/>
+              <path class="win" d="M12 74h5M21 74h3M34 74h5M43 74h3"/>
+            </g>
+            <text x="48" y="114">правий</text><text x="48" y="131">берег</text>
+            <text x="352" y="114">лівий</text><text x="352" y="131">берег</text>
+            <text x="200" y="147">Дніпро</text>
+          </svg>
+        </button>
+        <p id="train-tip" class="train-tip" role="tooltip" hidden></p>
+        <p id="train-hint" class="train-hint" aria-live="polite">Натисни або T: потяг перетне Дніпро.</p>
+      </div>
+    </section>
+
+    <section id="crossings" class="block" tabindex="-1" aria-labelledby="h-crossings">
+      <h2 id="h-crossings">Що зараз перетинає Дніпро</h2>
+      <div data-part="crossings"><p class="calm">Завантажую...</p></div>
+    </section>
+
+    <section id="reasons" class="block" tabindex="-1" aria-labelledby="h-reasons">
+      <h2 id="h-reasons">Чому така відповідь</h2>
+      <div data-part="reasons"><p class="calm">Завантажую...</p></div>
+    </section>
+
+    <section id="kind" class="block" tabindex="-1" aria-labelledby="h-kind">
+      <h2 id="h-kind">Якщо прилетить, то що</h2>
+      <div data-part="kind"><p class="calm">Завантажую...</p></div>
+    </section>
+
+    <section id="glossary" class="block" tabindex="-1" aria-labelledby="h-glossary">
+      <h2 id="h-glossary">Словничок</h2>
+      <div data-part="glossary"><p class="calm">Завантажую...</p></div>
+    </section>
+
+    <section id="charts" class="block" tabindex="-1" aria-labelledby="h-charts">
+      <h2 id="h-charts">Прогноз проти реальності</h2>
+      <p class="lead">Що модель казала щогодини і що сталося насправді.</p>
+      <div data-chart="timeline"><p class="calm chart-wait">Графік ще готується.</p></div>
+      <div data-chart="calibration"><p class="calm chart-wait">Графік ще готується.</p></div>
+      <div data-chart="days"><p class="calm chart-wait">Графік ще готується.</p></div>
+    </section>
+
+    <section id="sources" class="block" tabindex="-1" aria-labelledby="h-sources">
+      <h2 id="h-sources">Джерела наживо</h2>
+      <div data-part="sources"><p class="calm">Завантажую...</p></div>
+    </section>
+  </div>
+
+  <section id="tab-how" class="tab-how" hidden aria-label="Як це працює">
+    <div id="how-root"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <p>Дані: публічні Telegram-канали, збір кожні 5 хв, ймовірність щогодини</p>
+    <p class="foot-links"><a href="privacy.html">Приватність</a><a class="credit" href="https://isakov.fyi" aria-label="ЄІ, isakov.fyi">ЄІ</a></p>
+  </div>
+</footer>
+
+<dialog id="help" class="help" aria-labelledby="help-title">
+  <div class="help-in">
+    <h2 id="help-title">Гарячі клавіші</h2>
+    <dl class="keys">
+      <div><dt><kbd>1</kbd></dt><dd>вкладка «Чи встигну?»</dd></div>
+      <div><dt><kbd>2</kbd></dt><dd>вкладка «Як це працює»</dd></div>
+      <div><dt><kbd>↑</kbd><kbd>↓</kbd></dt><dd>попередній або наступний розділ</dd></div>
+      <div><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>крок назад або вперед у «Як це працює»</dd></div>
+      <div><dt><kbd>Пробіл</kbd></dt><dd>грати або пауза в «Як це працює»</dd></div>
+      <div><dt><kbd>T</kbd></dt><dd>потяг через Дніпро</dd></div>
+      <div><dt><kbd>R</kbd></dt><dd>перевірити свіжі дані</dd></div>
+      <div><dt><kbd>?</kbd></dt><dd>ця підказка</dd></div>
+      <div><dt><kbd>Esc</kbd></dt><dd>закрити підказку</dd></div>
+      <div><dt><kbd>Tab</kbd></dt><dd>наступна кнопка чи посилання, з Shift назад</dd></div>
+    </dl>
+    <button id="help-close" class="btn" type="button">Закрити</button>
+  </div>
+</dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
