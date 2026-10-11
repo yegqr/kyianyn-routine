@@ -1,0 +1,6 @@
+hours covered 3932 (2026-04-29T09Z..2026-10-10T16Z)
+S1 strategic aviation: both 329, silver only 11, blind only 63, neither 3529
+S2 MiG-31K airborne: both 45, silver only 0, blind only 5, neither 3882
+S2 MiG-31K all clear: both 32, silver only 2, blind only 0, neither 3898
+S4 attack drones: both 3622, silver only 27, blind only 39, neither 244
+blind S1 recap-only hours 428; blind S4 other_drone hours 45
