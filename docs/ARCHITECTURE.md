@@ -6,12 +6,14 @@
 
 | Папка | Що там |
 |---|---|
-| `src/airalerts/` | код пакета: спільне (`paths`, `db`, `telegram`, `jev`), рівні даних `silver/` і `gold/`, спільна оцінка `evaluation/`, моделі трьох питань `strikes/`, `nights/`, `quiet/` |
-| `scripts/` | `bronze/` збирачі сирих даних, `verify/` зовнішня перевірка і аудит, `analysis/` описовий аналіз тесту (лише друк) |
+| `src/airalerts/` | код пакета: спільне (`paths`, `db`, `telegram`, `jev`), рівні даних `silver/` і `gold/`, спільна оцінка `evaluation/`, моделі трьох питань `strikes/`, `nights/`, `quiet/`, живий сайт `live/` |
+| `scripts/` | `bronze/` збирачі сирих даних, `verify/` зовнішня перевірка і аудит, `analysis/` описовий аналіз тесту (лише друк), `site/` вивантаження чисел розробки для сторінки методології |
+| `site/` | статичний сайт livii-bereh.isakov.fyi: `index.html` (головна і методологія), `assets/` (стилі, код, сцени методології, D3), `data/` (числа розробки); `api/` пише цикл, не в git |
+| `deploy/` | конфіг nginx і юніти systemd живого сайту; `live.env` з ключем Jev не в git |
 | `tests/` | тести на витік у gold і поділі, тести моделей кожного питання, мірила проти перерахунку в лоб |
-| `data/` | `bronze/` і `silver/` (не в git), `gold/` (у git, версія в [DATASET.md](data/DATASET.md)), `predictions/<strikes\|nights\|quiet>/` (не в git), `verification/` (у git) |
+| `data/` | `bronze/` і `silver/` (не в git), `gold/` (у git, версія в [DATASET.md](data/DATASET.md)), `predictions/<strikes\|nights\|quiet>/` (не в git), `verification/` (у git), `live/` живі дані сайту (не в git) |
 | `reports/` | таблиці порівняння моделей `strikes_leaderboard.md`, `nights_leaderboard.md`, `quiet_leaderboard.md`; їх пишуть оцінювачі, вручну не редагувати |
-| `docs/` | `ASSIGNMENT`, `METHODOLOGY`, `ARCHITECTURE`, `HISTORY`, `HANDOFF`; `adr/` рішення; `data/` (`PARSING`, `JEV`, `VERIFICATION`, `DATASET`, `silver/`, `gold/`); `strikes/`, `nights/`, `quiet/` опис кожного модуля моделей простими словами; у `quiet/` ще [forecast.md](quiet/forecast.md), [model.md](quiet/model.md), [importance.md](quiet/importance.md), [sources.md](quiet/sources.md) |
+| `docs/` | `ASSIGNMENT`, `METHODOLOGY`, `ARCHITECTURE`, `HISTORY`, `HANDOFF`; `adr/` рішення; `data/` (`PARSING`, `JEV`, `VERIFICATION`, `DATASET`, `silver/`, `gold/`); `strikes/`, `nights/`, `quiet/` опис кожного модуля моделей простими словами; у `quiet/` ще [forecast.md](quiet/forecast.md), [model.md](quiet/model.md), [importance.md](quiet/importance.md), [sources.md](quiet/sources.md); `product/` [crossing.md](product/crossing.md): як перетнути Дніпро під час тривоги, з джерелами |
 
 ## Епохи
 
@@ -24,6 +26,7 @@
 | 2. Ночі (`nights/`) | о 22:00: спати в коридорі чи в кімнаті | [ADR-0010](adr/0010-night-question.md) | [nights_leaderboard.md](../reports/nights_leaderboard.md): о 22:00 не передбачити; тримається лише «ніч після атаки тиха» (23 з 23, тест 6 з 7) |
 | 3. Спокій (`quiet/`) | чи будуть наступні 3 год тихими, дрони враховано; прогноз для людини | [ADR-0011](adr/0011-quiet-hours.md), [forecast.md](quiet/forecast.md), фінальна модель від А до Я: [model.md](quiet/model.md) | [quiet_leaderboard.md](../reports/quiet_leaderboard.md): тишу не гарантує, але рівні ризику втримались від розробки до тесту; «швидше тихо» правдиве у 83% і там, і там |
 | 4. Важливість | які змінні фіналіста спокою важать і що треба парсити для живого продукту | | [importance.md](quiet/importance.md), [sources.md](quiet/sources.md) |
+| 5. Живий сайт (`live/`, `site/`) | чи встигну перетнути Дніпро за 3 години: збір кожні 5 хв, щоденне перенавчання, сайт | [ADR-0012](adr/0012-live-site.md), [crossing.md](product/crossing.md) | livii-bereh.isakov.fyi |
 
 ## Три рівні даних
 
@@ -64,10 +67,44 @@ scripts/bronze/                     збирачі bronze (stdlib, python3 -I), 
 scripts/verify/                     зовнішня перевірка мітки і сигналів, Workflow агентів, промпти еталонів, аудит gold
 scripts/analysis/                   аналіз заморожених моделей на тесті, лише друк: strikes_test_breakdown, strikes_by_night,
                                     quiet_tiers, quiet_forecast_check, quiet_forecast_value
-tests/                              test_gold_hourly, test_split, test_strikes*, test_nights*, test_quiet*
+src/airalerts/live/                 живий сайт: datadir.py копія даних у data/live, fetch.py нові пости t.me/s, features.py
+                                    входи фіналіста з живого silver (рівні gold), model.py щоденне перенавчання, JSON і replay,
+                                    publish.py api/*.json, cycle.py один цикл: збір, silver, ознаки, JSON
+scripts/site/                       dev_predictions.py: прогнози розробки для сцени про межі
+tests/                              test_gold_hourly, test_split, test_strikes*, test_nights*, test_quiet*, test_live*
 ```
 
 Кожна модель пише прогнози в `data/predictions/<strikes|nights|quiet>/` (не в git), оцінювач свого питання читає їх і рахує всім однакові мірила. Опис кожного модуля моделей: `docs/<strikes|nights|quiet>/<модуль>.md`.
+
+## Живий сайт
+
+[ADR-0012](adr/0012-live-site.md). Усе живе працює на копії даних `data/live/` (`AIRALERTS_DATA`), дослідницькі `data/bronze`, `data/silver`, `data/gold` не змінюються.
+
+```mermaid
+flowchart LR
+  T[t.me/s: 11 каналів] -->|кожні 5 хв| F[live.fetch: bronze у data/live]
+  F --> S[silver: alerts, tg_posts, threat_hourly з Jev, signals з Jev]
+  S --> X[live.features: 7 входів, статус, цілі]
+  X --> M[live.model: щодня о 04:00 перенавчання]
+  X --> P[live.publish: api/now, history, model, meta]
+  M --> P
+  P --> W[nginx: site/ і api/]
+```
+
+| Що | Команда | Коли |
+|---|---|---|
+| створити живі дані | `.venv/bin/python -I -m airalerts.live.datadir init data/live` | один раз |
+| цикл | `AIRALERTS_DATA=data/live .venv/bin/python -I -m airalerts.live.cycle --out /var/www/livii-bereh` | таймер `livii-bereh-cycle`, кожні 5 хв |
+| перенавчання | `AIRALERTS_DATA=data/live .venv/bin/python -I -m airalerts.live.model train` | таймер `livii-bereh-train`, 04:00 за Києвом |
+| ознаки проти gold | `.venv/bin/python -I -m airalerts.live.features check` | після зміни коду |
+| сайт на сервер | `rsync -a --delete --exclude api/ --exclude dev/ site/ /var/www/livii-bereh/` | після зміни сайту |
+
+Юніти й конфіг nginx: `deploy/systemd/`, `deploy/nginx/livii-bereh.conf`; ключ Jev: `deploy/live.env` (`TYPESAFE_API_KEY`, не в git). Журнал: `journalctl -u livii-bereh-cycle`.
+
+**Що читає сайт** (`site/api/`, schema 1, час у UTC):
+- `now.json`: `hour` і `window_end` (вікно [t, t + 3 год)), `now` (тривога, рівень, «зараз тихо»), `forecast` (`p`, `tier` low/medium/high, межі, 3 причини, `kind`: що було в минулому на цьому рівні), `stale` і `stale_reason`, `waves` (хвилі дронів за 6 год);
+- `history.json`: кожна година з 2026-07-04: `p`, `tier`, `source` (replay або live), що сталося (`busy_3h`, `drone_3h`, `missile_3h`, `alert_3h`); правдивість рівнів і калібрування;
+- `model.json`: ваги, середні й розкиди моделі, межі; `meta.json`: якість з [model.md](quiet/model.md), свіжість каналів, стан циклу, витрати Jev.
 
 ## Контракт silver і gold
 
@@ -133,3 +170,4 @@ tests/                              test_gold_hourly, test_split, test_strikes*,
 - [ADR-0009](adr/0009-three-models.md): три моделі з пошуку агентами і правила проти перенавчання.
 - [ADR-0010](adr/0010-night-question.md): нічне питання «чи йти спати в коридор», правила, задані до оцінки, і результат.
 - [ADR-0011](adr/0011-quiet-hours.md): спокійні 3 години з дронами, перевірка дронової мітки, правила, задані до оцінки, і результат.
+- [ADR-0012](adr/0012-live-site.md): живий сайт «Лівий берег»: питання про переїзд через Дніпро, живі дані окремо, цикл кожні 5 хв, перенавчання щодня.
