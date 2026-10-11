@@ -72,11 +72,7 @@ def naive_7n(t, at):
 
 def threshold(y, p, recall=RECALL):
     """The highest threshold whose alarms (p >= it) still catch at least `recall` of the true nights."""
-    need = recall * sum(y)
-    for v in sorted(set(p), reverse=True):
-        if sum(1 for a, b in zip(p, y) if b and a >= v) >= need:
-            return v
-    return min(p)
+    return tasks.recall_threshold(y, p, recall)
 
 
 def decisions(y, p, thr):

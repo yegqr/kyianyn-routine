@@ -142,6 +142,16 @@ def ci(v, box, fmt=".3f"):
     return "n/a" if v is None else f"{v:{fmt}} [{box[0]:{fmt}}, {box[1]:{fmt}}]"
 
 
+def recall_threshold(y, p, recall):
+    """The highest threshold whose alarms (p >= it) still catch at least `recall` of the true rows: missing an event
+    is worse than a false warning (docs/METHODOLOGY.md 4.4)."""
+    need = recall * sum(y)
+    for v in sorted(set(p), reverse=True):
+        if sum(1 for a, b in zip(p, y) if b and a >= v) >= need:
+            return v
+    return min(p)
+
+
 def finalist(point, n_features):
     """The best development BSS; a model with fewer features wins when it is within 0.01."""
     best = max(point, key=lambda m: point[m])
