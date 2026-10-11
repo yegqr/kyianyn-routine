@@ -3,7 +3,8 @@
 The same time split and weekly walk-forward folds as the hourly models (split.py); the test stays closed until `final`.
 A model module in airalerts.modeling.quiet_models defines
 MODELS = {name: {"fit": f, "predict": g, "description": str, "n_features": int}} with top-level functions
-f(rows) -> model and g(model, rows) -> [p of busy]: fit gets labelled hours, predict gets hours without the target.
+f(rows) -> model and g(model, rows) -> [p of busy]: fit gets labelled hours (y_busy_3h and its two parts y_drone_3h,
+y_missile_3h), predict gets hours without any of them.
 
 Rules fixed before any quiet model was scored:
 - the main evaluation is on the hours that are quiet now (quiet_now: no alert at t, no flag in [t - 1 h, t));
@@ -26,7 +27,7 @@ from ..paths import DATA, ROOT
 from . import split, tasks
 
 LABEL, H = quiet_table.LABEL, quiet_table.H
-SPEC = tasks.Spec(quiet_table.PATH, LABEL, H, DATA / "predictions" / "quiet", "hours")
+SPEC = tasks.Spec(quiet_table.PATH, LABEL, H, DATA / "predictions" / "quiet", "hours", quiet_table.TARGETS[1:])
 REPORT = ROOT / "reports" / "quiet_leaderboard.md"
 REFERENCE = "naive_7d"
 NPV = 0.95

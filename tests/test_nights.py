@@ -17,7 +17,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from airalerts.gold import kyiv_hourly as hourly, kyiv_nightly as nightly
-from airalerts.modeling import night_models, nights, split
+from airalerts.modeling import night_models, nights, split, tasks
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I leaves the tests folder off the path
 from test_models import FORBIDDEN, data_globals, reaches  # noqa: E402
@@ -33,7 +33,8 @@ def check_model(case, mod, fit, predict, folds, spec, forbidden):
     case.assertEqual(data_globals(mod, (fit, predict)), [])
     for o, rows, ev in folds:
         case.assertLessEqual(max(rows["t_utc"].to_pylist()) + spec.h * HOUR, o)
-        x = ev.drop_columns([spec.label])
+        x = tasks.features_only(spec, ev)
+        case.assertEqual([c for c in (spec.label, *spec.extra_targets) if c in x.column_names], [])
         p = [float(v) for v in predict(fit(rows), x)]
         case.assertEqual(len(p), ev.num_rows)
         case.assertTrue(all(0 <= v <= 1 for v in p))

@@ -27,6 +27,7 @@ class Spec:
     h: int              # the target of row t is known at t_utc + h hours
     predictions: Path   # folder of <model>.parquet
     unit: str = "rows"  # what a row is, for messages
+    extra_targets: tuple = ()  # more columns that look ahead (auxiliary targets): kept from predict like the label
 
 
 def load(spec):
@@ -36,7 +37,7 @@ def load(spec):
 
 
 def features_only(spec, rows):
-    return rows.drop_columns([spec.label])
+    return rows.drop_columns([spec.label, *spec.extra_targets])
 
 
 def dev_folds(spec, t):
