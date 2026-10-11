@@ -34,19 +34,9 @@ S5 = K(r"NOTAM|НОТАМ|закрит\w*\s+(?:неб|повітрян)|закр
 KYIV = K(r"Київ|Киев|Kyiv|Kiev|столиц")
 SIGNALS = {"S1": S1, "S2": S2, "S3": S3, "S4": S4, "S5": S5}
 
-# Refinements of PARSING 7: count only together with the main pattern of their signal.
-S1_TAKEOFF = K(r"зл[іе]т|взл[её]т|передислок|перебазуван|перекидан|перел[іе]т|перелет")
+# Counts of PARSING 7, read by signals.py only together with the main pattern of their signal.
 S1_COUNT = K(r"(\d+)\s*[хx×]?\s*(?:борт|од\.)")
-S2_TAKEOFF = K(r"зл[іе]т|взл[её]т|в повітрі|в воздухе|перебуван")
-S2_CLEAR = K(r"відбій|отбой")
-S3_NONE = K(r"без\s+ракетоносі|без\s+ракетоносц|заведен\w*\s+в\s+порт")
-S3_COUNT = K(r"(\d+)\s*[хx×]?\s*(?:надводн\w*\s+|підводн\w*\s+)?(?:ракетоносі|носі[їя]|ракетоносц|носител)")
-S4_LAUNCH_PLACE = K(r"пуск\w*[^.\n]{0,80}?\bз\s+(?:полігону|пускового\s+майданчика|аеродрому|району)")
 S4_COUNT = K(r"(\d+)\s*[хx×]\s*(?:реактив|Р?БпЛА|шахед|мопед)|🅿️?\s*(\d+)\s*[хx×]")
-
-# The 7 channels PARSING 7 defines the signals for. The patterns do not look at the channel: filter by it.
-SIGNAL_CHANNELS = ("war_monitor", "kpszsu", "AerisRimor", "StrategicaviationT", "monitorwarr", "vanek_nikolaev",
-                   "kyiv_airdef")
 
 
 def signals(text):

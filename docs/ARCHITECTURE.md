@@ -61,7 +61,7 @@ scripts/verify/                    зовнішня перевірка мітк�
 1. bronze (`python3 -I scripts/bronze/<збирач>`, журнал запусків у `data/bronze/MANIFEST.md`):
    - Telegram: `scripts/bronze/tg_backfill.sh A`, `B`, `C`; довгий канал ділиться на частини (`tg_fetch.py` з `before stop_id`) і зливається `tg_fetch.py merge`; `etryvoga_patch.py` для відбою без старту;
    - погода і астрономія: `wx_backfill.py`, `kyiv_astro.py build data/bronze/astro`;
-   - календар і події: `calendar_dates.py`, `kremlin_fetch.py`, `wiki_fetch.py`, `president_fetch.py` (зараз 403);
+   - календар і події: `calendar_dates.py`, `kremlin_fetch.py`, `wiki_fetch.py`;
    - удари по РФ і запуски по Україні: `dronestrikemap_fetch.py` (знімок API на кожен запуск).
 2. silver: `.venv/bin/python -I -m airalerts.silver.<модуль>` у порядку `alerts`, `telegram_posts`, `threat_hourly classify`, потім `threat_hourly`, `signals`, `rf_strikes`, `weather`, `astro`, `calendar_dates`, `political_events`. Відповіді Jev беруться з кешу, тож повтор безкоштовний.
 3. gold: `.venv/bin/python -I -m airalerts.gold.kyiv_hourly`, потім `.venv/bin/python -I -m airalerts.db` (view у `data/airalerts.duckdb`).

@@ -1,4 +1,4 @@
-"""Silver political_events: visits, summits, forums and talks of Kyiv, Russia and the world; class and importance level from Jev facts.
+"""Silver political_events: visits, summits, forums and talks in Kyiv and of the Russian leadership; class and importance level from Jev facts.
 
 Bronze: Telegram OP_UA and V_Zelenskiy_official, Kremlin news and trips, Wikipedia lists with all revisions (docs/PARSING.md section 6).
 Candidates are cut out by code (regex rules, wikitext tables) from FETCH_FROM on. Jev answers 21 yes/no facts per candidate (noul: 18 in FACT_QUESTIONS, press_remarks in its own request PRESS_QUESTION, five facts read a second time with CHECK_QUESTIONS and averaged, two caps in GATE_QUESTIONS); the code turns the facts into the class (kyiv, russia, world, none: class_of) and into the importance level 0..5
@@ -47,7 +47,7 @@ CAP_DAYS = 14                                          # {c}_days_to_imp4 is cap
 IMP_HIGH = 4                                           # importance that counts for {c}_days_to_imp4
 SURE = 0.8                                             # a gate fact caps another fact only when its p is at least this sure
 CLASSES = ("kyiv", "russia")                          # class world is scored but dropped (score_all): user 2026-10-11, war-related world events are too hard to tell apart
-TG_SRC = ("tg_op", "tg_zel", "president")              # free-form posts of the office and of the president of Ukraine
+TG_SRC = ("tg_op", "tg_zel")                           # free-form posts of the office and of the president of Ukraine
 GENERIC = {"RU", "EU", "NATO", "UN", "EUCO", "G7", "UDCG", "CIS", "BRICS", "SCO", "EAEU", "CE", "EPC"}  # codes that do not identify one meeting
 WORKERS = 8                                            # Jev workers (the limit is 8)
 PLACE_HOURS = {"kyiv": 30, "abroad": 30, "ukraine": 8}  # how long the place named by the office holds for the posts after it
@@ -252,13 +252,12 @@ def main_participant(parts, typ):
 # -------------------------------------------------------------------------------------- candidates: Telegram, Kremlin
 
 SRC_LABEL = {
-    "president": "News on the official website of the President of Ukraine (president.gov.ua)",
     "tg_op": "Telegram channel of the Office of the President of Ukraine",
     "tg_zel": "Telegram channel of the President of Ukraine Volodymyr Zelensky",
     "kremlin_news": "News of the President of Russia on the official Kremlin website",
     "kremlin_trips": "Trips of the President of Russia on the official Kremlin website",
 }
-SRC_RANK = {"president": 0, "tg_op": 0, "tg_zel": 1, "kremlin_news": 2, "kremlin_trips": 3, "wiki": 4}
+SRC_RANK = {"tg_op": 0, "tg_zel": 1, "kremlin_news": 2, "kremlin_trips": 3, "wiki": 4}
 TG_RULES = [  # docs/PARSING.md section 6, plus summits and forums; the first rule that matches gives the type
     ("ramstein", r"Рамштайн|Ramstein|UDCG"), ("sanctions", r"пакет\w* санкц"),
     ("ua_visit", r"візит|прибув|приїха|у Києві|до Києва"), ("ua_talks", r"переговор"),
@@ -368,29 +367,6 @@ def tg_candidates():
                 allowed = ("kyiv", "world", "none") + (("russia",) if PUTIN.search(r["text"]) else ())
                 c = mk(src, r["url"], at, d, d, typ, first_line(r["text"]), r["text"].strip(), allowed)
                 c["own_place"] = own_place(r["text"])
-                out.append(c)
-    return out
-
-
-def president_candidates(path=None):
-    """president.gov.ua news, if the bronze file exists (it did not when this was written, the site answered 403).
-    Expected JSON lines: title, url, published_at (UTC, Z), optional text. Same rules and class limits as Telegram."""
-    path = path or CAL / "president_news.jsonl"
-    if not path.exists():
-        return []
-    out = []
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            r = json.loads(line)
-            text = (r.get("text") or "").strip()
-            blob = r["title"] + " " + text
-            typ = next((t for t, rx in TG_RULES if re.search(rx, blob, re.I)), None)
-            at = utc(r["published_at"])
-            d = kyiv_day(at)
-            if typ and D_FROM <= d <= D_TO and not RECAP_RX.search(blob):
-                allowed = ("kyiv", "world", "none") + (("russia",) if PUTIN.search(blob) else ())
-                c = mk("president", r["url"], at, d, d, typ, r["title"], text, allowed)
-                c["own_place"] = own_place(blob)
                 out.append(c)
     return out
 
@@ -695,7 +671,7 @@ def wiki_candidates():
 
 
 def collect():
-    cands = tg_candidates() + president_candidates() + kremlin_candidates() + wiki_candidates()
+    cands = tg_candidates() + kremlin_candidates() + wiki_candidates()
     for c in cands:
         txt = " ".join((c["country"], c["title"], c["text"]))
         if c.get("own_place"):  # the city of a meeting is not a participant
@@ -953,7 +929,7 @@ def place_kinds(tokens):
 
 
 def attach_places(cands):
-    """Sets c['place'] = (kind, word) on Telegram and president.gov.ua candidates; where the president is not in Kyiv the class kyiv
+    """Sets c['place'] = (kind, word) on Telegram candidates; where the president is not in Kyiv the class kyiv
     is not allowed (and outside Ukraine's capital but inside Ukraine the class world too)."""
     stream = post_stream()
     kinds = place_kinds({t for _, _, x in stream if (t := own_place(x))})
@@ -1120,7 +1096,7 @@ def score_all(cands):
 
 def dedup(scored):
     """Rows of the table from the candidates that keep_candidates returns. The key of a row is (class, main participant, event_date).
-    Telegram, president.gov.ua and Kremlin: the earliest announcement gives the first row of the key; a later candidate of the key gets its own
+    Telegram and Kremlin: the earliest announcement gives the first row of the key; a later candidate of the key gets its own
     row only if its level is higher than the level of the key at its announcement (it is known only from its own announcement, so nothing
     leaks backwards). Wikipedia: every version of an event key (wiki_events) is its own row and is never dropped: version_of is the event
     key, revid the revision where the version starts, text the row text of that revision, available_at the time of that revision. In the
@@ -1493,7 +1469,7 @@ def _arrow(con, sql):
 
 
 def features(con, t_table):
-    """One row per t_utc of t_table: for c in kyiv, russia, world: {c}_imp_today and {c}_days_to_imp4 (INTEGER).
+    """One row per t_utc of t_table: for c in CLASSES (kyiv, russia): {c}_imp_today and {c}_days_to_imp4 (INTEGER).
 
     The day is the Kyiv calendar day d of t_utc. {c}_imp_today is the largest level (0..5) of class-c events with
     event_date <= d <= end_date that were announced before t_utc (0 if none). {c}_days_to_imp4 is the number of days

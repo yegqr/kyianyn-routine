@@ -132,7 +132,7 @@ choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v   # тес�
 | команда | результат |
 |---|---|
 | `.venv/bin/python -I -m airalerts.gold.kyiv_hourly report` | `rows 3909, columns 52`, `hours from T0 to cutoff inclusive 3909`, `rows = hours True, unique True, continuous (every step 1 h) True`; `labelled rows 3906, true 151, false 3755, null 3`; `base rate = true / labelled = 151/3906 = 0.0387`; `strike hours ... from T0: 77 of 3908`; null лише в `y_strike_3h`: 3; 5 випадкових рядків з усіма колонками |
-| `.venv/bin/python -I -m airalerts.db` | 13 view: 12 silver і `kyiv_hourly` |
+| `.venv/bin/python -I -m airalerts.db` | 12 view: 11 silver і `kyiv_hourly` |
 | `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT count(*), count(*) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone())"` | `(3909, 151)` |
 | `.venv/bin/python -I -c "from airalerts.db import connect; from airalerts.paths import DB; print(connect(DB).execute('SELECT min(t_utc) FILTER (WHERE y_strike_3h) FROM kyiv_hourly').fetchone()[0])"` | `2026-05-13 22:00:00` |
 | `choom -n 500 -- .venv/bin/python -I -m unittest discover -s tests -v` | `Ran 7 tests`, `OK`; `50 random t (seed 20261011) ... 2400 feature values compared ... differences 0` |

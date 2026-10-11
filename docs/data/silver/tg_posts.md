@@ -24,8 +24,8 @@
 | kyiv_official | VA_Kyiv, vitaliy_klitschko |
 | kyiv_monitor | truexakyiv, AerisRimor, kyiv_nebo, kyiv_airdef |
 | monitor_ua | war_monitor, kpszsu, StrategicaviationT, monitorwarr, vanek_nikolaev |
-| rf_official | mod_russia, mos_sobyanin, favt_info |
-| ua_official | GeneralStaffZSU, OP_UA, V_Zelenskiy_official |
+| rf_official | mod_russia, mos_sobyanin, favt_info (з 2026-10-11 жодна таблиця їх не читає, лишились як частина корпусу) |
+| ua_official | GeneralStaffZSU (так само не читається), OP_UA, V_Zelenskiy_official |
 | alert_feed | UkraineAlarmSignal |
 
 Файл каналу, якого немає в `ROLES`, зупиняє збірку з повідомленням.
@@ -61,10 +61,10 @@
 Немає: `features()` у модулі не визначено. Споживачі читають таблицю і підключають вирази:
 
 ```python
-from airalerts.silver.telegram_rx import CLASSES, classify, SIGNALS, SIGNAL_CHANNELS, KYIV, signals
+from airalerts.silver.telegram_rx import CLASSES, classify, SIGNALS, KYIV, signals
 ```
 
-`telegram_rx.py` тримає дослівні копії блоків PARSING.md: python-блок розділу 2 (`K`, `CLASSES`, `KYIV_CITY`, `OBLAST`, `KYIV_ONLY`, `classify`) і вирази розділу 7 (`S1`..`S5`, `KYIV`, вісім уточнень). Тепер це єдине джерело виразів. `SIGNALS` це словник S1..S5, `SIGNAL_CHANNELS` це 7 каналів розділу 7, `signals(text)` повертає список сигналів тексту.
+`telegram_rx.py` тримає дослівні копії блоків PARSING.md: python-блок розділу 2 (`K`, `CLASSES`, `KYIV_CITY`, `OBLAST`, `KYIV_ONLY`, `classify`) і вирази розділу 7 (`S1`..`S5`, `KYIV`, лічильники `S1_COUNT` і `S4_COUNT`). Тепер це єдине джерело виразів. `SIGNALS` це словник S1..S5, `signals(text)` повертає список сигналів тексту.
 
 ## Як перебудувати
 
@@ -126,7 +126,7 @@ choom -n 500 -- .venv/bin/python -I -m airalerts.silver.telegram_posts check    
 
 ## Пастки
 
-- `rx_signals` рахується для кожного поста кожного каналу, а сигнали визначено лише для `SIGNAL_CHANNELS` (7 каналів PARSING 7). У `mod_russia` чи `GeneralStaffZSU` «Кинджал» або «Калібр» означає інше; споживач S4 мусить фільтрувати за каналом.
+- `rx_signals` рахується для кожного поста кожного каналу, а сигнали визначено лише для 7 каналів PARSING 7 (`signals.py` бере 6 з них, без vanek_nikolaev). У `mod_russia` чи `GeneralStaffZSU` «Кинджал» або «Калібр» означає інше; споживач S4 мусить фільтрувати за каналом.
 - Для правил «2 незалежні канали» брати лише `is_original` (репости: КМВА репостить Кличка, AerisRimor репостить kpszsu).
 - `rx_kyiv_city` для каналів `KYIV_ONLY` true майже для кожного непорожнього поста без слів `OBLAST` (реклама теж); справжній доказ це `rx_evidence`.
 - `views` і текст постів з `edited` описано в розділі про час доступності.

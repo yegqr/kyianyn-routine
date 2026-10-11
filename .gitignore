@@ -5,6 +5,3 @@ data/bronze/*
 !data/bronze/MANIFEST.md
 data/silver/
 data/airalerts.duckdb*
-# temporary links for downloads started before the rename to bronze, removed when they finish
-data/raw
-scripts/fetch

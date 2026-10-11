@@ -106,7 +106,7 @@ DATE_RX = [re.compile(p, re.I) for p in (
     r"\b(?:0?[1-9]|[12]\d|3[01])[./](?:0?[1-9]|1[0-2])\b(?![\d:])",
     r"\b20[12]\d\b(?:\s*(?:р\.|року|г\.|года))?")]
 
-# subtype of an S1 post by code: the relocation words of PARSING 7 (S1_TAKEOFF) without a takeoff word
+# subtype of an S1 post by code: relocation words without a takeoff word
 RELOC = re.compile(r"передислок|перебазуван|перекидан|перел[іе]т|перелет", re.I)
 FLIGHT = re.compile(r"зл[іе]т|взл[её]т|в[иі]л[іе]т|в повітрі|в воздухе", re.I)
 
