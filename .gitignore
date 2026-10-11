@@ -5,3 +5,4 @@ data/bronze/*
 !data/bronze/MANIFEST.md
 data/silver/
 data/airalerts.duckdb*
+data/predictions/
