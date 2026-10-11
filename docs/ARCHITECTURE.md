@@ -38,6 +38,7 @@ src/airalerts/modeling/tasks.py    спільний walk-forward для пита
 src/airalerts/modeling/nights.py   нічне питання: оцінювач, таблиця reports/nights_leaderboard.md
 src/airalerts/modeling/quiet.py    спокійні 3 години: оцінювач, таблиця reports/quiet_leaderboard.md
 src/airalerts/modeling/quiet_models/  моделі спокою: baselines.py, linear.py, trees.py; опис у docs/models/quiet_<модуль>.md
+src/airalerts/modeling/forecast.py прогноз на 3 години для людини: тихо чи ні, ймовірність, ризик, причини (docs/models/forecast.md)
 src/airalerts/modeling/night_models/  нічні моделі: rules.py, stats.py, ml.py; опис у docs/models/night_<модуль>.md
 scripts/analysis/                  описовий аналіз заморожених моделей на тесті (лише друк, нічого не пише)
 tests/                             тести на витік: gold погодинний і нічний, поділ, моделі; мірила проти перерахунку в лоб
@@ -81,7 +82,7 @@ scripts/verify/                    зовнішня перевірка мітк�
 2. silver: `.venv/bin/python -I -m airalerts.silver.<модуль>` у порядку `alerts`, `telegram_posts`, `threat_hourly classify`, потім `threat_hourly`, `signals`, `rf_strikes`, `weather`, `astro`, `calendar_dates`, `political_events`. Відповіді Jev беруться з кешу, тож повтор безкоштовний.
 3. gold: `.venv/bin/python -I -m airalerts.gold.kyiv_hourly`, `.venv/bin/python -I -m airalerts.gold.kyiv_nightly`, `.venv/bin/python -I -m airalerts.gold.kyiv_quiet`, потім `.venv/bin/python -I -m airalerts.db` (view у `data/airalerts.duckdb`).
 4. тести на витік (gold і поділ): `.venv/bin/python -I -m unittest discover -s tests -v`; звіт поділу: `.venv/bin/python -I -m airalerts.modeling.split`.
-5. моделі: `.venv/bin/python -I -m airalerts.modeling.<naive|share_table|logistic|lgbm>`, потім `.venv/bin/python -I -m airalerts.modeling.evaluate` (лише розробка); тест відкриває `evaluate final`, один раз наприкінці. Нічні моделі: `.venv/bin/python -I -m airalerts.modeling.night_models.<rules|stats|ml>`, потім `.venv/bin/python -I -m airalerts.modeling.nights` (розробка) і `nights final` (тест, один раз). Моделі спокою: `.venv/bin/python -I -m airalerts.modeling.quiet_models.<baselines|linear|trees>`, потім `quiet` і `quiet final` так само. Аналіз тесту: `.venv/bin/python -I scripts/analysis/<hourly_test_breakdown|hourly_nights|quiet_tiers>.py`.
+5. моделі: `.venv/bin/python -I -m airalerts.modeling.<naive|share_table|logistic|lgbm>`, потім `.venv/bin/python -I -m airalerts.modeling.evaluate` (лише розробка); тест відкриває `evaluate final`, один раз наприкінці. Нічні моделі: `.venv/bin/python -I -m airalerts.modeling.night_models.<rules|stats|ml>`, потім `.venv/bin/python -I -m airalerts.modeling.nights` (розробка) і `nights final` (тест, один раз). Моделі спокою: `.venv/bin/python -I -m airalerts.modeling.quiet_models.<baselines|linear|trees>`, потім `quiet` і `quiet final` так само. Аналіз тесту: `.venv/bin/python -I scripts/analysis/<hourly_test_breakdown|hourly_nights|quiet_tiers|forecast_check>.py`. Прогноз для людини: `.venv/bin/python -I -m airalerts.modeling.forecast ["YYYY-MM-DD HH:MM" | day YYYY-MM-DD]`.
 6. зовнішня перевірка (не перебудовує дані): `.venv/bin/python -I scripts/verify/label_check.py`; сигнали за docstring `scripts/verify/signals_check.py`; незалежний перерахунок усього gold: `.venv/bin/python -I scripts/verify/audit_recompute.py`.
 
 ## Рішення
