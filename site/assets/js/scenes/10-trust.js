@@ -403,9 +403,9 @@ function notes(D) {
   const R = D.replay, rd = R.development, rt = R.test, tb = rt.table
   const kind = Object.fromEntries(D.examples.items.map((it) => [it.kind, it]))
   const ex = (it) => `${dm(it.t)} ${span(it.window)}, ${pct(it.p)}, ${outcome(it)}`
-  const vs = (c) => (c[0] > 0 ? `модель краща за частку атак за 7 днів (сіра), бо різниця ${ci(c)} вище 0`
-    : c[1] < 0 ? `модель гірша за частку атак за 7 днів (сіра), бо різниця ${ci(c)} нижче 0`
-      : `перевага над часткою атак за 7 днів (сіра) не доведена, бо різниця ${ci(c)} накриває 0`)
+  const vs = (c) => (c[0] > 0 ? `модель краща за сіру частку атак за 7 днів: різниця ${ci(c)} вище 0`
+    : c[1] < 0 ? `модель гірша за сіру частку атак за 7 днів: різниця ${ci(c)} нижче 0`
+      : `перевага над сірою часткою атак за 7 днів не доведена: різниця ${ci(c)} накриває 0`)
   const gap = (b) => real(b).filter((x) => x.n >= 30).reduce((a, x) => (x.busy_share - x.p_mean > a.busy_share - a.p_mean ? x : a))
   const tAll = real(rt.calibration), tG = gap(rt.calibration), tL = tAll[0]
   const above = tAll.filter((b) => b.busy_share > b.p_mean).length * 2 > tAll.length
@@ -413,13 +413,13 @@ function notes(D) {
   const lo = Math.min(...CANDIDATES.map((c) => c.bss))
   const saidLow = tb.quiet_quiet + tb.quiet_busy, folds = sp.dev_folds.length
   return [
-    `<p>Години йдуть за часом: на навчальних даних (до 28.08) модель вчили й обирали, а тестові дані (з 29.08, відкладені до кінця), останні ${sp.test_weeks} тижнів, відкрили один раз. ` +
+    `<p>На навчальних даних (до 28.08) модель вчили й обирали, а тестові дані (з 29.08, останні ${sp.test_weeks} тижнів) відкрили один раз, у кінці. ` +
       `З ${dm(sp.folds_from)} модель ${num(folds)} ${times(folds)} вчилась на минулому і прогнозувала наступний тиждень: це перевірка тиждень за тижнем. ` +
-      `Спокійна година: на момент прогнозу не було ні тривоги, ні атаки; після ${num(pct(P.development.busy_share))} таких годин у тижнях перевірки і ${num(pct(P.test.busy_share))} у тестових даних за 3 години була атака.</p>` +
+      `Рахуємо спокійні години, коли на момент прогнозу не було ні тривоги, ні атаки: атака за 3 години була після ${num(pct(P.development.busy_share))} з них у тижнях перевірки і ${num(pct(P.test.busy_share))} у тестових даних.</p>` +
       SRC('site/data/trust.json, split (файл пише scripts/site/trust.py); docs/adr/0008-time-split.md.'),
     `<p>Виграш над простим правилом (BSS): наскільки ймовірності точніші, ніж щотижня казати ту саму частку атак; більше 0 краще. ` +
-      `Як добре прогноз відрізняє години з атакою від спокійних (ROC AUC): з 100 пар «з атакою і без» модель на тестових даних дала першій вищу ймовірність у ${num(Math.round(fin.test.roc_auc * 100))}, монетка у 50. ` +
-      `Лінія навколо точки це 95% з ${D.evaluation.n_boot} перерахунків; на тестових даних ${vs(fin.test.d_bss_ci)}.</p>` +
+      `Як добре прогноз відрізняє години з атакою від спокійних (ROC AUC): з 100 пар «з атакою і без» модель на тестових даних вище оцінила першу у ${num(Math.round(fin.test.roc_auc * 100))}, монетка у 50. ` +
+      `Лінія навколо точки: куди лягли 95% з ${D.evaluation.n_boot} перерахунків; на тестових ${vs(fin.test.d_bss_ci)}.</p>` +
       SRC('site/data/trust.json, evaluation; reports/quiet_leaderboard.md.'),
     `<p>Кожна точка це спокійна година тестових даних, їх ${num(rt.hours)}; нижче межі ${pct1(R.busy_at)} модель каже «низький ризик», вище «середній чи високий». ` +
       `Зелені влучили (${num(tb.quiet_quiet)} і ${num(tb.busy_busy)}), червоні це пропуск, атака після «низького» (${num(tb.quiet_busy)}), жовті це зайве попередження (${num(tb.busy_quiet)}). ` +
