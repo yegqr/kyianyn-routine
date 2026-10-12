@@ -13,21 +13,13 @@ const SPLIT = {
 Тест відкриваємо один раз, для фінальної оцінки, і модель на ньому перенавчається щотижня на всьому, що відомо до початку тижня.
 Розробка: години, чия мітка відома до межі ... Ознаки, модель, поріг і розмір вікна навчання обираємо на 8 тижневих фолдах walk-forward з 2026-07-04 12:00 за Києвом.`,
 }
-const MEASURES = {
-  title: 'Мірила простими словами',
-  source: 'Опис проєкту',
-  text: `BSS: наскільки ймовірності точніші за сталу частку подій, відому на початок тижня; 0 той самий рівень, більше 0 краще.
-ROC AUC: шанс, що година з атакою отримає вищий прогноз за тиху; 0.5 це монетка.
-Інтервали в дужках: 95%, bootstrap по добах (для ночей по ночах), 1000 повторів.`,
-}
 const RULE = {
   title: 'Правило межі, записане до тесту',
-  source: 'Коментар у коді прогнозу',
-  text: `... Its scale was set on the development
-folds only (quiet-now hours) by written rules, never on the test:
-- busy from BUSY_AT: the highest threshold that still catches 80% of the busy windows (docs/METHODOLOGY.md 4.4);
-- high risk from HIGH_AT: the upper third of the development predictions.
-rules() recomputes both; tests/test_quiet_forecast.py checks they still hold.`,
+  source: 'Коментар у коді прогнозу, переклад',
+  text: `... Межі задали лише на навчальних даних (спокійні години) за записаними правилами, ніколи на тесті:
+- попередження від BUSY_AT: найвища межа, яка ще ловить 80% вікон з атакою (docs/METHODOLOGY.md 4.4);
+- високий ризик від HIGH_AT: верхня третина прогнозів на навчальних даних.
+rules() рахує обидві межі заново; tests/test_quiet_forecast.py перевіряє, що вони досі такі.`,
 }
 const CHOICE = {
   title: 'Правило вибору, записане до чисел',
@@ -49,7 +41,6 @@ const RECALL = 0.8    // src/airalerts/quiet/forecast.py RECALL
 
 const pct = (x) => `${Math.round(x * 100)}%`
 const f3 = (x) => Number(x).toFixed(3)
-const ci = (a) => `[${f3(a[0])}, ${f3(a[1])}]`
 const num = (v) => `<span class="num">${v}</span>`
 const dm = (t) => `${t.slice(8, 10)}.${t.slice(5, 7)}`   // "2026-07-04 12:00" -> "04.07"
 const hour = (t) => Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10), +t.slice(11, 13)) / 36e5
@@ -61,7 +52,9 @@ const pct1 = (x) => `${+(x * 100).toFixed(1)}%`   // 0.197 -> "19.7%"
 const span = (w) => { const [a, b] = String(w).split('..'); return b ? `з ${a} до ${b}` : String(w) }   // "03:00..06:00" -> "з 03:00 до 06:00"
 const said = (it) => (it.tier === 'low' ? 'низький ризик' : it.tier === 'high' ? 'високий ризик' : 'середній ризик')
 const KIND = { right_quiet: 'влучила', right_high: 'влучила', miss: 'пропуск', false_alarm: 'зайве попередження' }
-const NAME = { finalist: 'наша модель', reference: 'частка атак за 7 днів' }
+const NAME = { finalist: 'модель', reference: 'частка за 7 днів' }
+// the model against the 7-day share by the 95% interval of their BSS difference: 1 better, -1 worse, 0 not proven
+const beats = (c) => (c[0] > 0 ? 1 : c[1] < 0 ? -1 : 0)
 const SRC = (t) => `<details class="how-src"><summary>Джерела</summary><p>${t}</p></details>`
 const real = (bins) => bins.filter((b) => b.n > 0 && b.p_mean != null && b.busy_share != null)
 function cadence() {
@@ -182,40 +175,56 @@ function stepSplit(D) {
   }
 }
 
-// 2. The formal score: BSS and ROC AUC with their 95% intervals, the model against the 7-day share
+// 2. The model against the 7-day share in plain bars, a column for the training and one for the test data. Top: the
+// gain over the simple rule (BSS) from the dashed 0, and in words whether the model's lead is proven by the 95% interval
+// of the difference; bottom: of 100 pairs «an attack hour and a quiet one», how often the attack hour got the higher
+// probability (ROC AUC), against a coin.
 function stepScore(D) {
-  const M = D.evaluation.models
+  const E = D.evaluation, M = E.models
   const fin = M.find((m) => m.role === 'finalist'), ref = M.find((m) => m.role === 'reference')
   const g = s('g', {}), zones = [], moves = []
-  const A0 = 170, A1 = 530
-  const PANELS = [
-    { key: 'bss', name: 'BSS', title: 'виграш (BSS)', lo: -0.2, hi: 0.6, mid: 0, ticks: [-0.2, 0, 0.2, 0.4, 0.6], y: 30, rows: [86, 132], tick: 168 },
-    { key: 'roc_auc', name: 'ROC AUC', title: 'розрізнення (ROC AUC), 0.5 це монетка', lo: 0.3, hi: 0.9, mid: 0.5, ticks: [0.3, 0.5, 0.7, 0.9], y: 214, rows: [266, 312], tick: 348 },
-  ]
-  g.append(s('circle', { cx: 300, cy: 30, r: 7, style: { fill: 'var(--pink)' } }), text(314, 30, 'модель'),
-    s('circle', { cx: 410, cy: 30, r: 7, style: { fill: 'var(--soft)' } }), text(424, 30, 'частка за 7 днів'))
-  PANELS.forEach((P, pi) => {
-    const xs = (v) => A0 + ((A1 - A0) * (Math.max(P.lo, Math.min(P.hi, v)) - P.lo)) / (P.hi - P.lo)
-    g.append(text(16, P.y, P.title),
-      s('line', { x1: xs(P.mid), x2: xs(P.mid), y1: P.y + 24, y2: P.tick - 18, style: { stroke: 'var(--soft)', strokeWidth: 1.5, strokeDasharray: '5 5' } }),
-      ...P.ticks.map((t) => text(xs(t), P.tick, String(t), { anchor: 'middle', fill: 'var(--soft)' })))
-    ;['development', 'test'].forEach((part, ri) => {
-      const y = P.rows[ri], name = part === 'test' ? 'тестові' : 'навчальні'
-      g.append(text(16, y, name))
-      ;[[fin, 'var(--pink)', -11], [ref, 'var(--soft)', 11]].forEach(([m, color, dy], mi) => {
-        const r = m[part], v = r[P.key], c = r[`${P.key}_ci`]
-        const line = s('rect', { x: xs(c[0]), y: y + dy - 2, width: Math.max(1, xs(c[1]) - xs(c[0])), height: 4, rx: 2, style: { fill: color } })
-        const dot = s('circle', { cx: xs(v), cy: y + dy, r: 7, style: { fill: color, stroke: 'var(--card)', strokeWidth: 2 } })
-        g.append(line, dot)
-        const d = pi * 800 + ri * 220 + mi * 90
-        moves.push(mv(line, { kx: 0.001, o: 0 }, {}, d, 'center', 360), mv(dot, { x: xs(P.mid) - xs(v), o: 0 }, {}, d, 'center', 360))
-        if (mi === 0) {
-          const val = text(624, y + dy, f3(v), { anchor: 'end', display: true, fill: 'var(--pink)' })
-          g.append(val)
-          moves.push(mv(val, { o: 0 }, {}, d + 300))
-        }
-        zones.push({ x: xs(v), y: y + dy, t: `${name}, ${NAME[m.role] || m.label}: ${P.name} ${f3(v)}, 95% інтервал ${ci(c)}` })
-      })
+  const CW = 208, COLS = [['development', 196, 'навчальні дані'], ['test', 416, 'тестові дані']]
+  const WHO = [[fin, 'var(--pink)', 'var(--pink)'], [ref, 'var(--soft)', 'var(--ink)']]
+  const SAY = { 1: 'модель краща', '-1': 'модель гірша', 0: 'перевага не доведена' }
+  const all = COLS.flatMap(([p]) => WHO.map(([m]) => m[p].bss))
+  const lo = Math.min(0, ...all), K = (CW - 90) / (Math.max(...all) - lo)   // 90: the left pad and the value label
+  const R = (CW - 50) / 100                                                  // a pair count of 100, the same room
+  const soft = { fill: 'var(--soft)', size: 20 }
+  // the rows: the gain of the model and of the 7-day share, then their pairs and a coin
+  const ROWS = [[116, NAME.finalist], [150, NAME.reference], [288, NAME.finalist], [324, NAME.reference], [360, 'монетка']]
+  g.append(text(16, 64, 'виграш над простим правилом (0 так само, менше 0 гірше)', soft),
+    text(16, 246, 'з 100 пар «з атакою і без» вгадала, де атака', soft),
+    ...ROWS.map(([y, t]) => text(16, y, t, { size: 20 })))
+  COLS.forEach(([part, x, name], ci) => {
+    const z = x + 8 - K * lo, coin = x + 8 + R * 50
+    g.append(text(x + CW / 2, 24, name, { anchor: 'middle', display: true, size: 20 }),
+      text(z, 90, '0', { ...soft, anchor: 'middle', size: 18 }),
+      s('line', { x1: z, x2: z, y1: 100, y2: 166, style: { stroke: 'var(--soft)', strokeWidth: 1.5, strokeDasharray: '5 5' } }),
+      s('line', { x1: coin, x2: coin, y1: 270, y2: 376, style: { stroke: 'var(--soft)', strokeWidth: 1.5, strokeDasharray: '5 5' } }))
+    WHO.forEach(([m, color, ink], i) => {
+      const v = m[part].bss, y = ROWS[i][0], w = Math.max(1, K * Math.abs(v)), d = ci * 300 + i * 90
+      const bar = s('rect', { x: v < 0 ? z - w : z, y: y - 11, width: w, height: 22, rx: 5, style: { fill: color } })
+      const val = text((v < 0 ? z : z + w) + 8, y, f3(v), { display: true, size: 20, fill: ink })
+      g.append(bar, val)
+      moves.push(mv(bar, { kx: 0.001 }, {}, d, v < 0 ? 'right center' : 'left center', 360), mv(val, { o: 0 }, {}, d + 260))
+      zones.push({ x: z + (v < 0 ? -w : w) / 2, y, t: `${name}, ${NAME[m.role]}: виграш ${f3(v)}, `
+        + `помилка ймовірностей на ${pct(Math.abs(v))} ${v < 0 ? 'більша' : 'менша'}, ніж у простого правила` })
+    })
+    const c = fin[part].d_bss_ci, b = beats(c), dv = fin[part].d_bss
+    const say = text(x + CW / 2, 192, SAY[b], { anchor: 'middle', size: 20, fill: b > 0 ? 'var(--pink)' : 'var(--ink)' })
+    g.append(say)
+    moves.push(mv(say, { o: 0 }, {}, 900 + ci * 120))
+    zones.push({ x: x + CW / 2, y: 192, t: `${name}: виграш моделі ${dv < 0 ? 'менший' : 'більший'} на ${f3(Math.abs(dv))}; `
+      + `${E.n_boot} перерахунків на навмання взятих днях, у ${pct(E.ci)} з них різниця від ${f3(c[0])} до ${f3(c[1])}` })
+    ;[...WHO, [null, 'var(--line)', 'var(--soft)']].forEach(([m, color, ink], i) => {
+      const n = m ? Math.round(m[part].roc_auc * 100) : 50, y = ROWS[2 + i][0], w = R * n, d = 1100 + ci * 300 + i * 90
+      const bar = s('rect', { x: x + 8, y: y - 11, width: w, height: 22, rx: 5,
+        style: m ? { fill: color } : { fill: color, stroke: 'var(--soft)', strokeWidth: 1.5, strokeDasharray: '4 4' } })
+      const val = text(x + 16 + w, y, String(n), { display: true, size: 20, fill: ink })
+      g.append(bar, val)
+      moves.push(mv(bar, { kx: 0.001 }, {}, d, 'left center', 360), mv(val, { o: 0 }, {}, d + 260))
+      zones.push({ x: x + 8 + w / 2, y, t: m ? `${name}, ${NAME[m.role]}: у ${n} парах зі 100 вищу ймовірність дала годині з атакою`
+        : 'монетка: годину з атакою вгадує у 50 парах зі 100' })
     })
   })
   return stepper(g, moves, zones)
@@ -403,9 +412,6 @@ function notes(D) {
   const R = D.replay, rd = R.development, rt = R.test, tb = rt.table
   const kind = Object.fromEntries(D.examples.items.map((it) => [it.kind, it]))
   const ex = (it) => `${dm(it.t)} ${span(it.window)}, ${pct(it.p)}, ${outcome(it)}`
-  const vs = (c) => (c[0] > 0 ? `модель краща за сіру частку атак за 7 днів: різниця ${ci(c)} вище 0`
-    : c[1] < 0 ? `модель гірша за сіру частку атак за 7 днів: різниця ${ci(c)} нижче 0`
-      : `перевага над сірою часткою атак за 7 днів не доведена: різниця ${ci(c)} накриває 0`)
   const gap = (b) => real(b).filter((x) => x.n >= 30).reduce((a, x) => (x.busy_share - x.p_mean > a.busy_share - a.p_mean ? x : a))
   const tAll = real(rt.calibration), tG = gap(rt.calibration), tL = tAll[0]
   const above = tAll.filter((b) => b.busy_share > b.p_mean).length * 2 > tAll.length
@@ -417,14 +423,14 @@ function notes(D) {
       `З ${dm(sp.folds_from)} модель ${num(folds)} ${times(folds)} вчилась на минулому і прогнозувала наступний тиждень: це перевірка тиждень за тижнем. ` +
       `Рахуємо спокійні години, коли на момент прогнозу не було ні тривоги, ні атаки: атака за 3 години була після ${num(pct(P.development.busy_share))} з них у тижнях перевірки і ${num(pct(P.test.busy_share))} у тестових даних.</p>` +
       SRC('site/data/trust.json, split (файл пише scripts/site/trust.py); docs/adr/0008-time-split.md.'),
-    `<p>Виграш над простим правилом (BSS): наскільки ймовірності точніші, ніж щотижня казати ту саму частку атак; більше 0 краще. ` +
-      `Як добре прогноз відрізняє години з атакою від спокійних (ROC AUC): з 100 пар «з атакою і без» модель на тестових даних вище оцінила першу у ${num(Math.round(fin.test.roc_auc * 100))}, монетка у 50. ` +
-      `Лінія навколо точки: куди лягли 95% з ${D.evaluation.n_boot} перерахунків; на тестових ${vs(fin.test.d_bss_ci)}.</p>` +
-      SRC('site/data/trust.json, evaluation; reports/quiet_leaderboard.md.'),
+    `<p>Частка за 7 днів, прогноз без моделі: щогодини перераховує частку тригодинних вікон з атакою за останні 7 днів; якщо 50 із 168, каже 30%. ` +
+      `Виграш над простим правилом (BSS): наскільки ймовірності точніші за сталу частку атак, відому на початок тижня; ${f3(fin.test.bss)} на тестових: помилка на ${num(pct(fin.test.bss))} менша. ` +
+      `Розрізнення (ROC AUC): з 100 пар «година з атакою і без» на тестових модель дала першій вищу ймовірність у ${num(Math.round(fin.test.roc_auc * 100))}, монетка 50.</p>` +
+      SRC(`site/data/trust.json, evaluation (models: bss, roc_auc, d_bss_ci: ${pct(D.evaluation.ci)} з ${D.evaluation.n_boot} перерахунків по днях); /api/meta.json, quality; reports/quiet_leaderboard.md; src/airalerts/quiet/score.py, naive_7d.`),
     `<p>Кожна точка це спокійна година тестових даних, їх ${num(rt.hours)}; нижче межі ${pct1(R.busy_at)} модель каже «низький ризик», вище «середній чи високий». ` +
       `Зелені влучили (${num(tb.quiet_quiet)} і ${num(tb.busy_busy)}), червоні це пропуск, атака після «низького» (${num(tb.quiet_busy)}), жовті це зайве попередження (${num(tb.busy_quiet)}). ` +
       `«Низький ризик» модель казала рідко, ${saidLow} ${times(saidLow)} з ${rt.hours}, і тоді атаки не було у ${num(pct(rt.quiet_truth))}.</p>` +
-      SRC('site/data/trust.json, replay.test.'),
+      SRC('site/data/trust.json, replay.test: модель перенавчається щотижня, як на сайті. У розділі 9 і в README 83%: там модель перенавчалась щогодини, 24 з 29 (docs/adr/0013-retrain-cadence.md, «Наслідки»).'),
     `<p>Точність: частка годин, де прогноз («низький ризик» чи вище) збігся з тим, що сталося; на тестових даних у моделі ${num(pct(rt.accuracy))}, а в лінивого правила «завжди атака» ${num(pct(rt.always_busy_accuracy))}, бо восени атака була після ${pct(rt.busy_share)} спокійних годин. ` +
       `Тому межу ${pct1(R.busy_at)} обрали не за точністю, а правилом, записаним до тесту: ловити ${pct(RECALL)} атак навчальних даних, бо пропуск гірший за зайве попередження. ` +
       `Модель ловить ${num(pct(rd.busy_recall))} атак на навчальних і ${num(pct(rt.busy_recall))} на тестових даних.</p>` +
@@ -437,7 +443,7 @@ function notes(D) {
       `Влучила: ${ex(kind.right_quiet)}; ${ex(kind.right_high)}; помилилась: ${ex(kind.miss)}, це пропуск; ${ex(kind.false_alarm)}, це зайве попередження. ` +
       'Тож низька ймовірність не обіцяє спокою, а висока атаки.</p>' +
       SRC('site/data/trust.json, examples; правило вибору в scripts/site/trust.py (картка).'),
-    `<p>Модель на сайті час від часу вчиться заново; ${CANDIDATES.length} частоти перевірили на тих самих ${folds} тижнях навчальних даних, і виграш (BSS) майже однаковий, від ${lo.toFixed(4)} до ${best.bss.toFixed(4)}. ` +
+    `<p>Модель на сайті час від часу вчиться заново; ${CANDIDATES.length} частоти перевірили на тих самих ${folds} тижнях навчальних даних, і виграш над простим правилом (BSS) майже однаковий, від ${lo.toFixed(4)} до ${best.bss.toFixed(4)}. ` +
       `Правило записали до чисел: найрідша частота, чий виграш не нижчий за найкращий мінус ${MARGIN}, тобто ${num(limit.toFixed(4))}. ` +
       `Межу пройшли ${pass.length === CANDIDATES.length ? 'всі чотири' : pass.length}, тож модель вчиться заново ${num(R.cadence.words)}: ${chosen.retrains} ${times(chosen.retrains)} за ці ${folds} тижнів замість ${best.retrains}.</p>` +
       SRC('docs/adr/0013-retrain-cadence.md, «Наслідки» і «Вибір»; site/data/trust.json, replay.cadence.'),
@@ -468,7 +474,7 @@ function prepare(data) {
 }
 const NOTES = T ? prepare(T) : null
 const D = NOTES ? T : null
-const CARDS = [[SPLIT], [MEASURES], [RULE], [RULE], [], D ? [examplesCard(D)] : [], [CHOICE]]
+const CARDS = [[SPLIT], [], [RULE], [RULE], [], D ? [examplesCard(D)] : [], [CHOICE]]
 
 const scene = {
   id: 'trust',
