@@ -3,6 +3,7 @@
 import { h, s, canvas, put, stagger } from '../how.js'
 
 const ID = 'results'
+const SRC = (t) => `<details class="how-src"><summary>Джерела</summary><p>${t}</p></details>`
 
 const CSS = `
 .scene-results text { font-size: 22px; fill: var(--body); }
@@ -23,6 +24,9 @@ const CSS = `
 .scene-results .wline { stroke: var(--card); }
 .scene-results .sline { stroke: var(--soft); }
 .scene-results .iline { stroke: var(--ink); }
+.tip.scene-results { position: absolute; z-index: 2; max-width: 280px; padding: 6px 10px; border-radius: var(--r-small); background: var(--card);
+  border: 1px solid var(--line); color: var(--ink); font-size: 14px; line-height: 1.35; pointer-events: none; }
+.tip.scene-results[hidden] { display: none; }
 `
 
 const pct = (v) => `${Math.round(v * 100)}%`
@@ -30,9 +34,9 @@ const fix3 = (v) => v.toFixed(3)
 
 // README.md, «Коротко»: the honest answer of each epoch in one number.
 const EPOCHS = [
-  { word: 'Удари', big: '7 з 9', small: 'атак', mark: 'part' },
+  { word: 'Удари', big: '7 з 9', small: 'ударів', mark: 'part' },
   { word: 'Ночі', big: '2 з 7', small: 'ночей', mark: 'no' },
-  { word: 'Спокій', big: '83%', small: 'справді', mark: 'yes' },
+  { word: 'Спокій', big: '83%', small: 'збувся', mark: 'yes' },
   { word: 'Джерела', big: '10', small: 'каналів', mark: 'yes' },
 ]
 const MARK = { yes: 'M-10 1l6 6 13-13', no: 'M-8-8L8 8M8-8L-8 8', part: 'M-11 2c4-7 7-7 11-2s7 5 11-2' }
@@ -40,11 +44,11 @@ const MARK = { yes: 'M-10 1l6 6 13-13', no: 'M-8-8L8 8M8-8L-8 8', part: 'M-11 2c
 // docs/quiet/model.md section 10 and README.md «Епоха 3», quiet-now hours: development, then test.
 // The «високий ризик» row is from docs/quiet/forecast.md, where the forecast is refit every hour.
 const ROWS = [
-  { label: 'BSS: точність ймовірностей', dev: 0.094, test: 0.284, f: fix3 },
-  { label: 'ROC AUC: порядок годин', dev: 0.684, test: 0.749, f: fix3 },
-  { label: 'каже «швидше тихо»', dev: 0.37, test: 0.07, f: pct },
-  { label: 'коли каже «тихо», справді тихо', dev: 0.83, test: 0.83, f: pct },
-  { label: '«високий ризик»: стало неспокійно', dev: 0.5, test: 0.8, f: pct },
+  { label: 'виграш над правилом (BSS)', dev: 0.094, test: 0.284, f: fix3 },
+  { label: 'розрізнення атак (ROC AUC)', dev: 0.684, test: 0.749, f: fix3 },
+  { label: 'каже «низький ризик»', dev: 0.37, test: 0.07, f: pct },
+  { label: 'після «низького» атаки не було', dev: 0.83, test: 0.83, f: pct },
+  { label: 'після «високого» атака була', dev: 0.5, test: 0.8, f: pct },
 ]
 
 const X0 = 40
@@ -52,43 +56,79 @@ const X1 = 600
 const xs = (v) => X0 + v * (X1 - X0)
 const only = (k, dy = 12) => (st) => (st === k ? {} : { o: 0, y: st < k ? dy : -dy })
 
+// Hover or tap on the stage: one short line with the facts behind the nearest mark of this step.
+function tips(stage, svg, zonesAt) {
+  const tip = h('div', { class: `tip scene-${ID}`, role: 'tooltip', hidden: true })
+  stage.append(tip)
+  let cur = -1
+  const move = (e) => {
+    const b = svg.getBoundingClientRect(), sb = stage.getBoundingClientRect()
+    const ux = ((e.clientX - b.left) * 640) / b.width, uy = ((e.clientY - b.top) * 400) / b.height
+    let best = null, bd = Infinity
+    for (const z of zonesAt(cur)) { const d = (z.x - ux) ** 2 + (z.y - uy) ** 2; if (d < bd) { bd = d; best = z } }
+    tip.hidden = !best
+    if (!best) return
+    tip.textContent = best.t
+    tip.style.left = `${Math.max(4, Math.min(e.clientX - sb.left + 14, sb.width - tip.offsetWidth - 4))}px`
+    tip.style.top = `${Math.max(4, Math.min(e.clientY - sb.top + 14, sb.height - tip.offsetHeight - 4))}px`
+  }
+  svg.addEventListener('pointermove', move)
+  svg.addEventListener('pointerdown', move)
+  svg.addEventListener('pointerleave', () => { tip.hidden = true })
+  return { set(k) { cur = k; tip.hidden = true } }
+}
+
+// Hover texts, step by step: the facts behind each mark.
+const ZONES = [
+  [
+    { x: 86, y: 195, t: 'етап 1, ракетні удари: модель зловила 7 з 9, коли ті вже починались; обидва денні пропущено' },
+    { x: 242, y: 195, t: 'етап 2, ночі: о 22:00 модель попередила про 2 з 7 ракетних ночей' },
+    { x: 398, y: 195, t: 'етап 3, атака за 3 години: після «низького ризику» атаки не було у 83% випадків' },
+    { x: 554, y: 195, t: 'етап 4, живий сайт: досить 10 каналів Telegram' },
+  ],
+  ROWS.map((r, i) => ({ x: 320, y: 106 + i * 62, t: `${r.label}: навчальні дані ${r.f(r.dev)}, тестові ${r.f(r.test)}` })),
+  [
+    { x: 164, y: 106, t: 'після «низького ризику» приблизно 1 шанс з 6, що буде атака' },
+    { x: 476, y: 106, t: '«високий ризик» у годинах перед ракетним ударом: 58% і 100%, перед атакою лише дронів: 54% і 86% (навчальні і тестові дані)' },
+    { x: 164, y: 296, t: 'мітка дронів правильна приблизно у 80% годин' },
+    { x: 476, y: 296, t: 'схему рівнів описали вже після відкриття тестових даних, межі взято з навчальних' },
+  ],
+]
+
 export default {
   id: ID,
   title: 'Що вийшло і де межа',
-  lead: 'Чотири питання, чотири чесні відповіді і місце, де прогноз спокою зупиняється.',
+  lead: 'Чотири етапи, чотири питання: кожну відповідь перевірено на тестових даних (з 29.08, відкладені до кінця), і в прогнозу є межі.',
   steps: [
     {
-      note: '<p>Чотири епохи, чотири питання, і на кожне чесна відповідь з тесту: 6 тижнів з 2026-08-29.</p>'
-        + '<p><b>Удари:</b> нічні атаки моделі ловлять, коли ті вже починаються (<span class="num">7 з 9</span>), обидві денні пропущено. '
-        + '<b>Ночі:</b> о 22:00 не передбачити, фіналіст попередив про <span class="num">2 з 7</span> ракетних ночей. '
-        + '<b>Спокій:</b> «швидше тихо» справджувалось у <span class="num">83%</span> випадків, а для живого сайту досить <span class="num">10</span> каналів Telegram.</p>'
-        + '<p>Джерело: README.md, «Коротко» і «Епоха 4».</p>',
+      note: '<p><b>Удари:</b> нічні ракетні удари модель ловить, коли ті вже починаються (<span class="num">7 з 9</span>), а обидва денні пропустила. '
+        + '<b>Ночі:</b> о 22:00 ракетну ніч не передбачити, модель попередила про <span class="num">2 з 7</span> таких ночей. '
+        + '<b>Спокій:</b> після «низького ризику» атаки не було у <span class="num">83%</span> випадків; <b>джерела:</b> для живого сайту досить <span class="num">10</span> каналів Telegram.</p>'
+        + SRC('README.md, «Коротко» і «Епоха 4»; питання етапів: docs/HISTORY.md.'),
     },
     {
-      note: '<p>Фіналіст logit_signals на годинах «зараз тихо»: кружечок це розробка, рожева точка тест. '
-        + 'BSS (<span class="num">0.094</span> і <span class="num">0.284</span>) каже, наскільки ймовірності точніші за просту частку неспокійних годин; '
-        + 'ROC AUC (<span class="num">0.684</span> і <span class="num">0.749</span>) каже, як часто неспокійна година отримує вищу ймовірність, ніж тиха, де 0.5 це монетка.</p>'
-        + '<p>«Швидше тихо» модель казала у 37% і 7% годин, і тоді справді було тихо у 83% і 83%; після «високого ризику» ставало неспокійно у 50% і 80%. '
-        + 'Ці 50% і 80% з docs/quiet/forecast.md, де прогноз перенавчали щогодини; 49% у попередній сцені пораховано на тижневих фолдах розробки, з яких узято межі.</p>'
-        + '<p>Джерела: docs/quiet/model.md, розділ 10; docs/quiet/forecast.md; README.md, «Епоха 3».</p>',
+      note: '<p>Фінальна модель (логістична регресія на 7 сигналах) на спокійних годинах, коли не було ні тривоги, ні атаки. '
+        + 'Виграш над простим правилом (BSS): <span class="num">0.094</span> на навчальних даних і <span class="num">0.284</span> на тестових; як добре прогноз відрізняє години з атакою від спокійних (ROC AUC): <span class="num">0.684</span> і <span class="num">0.749</span>, де 0.5 це монетка. '
+        + 'Після «високого ризику» атака була у 50% і 80% годин; тут модель вчилась заново щогодини, а 49% у розділі 8 пораховано на тижневих перевірках.</p>'
+        + SRC('docs/quiet/model.md, розділ 10; docs/quiet/forecast.md, рядок «високий ризик» (прогноз перенавчали щогодини); README.md, «Епоха 3»; фінальна модель: logit_signals.'),
     },
     {
-      note: '<p>Тишу не гарантує ніщо: навіть після «швидше тихо» приблизно <span class="num">1</span> шанс з <span class="num">6</span>, що прилетить. '
-        + 'Масовану ракетну атаку модель майже не відрізняє від дронів: «високий ризик» перед ракетним ударом 58% і 100% годин, перед лише дронами 54% і 86%.</p>'
-        + '<p>Мітка дронів правильна приблизно у 80% годин. Тест не зовсім сліпий: схему рівнів описали вже після його відкриття, хоча межі взято лише з розробки.</p>'
-        + '<p>Джерела: docs/quiet/model.md, розділ 10, «Межі»; README.md, «Епоха 3».</p>',
+      note: '<p>Спокою не гарантує ніщо: навіть після «низького ризику» приблизно <span class="num">1</span> шанс з <span class="num">6</span>, що буде атака. '
+        + 'Масовану ракетну атаку модель майже не відрізняє від дронів: у годинах перед ракетним ударом «високий ризик» стояв у 58% і 100% (навчальні і тестові дані), перед атакою лише дронів у 54% і 86%. '
+        + 'Мітка дронів правильна приблизно у 80% годин, а схему рівнів описали вже після відкриття тестових даних, хоча межі взято з навчальних.</p>'
+        + SRC('docs/quiet/model.md, розділ 10, «Межі»; docs/quiet/forecast.md; README.md, «Епоха 3».'),
     },
   ],
   prompts: [{
-    title: 'Питання користувача, що відкривали нові епохи',
+    title: 'Питання користувача, що відкривали новий етап',
     text: '2026-10-11 | Нове питання: о 22:00 чи спати в коридорі; перебудувати дані, багато моделей; дозволено scikit-learn і Workflow ...\n'
       + '2026-10-11 | Спершу задокументувати, потім питання «чи будуть 3 години тихими», дрони враховано, тим самим процесом\n'
       + '2026-10-11 | Живий продукт на сайті, прогноз оновлюється приблизно кожні 10 хвилин, парсити лише потрібні джерела',
-    source: 'docs/HISTORY.md, «Рішення користувача в моделюванні»',
+    source: 'Рішення користувача 11.10, з історії проєкту',
   }],
 
   mount(stage) {
-    const svg = canvas(stage, 'Чотири епохи проєкту, якість фіналіста на розробці і тесті, межі прогнозу')
+    const svg = canvas(stage, 'Чотири етапи проєкту, якість фінальної моделі на навчальних і тестових даних, межі прогнозу')
     svg.classList.add(`scene-${ID}`)
     stage.append(h('style', { text: CSS }))
     const items = []
@@ -129,10 +169,10 @@ export default {
     // Step 2: each measure on one track; the test dot starts on the development dot and slides to its own value.
     add(s('g', {},
       s('circle', { cx: 50, cy: 30, r: 9, class: 'dev' }),
-      s('text', { x: 68, y: 38, text: 'розробка' }),
+      s('text', { x: 68, y: 38, text: 'навчальні' }),
       s('circle', { cx: 210, cy: 30, r: 9, class: 'test' }),
-      s('text', { x: 228, y: 38, text: 'тест' }),
-      s('text', { x: X1, y: 38, 'text-anchor': 'end', class: 'soft', text: 'години «зараз тихо»' }),
+      s('text', { x: 228, y: 38, text: 'тестові' }),
+      s('text', { x: X1, y: 38, 'text-anchor': 'end', class: 'soft', text: 'спокійні години' }),
       ...[0, 0.5, 1].map((v) => s('text', { x: xs(v), y: 394, 'text-anchor': 'middle', class: 'soft', text: String(v) }))),
     only(1))
     ROWS.forEach((r, i) => {
@@ -167,7 +207,7 @@ export default {
     }
     const dots = [0, 1, 2, 3, 4, 5].map((j) => s('circle', { cx: 56 + j * 42, cy: 88, r: 15, class: 'hollow' }))
     const hit = s('circle', { cx: 56 + 3 * 42, cy: 88, r: 15, class: 'pinkf' })
-    panel(0, ...dots, hit, s('text', { x: 36, y: 158, class: 'ink', text: '«швидше тихо»: 1 з 6' }))
+    panel(0, ...dots, hit, s('text', { x: 36, y: 158, class: 'ink', text: 'після «низького»: 1 з 6' }))
     add(hit, (st) => (st === 2 ? {} : { o: 0, k: 0 }), { delay: (st) => (st === 2 ? 700 : 0) })
     panel(1,
       s('g', { transform: 'translate(400 92)' }, s('path', { d: 'M-40-8h50l18 8-18 8h-50zM-40-8l-10-12M-40 8l-10 12', class: 'iline' })),
@@ -184,12 +224,14 @@ export default {
         s('path', { d: 'M-56 0C-30-34 30-34 56 0C30 34-30 34-56 0Z', class: 'iline' }),
         s('circle', { r: 13, class: 'pinkf' }),
         s('path', { d: 'M-56 0C-30-16 30-16 56 0', class: 'iline' })),
-      s('text', { x: 348, y: 348, class: 'ink', text: 'тест не зовсім сліпий' }))
+      s('text', { x: 348, y: 348, class: 'ink', text: 'тестові не зовсім сліпі' }))
 
+    const tip = tips(stage, svg, (k) => ZONES[k] || [])
     apply(-1, true)
     return {
       show(step, { instant = false } = {}) {
         if (!instant) svg.getBoundingClientRect()
+        tip.set(step)
         apply(step, instant)
       },
       destroy() {},

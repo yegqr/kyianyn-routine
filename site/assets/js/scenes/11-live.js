@@ -5,6 +5,7 @@
 import { h, s, canvas, put, stagger } from '../how.js'
 
 const ID = 'live'
+const SRC = (t) => `<details class="how-src"><summary>Джерела</summary><p>${t}</p></details>`
 
 const CSS = `
 .scene-live text { font-size: 22px; fill: var(--body); }
@@ -25,13 +26,16 @@ const CSS = `
 .scene-live .pline { stroke: var(--pink); }
 .scene-live .iline { stroke: var(--ink); }
 .scene-live .xline { stroke: var(--pink); stroke-width: 5; }
+.tip.scene-live { position: absolute; z-index: 2; max-width: 280px; padding: 6px 10px; border-radius: var(--r-small); background: var(--card);
+  border: 1px solid var(--line); color: var(--ink); font-size: 14px; line-height: 1.35; pointer-events: none; }
+.tip.scene-live[hidden] { display: none; }
 `
 
 // The serpentine of the pipeline: `at` is the step that reaches the station, `hot` the steps that talk about it.
 const STATIONS = [
   { label: 'Telegram', cx: 90, cy: 120, at: 0, hot: [0, 1] },
   { label: 'Jev', cx: 320, cy: 120, at: 2, hot: [2] },
-  { label: 'silver', cx: 550, cy: 120, at: 2, hot: [2] },
+  { label: 'срібло', cx: 550, cy: 120, at: 2, hot: [2] },
   { label: 'ознаки', cx: 550, cy: 300, at: 3, hot: [3] },
   { label: 'модель', cx: 320, cy: 300, at: 4, hot: [4] },
   { label: 'сторінка', cx: 90, cy: 300, at: 1, hot: [1, 5] },
@@ -45,6 +49,28 @@ const LINKS = [
 ]
 
 const only = (k, dy = 10) => (st) => (st === k ? {} : { o: 0, y: st < k ? dy : -dy })
+
+// Hover or tap on the stage: one short line with the facts behind the nearest mark of this step.
+function tips(stage, svg, zonesAt) {
+  const tip = h('div', { class: `tip scene-${ID}`, role: 'tooltip', hidden: true })
+  stage.append(tip)
+  let cur = -1
+  const move = (e) => {
+    const b = svg.getBoundingClientRect(), sb = stage.getBoundingClientRect()
+    const ux = ((e.clientX - b.left) * 640) / b.width, uy = ((e.clientY - b.top) * 400) / b.height
+    let best = null, bd = Infinity
+    for (const z of zonesAt(cur)) { const d = (z.x - ux) ** 2 + (z.y - uy) ** 2; if (d < bd) { bd = d; best = z } }
+    tip.hidden = !best
+    if (!best) return
+    tip.textContent = best.t
+    tip.style.left = `${Math.max(4, Math.min(e.clientX - sb.left + 14, sb.width - tip.offsetWidth - 4))}px`
+    tip.style.top = `${Math.max(4, Math.min(e.clientY - sb.top + 14, sb.height - tip.offsetHeight - 4))}px`
+  }
+  svg.addEventListener('pointermove', move)
+  svg.addEventListener('pointerdown', move)
+  svg.addEventListener('pointerleave', () => { tip.hidden = true })
+  return { set(k) { cur = k; tip.hidden = true } }
+}
 const hoursWord = (n) => {
   const a = n % 10
   const b = n % 100
@@ -62,62 +88,59 @@ export default {
   lead: 'Кожні 5 хвилин той самий шлях: від постів у Telegram до цієї сторінки.',
   steps: [
     {
-      note: '<p>Кожні <span class="num">5</span> хвилин сервер читає публічні сторінки t.me/s 10 каналів Telegram: 7 київських (КМВА, Кличко, монітори) і 6 моніторингових, 3 з них спільні. '
-        + 'Одинадцятий канал, eTryvoga, потрібен лише для тривоги (крок 2). '
-        + 'Запити йдуть по одному з паузою 1.5 с, і дописуються лише пости, новіші за останній відомий.</p>'
-        + '<p>Джерела: src/airalerts/live/fetch.py (EVERY = 300 секунд); deploy/systemd/kyianyn-routine-cycle.timer; docs/adr/0012-live-site.md, «Рішення».</p>',
+      note: '<p>Кожні <span class="num">5</span> хвилин сервер читає <span class="num">10</span> каналів Telegram: 7 київських (КМВА, Кличко, монітори) і 6 моніторингових, 3 з них спільні; одинадцятий, єТривога, потрібен лише для тривоги (крок 2). '
+        + 'Канали читаються по одному з паузою 1.5 с, і додаються лише пости, новіші за останній відомий.</p>'
+        + SRC('src/airalerts/live/fetch.py (EVERY = 300 секунд; публічні сторінки t.me/s; eTryvoga); deploy/systemd/kyianyn-routine-cycle.timer; docs/adr/0012-live-site.md, «Рішення».'),
     },
     {
-      note: '<p>Канал КМВА (VA_Kyiv) іде окремою гілкою: тривогу і відбій розпізнає звичайний regex, без мовної моделі. '
+      note: '<p>Канал КМВА іде окремою гілкою: тривогу і відбій розпізнає простий шаблон тексту, без мовної моделі. '
         + 'Тому статус тривоги на сторінці свіжий кожні 5 хвилин і не чекає моделі. '
-        + 'Ще канал eTryvoga лише підказує початок тривоги, коли КМВА опублікувала відбій без початку.</p>'
-        + '<p>Джерела: src/airalerts/live/fetch.py; docs/adr/0012-live-site.md, «Рішення»; README.md, «Епоха 4».</p>',
+        + 'Канал єТривога лише підказує початок тривоги, коли КМВА опублікувала відбій без початку.</p>'
+        + SRC('src/airalerts/live/fetch.py (regex для VA_Kyiv; підказка eTryvoga); docs/adr/0012-live-site.md, «Рішення»; README.md, «Епоха 4».'),
     },
     {
-      note: '<p>Нові пости київських каналів читає класифікатор Jev і ставить мітки «ракетний удар», «ракетна загроза», «дрони на Київ». '
-        + 'Відповідь на вже бачений пост береться з кешу: повторний запит до API не доходить і нічого не коштує. '
-        + 'Пости, мітки й сигнали складаються в silver, впорядковані таблиці подій.</p>'
-        + '<p>Один цикл з перебудовою silver триває близько хвилини, а без нових постів лише записує JSON: це вимір 2026-10-11.</p>'
-        + '<p>Джерела: src/airalerts/live/fetch.py; docs/adr/0012-live-site.md.</p>',
+      note: '<p>Нові пости київських каналів читає класифікатор Jev (розділ 3) і ставить мітки «ракетний удар», «ракетна загроза», «дрони на Київ»; на вже бачений пост відповідь береться з кешу, тобто зі збережених відповідей. '
+        + 'Пости, мітки й сигнали лягають у срібний шар (розділ 4): таблиці подій з часом. '
+        + 'Цикл з перебудовою срібного шару триває близько хвилини (вимір 11.10).</p>'
+        + SRC('src/airalerts/live/fetch.py; docs/adr/0012-live-site.md (silver; кеш відповідей Jev; вимір 2026-10-11).'),
     },
     {
-      note: '<p>З silver рахуються входи моделі тими самими функціями, що будували gold для дослідження. '
-        + 'Тест перевіряє це на кожній минулій годині: кожна спільна колонка дорівнює gold, і жодна не змінюється, якщо прибрати дані, що з\'явились пізніше.</p>'
-        + '<p>Джерела: src/airalerts/live/features.py; tests/test_live_features.py.</p>',
+      note: '<p>Зі срібного шару ознаки, тобто числа, з яких модель рахує прогноз, рахують ті самі функції, що будували золотий шар для дослідження (розділ 4). '
+        + 'Тест перевіряє це на кожній минулій годині: кожна спільна колонка дорівнює золотому шару, і жодна не змінюється, якщо прибрати дані, що з\'явились пізніше.</p>'
+        + SRC('src/airalerts/live/features.py; tests/test_live_features.py (порівняння з gold).'),
     },
     {
-      note: '<p>Модель перенавчається щотижня, у суботу о <span class="num">12:00</span> за Києвом, на всіх годинах, чиї 3 години вже минули: лише для них відомо, чи було неспокійно. '
-        + 'Частоту обрали правилом з картки, записаним до підрахунку: на розробці BSS щотижня <span class="num">0.094</span>, а найкращий, щогодини, <span class="num">0.098</span>, тобто різниця менша за 0.01. '
-        + 'Межі рівнів 0.197 і 0.300 лишаються з розробки і заново не підбираються.</p>'
-        + '<p>Джерела: src/airalerts/live/model.py (CADENCE = "weekly"); deploy/systemd/kyianyn-routine-train.timer; docs/adr/0013-retrain-cadence.md; README.md, «Епоха 3».</p>',
+      note: '<p>Модель вчиться заново щотижня, у суботу о <span class="num">12:00</span> за Києвом, на всіх годинах, чиї 3 години вже минули: лише для них відомо, чи була атака. '
+        + 'Частоту обрали правилом з картки, записаним до підрахунку: на навчальних даних виграш (BSS) щотижня <span class="num">0.094</span>, а в найкращої частоти, щогодини, <span class="num">0.098</span>, різниця менша за 0.01. '
+        + 'Межі рівнів 19.7% і 30% лишаються з навчальних даних і заново не підбираються.</p>'
+        + SRC('src/airalerts/live/model.py (CADENCE = "weekly"); deploy/systemd/kyianyn-routine-train.timer; docs/adr/0013-retrain-cadence.md; README.md, «Епоха 3».'),
       prompts: [{
-        title: 'Як обрали частоту перенавчання',
+        title: 'Як часто модель вчиться заново',
         text: 'найрідше перенавчання, чий BSS на розробці не нижчий за найкращий BSS на розробці мінус 0.01 (правило простоти проєкту: рідше означає менше запусків і менше місць для збою).',
-        source: 'docs/adr/0013-retrain-cadence.md, «Рішення», «Вибір»',
+        source: 'Записане рішення про частоту навчання',
       }],
     },
     {
-      note: '<p>Наприкінці циклу результат пишеться в JSON, а ця сторінка читає його. '
-        + 'Ймовірність змінюється раз на годину: модель перевіряли лише на прогнозах о повній годині. '
-        + 'Статус тривоги і нові хвилі дронів оновлюються з кожним циклом, тобто кожні 5 хвилин.</p>'
-        + '<p>README, «Епоха 4», писали до живого циклу, і там стоїть план на 10 хвилин. Живий цикл зробили кожні 5 хвилин, тому на картці правило з ADR-0012.</p>'
-        + '<p>Джерела: docs/adr/0012-live-site.md, «Рішення»; src/airalerts/live/fetch.py (EVERY = 300 секунд); docs/quiet/model.md, розділ 10.</p>',
+      note: '<p>Наприкінці циклу сервер записує прогноз у файл, а ця сторінка його читає. '
+        + 'Ймовірність змінюється раз на годину, бо модель перевіряли лише на прогнозах о повній годині; статус тривоги і нові хвилі дронів оновлюються кожні 5 хвилин. '
+        + 'У першому плані цикл був раз на 10 хвилин, а живий зробили кожні 5.</p>'
+        + SRC('docs/adr/0012-live-site.md, «Рішення» (картка); src/airalerts/live/fetch.py (EVERY = 300 секунд); docs/quiet/model.md, розділ 10; план на 10 хвилин: README.md, «Епоха 4».'),
     },
     {
-      note: '<p>Погоду, політичні події, символічні дати й удари по Росії ми не парсимо. '
-        + 'Додані до «годинник + сигнали», вони змінюють BSS на розробці від <span class="num">-0.014</span> до <span class="num">+0.003</span>, а модель на всіх джерелах без ударів по Росії навіть краща, ніж з ними (0.052 проти 0.030). '
+      note: '<p>Погоду, політичні події, символічні дати й удари по Росії ми не читаємо. '
+        + 'Додані до набору «годинник + сигнали», вони змінюють виграш (BSS) на навчальних даних від <span class="num">-0.014</span> до <span class="num">+0.003</span>, а модель на всіх джерелах без ударів по Росії навіть краща, ніж з ними (0.052 проти 0.030). '
         + 'Кожне зайве джерело це шум і ще один збирач, який треба тримати живим.</p>'
-        + '<p>Джерело: docs/quiet/sources.md.</p>',
+        + SRC('docs/quiet/sources.md.'),
     },
   ],
   prompts: [{
     title: 'Чому ймовірність щогодини',
     text: 'Ймовірність щогодини, бо модель перевірено лише на повних годинах; статус тривоги і хвилі дронів кожні 5 хв (README, епоха 4).',
-    source: 'docs/adr/0012-live-site.md, «Рішення»',
+    source: 'Записане рішення про живий сайт',
   }],
 
   mount(stage, data) {
-    const svg = canvas(stage, 'Живий конвеєр: Telegram, Jev, silver, ознаки, модель, сторінка')
+    const svg = canvas(stage, 'Живий цикл: Telegram, Jev, срібло, ознаки, модель, сторінка')
     svg.classList.add(`scene-${ID}`)
     stage.append(h('style', { text: CSS }))
     const items = []
@@ -162,7 +185,7 @@ export default {
     P(s('g', {}, s('line', { x1: 90, x2: 90, y1: 153, y2: 259, class: 'dash' })),
       (st) => (upto(st) >= 1 ? {} : { o: 0, ky: 0 }), { dur: 400, origin: 'top' })
     P(s('path', { d: 'M82 259l8 8 8-8', class: 'pline' }), (st) => (upto(st) >= 1 ? {} : { o: 0 }), { delay: (st) => (st === 1 ? 300 : 0) })
-    P(s('text', { x: 104, y: 216, class: 'pinkt', text: 'regex' }), (st) => (upto(st) >= 1 ? {} : { o: 0 }))
+    P(s('text', { x: 104, y: 216, class: 'pinkt', text: 'шаблон' }), (st) => (upto(st) >= 1 ? {} : { o: 0 }))
 
     for (const st0 of STATIONS) {
       const x = st0.cx - 75
@@ -194,7 +217,7 @@ export default {
 
     // Step 4: live features against gold, hour by hour, every pair equal.
     P(s('text', { x: 290, y: 212, 'text-anchor': 'end', class: 'ink', text: 'наживо' }), only(3))
-    P(s('text', { x: 460, y: 212, class: 'ink', text: 'gold' }), only(3))
+    P(s('text', { x: 460, y: 212, class: 'ink', text: 'золото' }), only(3))
     ;[172, 194, 216, 238].forEach((y, i) => {
       const d = (extra) => ({ delay: (st) => (st === 3 ? stagger(i, 120, extra) : 0) })
       P(s('rect', { x: 300, y, width: 50, height: 16, rx: 4, class: 'softf' }), (st) => (st === 3 ? {} : { o: 0, kx: 0 }),
@@ -251,13 +274,36 @@ export default {
     })
     add(s('text', { x: 320, y: 312, 'text-anchor': 'middle', class: 'ink', text: 'додають від -0.014 до +0.003' }), only(6),
       { delay: (st) => (st === 6 ? 800 : 0) })
-    add(s('text', { x: 320, y: 346, 'text-anchor': 'middle', class: 'soft', text: 'BSS на розробці' }), only(6),
+    add(s('text', { x: 320, y: 346, 'text-anchor': 'middle', class: 'soft', text: 'виграш (BSS) на навчальних даних' }), only(6),
       { delay: (st) => (st === 6 ? 850 : 0) })
 
+    // Hover texts: what each station does, and the facts of this step.
+    const STOP = {
+      Telegram: '10 каналів Telegram кожні 5 хвилин, по одному з паузою 1.5 с',
+      Jev: 'класифікатор Jev ставить мітки новим постам, відповіді на старі беруться з кешу',
+      'срібло': 'срібний шар: пости, мітки й сигнали, таблиці подій з часом',
+      'ознаки': 'ознаки рахують ті самі функції, що будували золотий шар',
+      'модель': Number.isFinite(rows) && rows > 0 ? `вчиться заново щотижня, у суботу о 12:00; зараз ${rows} ${hoursWord(rows)} у навчанні`
+        : 'вчиться заново щотижня, у суботу о 12:00',
+      'сторінка': 'ймовірність раз на годину, тривога і хвилі дронів кожні 5 хвилин',
+    }
+    const OFF = [
+      { x: 140, y: 170, t: 'погода: не читаємо' },
+      { x: 320, y: 170, t: 'політичні події і символічні дати: не читаємо' },
+      { x: 500, y: 170, t: 'удари по Росії: не читаємо, модель без них навіть краща (0.052 проти 0.030)' },
+      { x: 320, y: 330, t: 'додані до набору «годинник + сигнали», ці джерела змінюють виграш (BSS) на навчальних даних від -0.014 до +0.003' },
+    ]
+    const zonesAt = (k) => (k === 6 ? OFF : k < 0 ? [] : [
+      ...(k === 0 ? [{ x: 150, y: 40, t: '10 каналів: 7 київських і 6 моніторингових, 3 з них спільні' }] : []),
+      ...(k >= 1 ? [{ x: 120, y: 210, t: 'канал КМВА: тривогу і відбій розпізнає шаблон тексту, без мовної моделі' }] : []),
+      ...STATIONS.filter((st0) => upto(k) >= st0.at).map((st0) => ({ x: st0.cx, y: st0.cy, t: STOP[st0.label] })),
+    ])
+    const tip = tips(stage, svg, zonesAt)
     apply(-1, true)
     return {
       show(step, { instant = false } = {}) {
         if (!instant) svg.getBoundingClientRect()
+        tip.set(step)
         apply(step, instant)
       },
       destroy() {},
