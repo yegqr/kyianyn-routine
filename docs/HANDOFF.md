@@ -7,7 +7,7 @@
 https://kyianyn-routine.isakov.fyi ([ADR-0012](adr/0012-live-site.md), [ARCHITECTURE.md](ARCHITECTURE.md), «Живий сайт»).
 - Таймери: `kyianyn-routine-cycle` кожні 5 хв (цикл від 1.4 до 3.5 хв: кожен канал, який t.me/s віддає повільно, додає близько хвилини), `kyianyn-routine-train` у суботу о 12:00 за Києвом. Журнал: `journalctl -u kyianyn-routine-cycle -o cat`.
 - Викладка лише закомічених файлів: `.venv/bin/python -I scripts/site/deploy.py` (кешування Cloudflare обходять версії `?v=` у посиланнях).
-- Ключ Jev для сервісу: `deploy/secrets/live.env` (не в git). Ключ, вставлений у чат 2026-10-11, треба замінити: експорт розмови для KSE його містить.
+- Ключ Jev для сервісу: `deploy/secrets/live.env` (не в git). Ключ, вставлений у чат 2026-10-11, у публічному експорті `chats/` вирізано ([ADR-0014](adr/0014-chats-publication.md)), але його однаково треба замінити.
 - Живі дані: `data/live/` (не в git); дослідницькі `data/bronze`, `data/silver`, `data/gold` сайт не змінює.
 
 Читати в такому порядку: цей файл, [ARCHITECTURE.md](ARCHITECTURE.md) (рівні, контракт, як запустити), [VERIFICATION.md](data/VERIFICATION.md) (чому даним можна довіряти, аудит), [DATASET.md](data/DATASET.md) (заморожена версія трьох таблиць gold), [kyiv_hourly.md](data/gold/kyiv_hourly.md) (колонки gold), [HISTORY.md](HISTORY.md) (як дійшли і від чого відмовились), [adr/](adr/).
