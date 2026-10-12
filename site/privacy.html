@@ -3,6 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The browser bar takes --paper of tokens.css in each theme -->
+<meta name="theme-color" content="#FAF7F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141012" media="(prefers-color-scheme: dark)">
+<!-- The theme before the first paint: the one the toggle of the main page stored, else the system preference; the browser bar takes the colour of that theme -->
+<script>(function () { var t; try { t = localStorage.getItem('theme') } catch (e) {} if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; document.documentElement.dataset.theme = t; document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.media = m.media.indexOf(t) < 0 ? 'not all' : 'all' }) })()</script>
 <title>Приватність: Kyianyn Routine</title>
 <meta name="description" content="Що сайт «Чи встигнеш переїхати на інший берег за 3 години?» знає про тебе: нічого. Без кукі, без лічильників, без акаунтів.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -20,13 +25,13 @@
 <main class="wrap">
   <article class="block doc">
     <h1>Приватність</h1>
-    <p class="lead">Коротко: сайт нічого не знає про тебе і нічого не зберігає у твоєму браузері.</p>
+    <p class="lead">Коротко: сайт нічого не знає про тебе. У твоєму браузері він зберігає лише обрану тему, світлу чи темну, і лише після того, як ти її обереш.</p>
     <h2>Чого тут немає</h2>
     <ul>
       <li>Кукі немає.</li>
       <li>Лічильників відвідувань і реклами немає.</li>
       <li>Акаунтів, реєстрації і форм немає.</li>
-      <li>У браузері сайт нічого не зберігає.</li>
+      <li>У браузері сайт зберігає лише обрану тему (світла чи темна), і лише після того, як ти її обереш: кнопкою з місяцем або сонцем угорі головної сторінки чи клавішею D. Більше нічого.</li>
     </ul>
     <h2>Що бачить сервер</h2>
     <p>Сервер і Cloudflare, через який іде сайт, ведуть звичайні журнали запитів: IP-адреса, час і яку сторінку відкрито. Ці журнали потрібні лише для того, щоб сайт працював.</p>

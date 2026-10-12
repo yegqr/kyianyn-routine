@@ -1,7 +1,9 @@
 /* Taken from mindset.mylovanov.media and ba26.mylovanov.media */
 @import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap');
 
+/* The light theme. The dark one below gives the same names other values, so no other file changes with the theme. */
 :root {
+  color-scheme: light;
   --pink: #E0117E;
   --pink-soft: #FCE7F1;
   --ink: #14110F;
@@ -24,10 +26,15 @@
   --m1: #E31E24;
   --m2: #0072BC;
   --m3: #00984F;
-  /* The map: the Dnipro and the night sky. */
+  /* The map: the Dnipro and its name on the water (--water-ink), the night sky with its moon and stars (--star).
+     The night as an icon or a border, as on the curfew pill: --night-ink. The veil behind the help dialog: --scrim. */
   --water: #D6EAF6;
   --water-line: #8CC0E3;
+  --water-ink: #0072BC;
   --night: #1E1B2E;
+  --night-ink: #1E1B2E;
+  --star: #FFFFFF;
+  --scrim: #14110F;
 
   --font: 'Onest', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Unbounded', sans-serif;
@@ -39,4 +46,38 @@
   --shadow-pink: 0 2px 10px rgba(224, 17, 126, .45);
   --focus-ring: 0 0 0 4px rgba(224, 17, 126, .28);
   --ease: cubic-bezier(.22, .75, .28, 1);
+}
+
+/* The dark theme: <html data-theme="dark">, set before the first paint by the script in <head> of index.html and
+   privacy.html (the choice the toggle in the header stored, else the system preference). The metro colours stay
+   official; body, ink and soft text keep 4.5:1 or more on --paper and on --card, as in the light theme. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --pink: #FF62AC;
+  --pink-soft: #3E1B2D;
+  --ink: #F5EFF2;
+  --body: #DDD3D7;
+  --soft: #ACA0A5;
+  --line: #3B3337;
+  --paper: #141012;
+  --card: #1F1A1C;
+
+  --go: #4FD58A;
+  --go-soft: #11291C;
+  --risk: #F2B24A;
+  --risk-fill: #F59E0B;
+  --risk-soft: #33260E;
+  --stop: #FF7B73;
+  --stop-soft: #3B1816;
+
+  --water: #16344C;
+  --water-line: #4884B3;
+  --water-ink: #8DCBF5;
+  --night: #0C0A1A;
+  --night-ink: #B8AEF6;
+  --star: #F5EFF2;
+  --scrim: #000000;
+
+  --shadow-pink: 0 2px 12px rgba(255, 98, 172, .35);
+  --focus-ring: 0 0 0 4px rgba(255, 98, 172, .45);
 }

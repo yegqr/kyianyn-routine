@@ -1,5 +1,5 @@
 // The shell of kyianyn-routine.isakov.fyi: two tabs by hash (#/ "Відповідь" and #/how/<scene>/<step>), keys, the help dialog,
-// the live pill and the data loop. The JSON files are loaded at start and every 2 minutes, the small ones first and
+// the theme toggle, the live pill and the data loop. The JSON files are loaded at start and every 2 minutes, the small ones first and
 // history.json (only the charts use it) after, and only what changed is redrawn. Until the first answer the hero
 // shows a skeleton (body.is-loading). The deck (how.js) loads on the first visit of its tab and shares the data.
 
@@ -15,7 +15,9 @@ const live = $('#live')
 const liveWord = $('#live-word')
 const liveAgo = $('#live-ago')
 const toast = $('#toast')
+const themeBtn = $('#theme')
 const RM = window.matchMedia('(prefers-reduced-motion: reduce)')
+const DARK = window.matchMedia('(prefers-color-scheme: dark)')
 const SMALL = ['now', 'model', 'meta'] // a few KB each: the answer and every block but the charts
 const FONT_WAIT_MS = 2500
 const EVERY_MS = 2 * 60 * 1000
@@ -29,6 +31,7 @@ let shown = ''
 let toastTimer = 0
 let ready = false // the first data is drawn and the page has left its loading skeleton
 let chartsOn = false // the charts mount on the first open of their folded block, not on page load
+let picked = '' // the theme the toggle or the key D chose in this visit: it holds even when storage is blocked
 
 const isHow = () => location.hash.startsWith('#/how')
 const behavior = () => (RM.matches ? 'auto' : 'smooth')
@@ -207,6 +210,38 @@ function openHelp() {
   if (!help.open) help.showModal()
 }
 
+// The theme: "light" or "dark" on <html data-theme>, set before the first paint by the script in <head> (the choice
+// stored under "theme", else the system preference). The toggle and the key D switch it and store the choice; without
+// storage the switch holds until a reload. Until a theme is chosen, in this visit or stored, the page follows a
+// change of the system preference. The charts read their colours when drawn, so they draw again.
+function storedTheme() {
+  try {
+    return localStorage.getItem('theme')
+  } catch {
+    return null
+  }
+}
+
+function paintTheme(theme) {
+  const dark = theme === 'dark'
+  document.documentElement.dataset.theme = theme
+  themeBtn.setAttribute('aria-pressed', String(dark))
+  themeBtn.setAttribute('aria-label', dark ? 'Увімкнути світлу тему' : 'Увімкнути темну тему')
+  const paper = getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = paper
+  if (chartsOn) mountChartsInto($('#charts'), data)
+}
+
+function switchTheme() {
+  picked = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'
+  try {
+    localStorage.setItem('theme', picked)
+  } catch {
+    // no storage (a private window, blocked site data): the page switches all the same
+  }
+  paintTheme(picked)
+}
+
 document.addEventListener('keydown', (e) => {
   if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || typing(e.target) || help.open) return
   if (e.key === '?' || (e.code === 'Slash' && e.shiftKey)) {
@@ -233,6 +268,10 @@ document.addEventListener('keydown', (e) => {
     case 'KeyR':
       e.preventDefault()
       reload()
+      break
+    case 'KeyD':
+      e.preventDefault()
+      switchTheme()
       break
     case 'ArrowDown': case 'ArrowUp':
       if (!onHow) {
@@ -273,6 +312,11 @@ window.addEventListener('hashchange', (e) => {
 })
 $('#help-open').addEventListener('click', openHelp)
 $('#help-close').addEventListener('click', () => help.close())
+themeBtn.addEventListener('click', switchTheme)
+DARK.addEventListener('change', () => {
+  const stored = storedTheme() // as the script in <head>: a value other than these two is no choice
+  if (!picked && stored !== 'dark' && stored !== 'light') paintTheme(DARK.matches ? 'dark' : 'light')
+})
 help.addEventListener('click', (e) => { if (e.target === help) help.close() })
 live.addEventListener('click', () => {
   const go = () => {
@@ -294,6 +338,7 @@ $('#charts details')?.addEventListener('toggle', (e) => {
 })
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tick() })
 
+paintTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light')
 const first = tick()
 route()
 setInterval(tick, EVERY_MS)

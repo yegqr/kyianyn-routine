@@ -622,11 +622,14 @@ function drawDays(box, st) {
   const art = card(box, 'days', 'О котрій годині атаки частіші?')
   const all = st.hours
   if (all.length < 2) return calm(art, `Днів ще замало: сітка з'явиться, щойно набереться історія прогнозів.`)
-  // White, pink, dark pink: the sequential palette of the viz skill, its dark end mixed from the pink and ink tokens.
+  // Card, pink, pink mixed with ink: the sequential palette of the viz skill, white to dark pink in the light theme and
+  // near black to pale pink in the dark one. Read from the tokens when drawn: a theme switch draws the chart again.
   const css = getComputedStyle(document.documentElement)
   const tok = (n) => css.getPropertyValue(n).trim()
   const seq = d3.scaleSequential(d3.piecewise(d3.interpolateRgb,
     [tok('--card'), tok('--pink'), d3.interpolateRgb(tok('--pink'), tok('--ink'))(0.55)])).domain([0, 1])
+  // The dot of an attack hour: on a tile darker than L* 60 the lighter of card and ink, on a lighter tile the darker
+  const [onDark, onLight] = d3.lab(tok('--card')).l > d3.lab(tok('--ink')).l ? ['ch-mark-card', 'ch-mark-ink'] : ['ch-mark-ink', 'ch-mark-card']
   // The tiles: for each Kyiv hour its last TILE_DAYS days with a known outcome (a repeated hour of a day counts once).
   const per = d3.range(24).map((hour) => {
     const seen = new Map()
@@ -670,7 +673,7 @@ function drawDays(box, st) {
     .attr('x', (h) => h.hour * cw + gap).attr('y', (h) => rowOf.get(h.day) * rh + gap)
     .attr('width', cw - 2 * gap).attr('height', rh - 2 * gap).attr('rx', 2).attr('fill', (h) => seq(h.p))
   g.append('g').selectAll('circle').data(cells.filter((h) => h.busy_3h === true)).join('circle')
-    .attr('class', (h) => (d3.lab(seq(h.p)).l < 60 ? 'ch-mark-dark' : 'ch-mark-light'))
+    .attr('class', (h) => (d3.lab(seq(h.p)).l < 60 ? onDark : onLight))
     .attr('cx', (h) => h.hour * cw + cw / 2).attr('cy', (h) => rowOf.get(h.day) * rh + rh / 2)
     .attr('r', Math.max(1.6, Math.min(cw, rh) * 0.13))
   const focus = g.append('rect').attr('class', 'ch-focus').attr('width', cw).attr('height', rh).attr('rx', 3).style('opacity', 0)

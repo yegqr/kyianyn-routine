@@ -22,8 +22,8 @@
 .is-night .hm-sky-a { stop-color: var(--night); stop-opacity: .82; }
 .is-night .hm-sky-b { stop-color: var(--night); stop-opacity: 0; }
 .hm-sun { color: var(--risk-fill); }
-.hm-moon { color: var(--card); }
-.hm-star { fill: var(--card); opacity: .85; }
+.hm-moon { color: var(--star); }
+.hm-star { fill: var(--star); opacity: .85; }
 .hm-base:not(.is-night) .hm-moon, .hm-base.is-night .hm-sun { display: none; }
 
 /* Bridges in the status colour of the road traffic on them now */
@@ -55,7 +55,7 @@
 .hm-mark:hover { opacity: 1; }
 .hm-mark-hit { fill: transparent; }
 .hm-label { font-family: var(--font); font-weight: 600; letter-spacing: .02em; fill: var(--soft); paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
-.hm-river { font-style: italic; letter-spacing: .02em; fill: var(--m2); stroke: var(--water); pointer-events: auto; cursor: pointer; }
+.hm-river { font-style: italic; letter-spacing: .02em; fill: var(--water-ink); stroke: var(--water); pointer-events: auto; cursor: pointer; }
 
 /* What flies, the train and the easter eggs */
 .hm-drone { color: var(--ink); pointer-events: auto; cursor: pointer; }

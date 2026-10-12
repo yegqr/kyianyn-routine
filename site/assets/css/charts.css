@@ -85,8 +85,8 @@
 .ch-testbar { fill: var(--pink); }
 .ch-gridbg { fill: var(--paper); }
 .ch-seqbar { stroke: var(--line); stroke-width: 1; }
-.ch-mark-dark { fill: var(--card); }
-.ch-mark-light { fill: var(--ink); }
+.ch-mark-card { fill: var(--card); }
+.ch-mark-ink { fill: var(--ink); }
 .ch-focus { fill: none; stroke: var(--ink); stroke-width: 2; pointer-events: none; }
 
 .ch-tip {
