@@ -1,17 +1,17 @@
 // Tab 1 "Відповідь" of kyianyn-routine.isakov.fyi. It answers one question: will you make it to the other bank of the
 // Dnipro in the next 3 hours. The hero, top to bottom: the pills (alert, curfew, late data), the question with its
 // window, the answer (Так, Ризиковано or Ні in the colour of its tier), one line, the crossing map, the probability on
-// a 3-part scale, at most two chips (details in tooltips) and the safety line. Below, every block folded: what crosses
-// the Dnipro now, why this forecast, the charts (charts.js, mounted by app.js on the first open of their block), the
-// words and the live sources. Live numbers come from site/api/*.json at runtime (app.js loads them, the contract is
-// in docs/ARCHITECTURE.md, section "Живий сайт").
+// a 3-part scale and the safety line. Below, every block folded: what crosses the Dnipro now (the metro, the city rail
+// ring, the bridges for cars), why this forecast, the charts (charts.js, mounted by app.js on the first open of their
+// block), the words and the live sources. Live numbers come from site/api/*.json at runtime (app.js loads them, the
+// contract is in docs/ARCHITECTURE.md, section "Живий сайт").
 //
 // The crossing picture #hero-map (aspect ratio 2:1, site.css) shows the small train on the bridge until
 // ./hero.js loads. When it does, mountHero(el, data) draws in it; it may return { update(data), train() }:
 // update gets every new data, train runs on the key T. Without update, mountHero is called again on new data.
 
 import { kyivTime, kyivDay, kyivStamp, pct, ago } from './api.js'
-import { CURFEW, CHECKED, SOURCES, crossingsFor } from './crossing.js'
+import { CURFEW, CHECKED, SOURCES, crossingsFor, groupsFor } from './crossing.js'
 
 // Where the yellow and red levels are defined (the lore notes, section "Рівні тривоги").
 const LEVEL_SOURCE = { text: 'kyiv.news, 03.09.2026', url: 'https://kyiv.news/bezpeka-kriminal/kyiv-vvodyt-zhovtyi-chervonyi-rivni-tryvohy/' }
@@ -30,7 +30,9 @@ const ALERT_FLAG = {
   alert: 'Тривога: червона лінія метро через Дніпро не ходить',
 }
 const ALERT_STATE = { yellow: 'Зараз жовта тривога.', red: 'Зараз червона тривога.', alert: 'Зараз тривога, рівень не названо.' }
-const STATUS_WORD = { open: 'відкрито', limited: 'обмежено', closed: 'закрито', unknown: 'невідомо' }
+// The status in words: a train goes or not, a bridge is open or not.
+const GOES = { open: 'ходить', limited: 'з обмеженнями', closed: 'не ходить', unknown: 'невідомо' }
+const WORDS = { metro: GOES, rail: GOES, road: { open: 'відкритий', limited: 'обмежено', closed: 'закритий', unknown: 'невідомо' } }
 const METRO = new Set(['m1', 'm3'])
 const PATH = {
   open: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7 5.3-5.7"/>',
@@ -40,12 +42,10 @@ const PATH = {
   siren: '<path d="M7 18v-5a5 5 0 0 1 10 0v5"/><path d="M5 18h14v2.5H5z"/><path d="M12 3.5V5M4.5 6.5l1.2 1.2M19.5 6.5l-1.2 1.2"/>',
   moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   late: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.1"/>',
-  drone: '<path d="M12 4l8.5 14L12 15l-8.5 3z"/>',
-  rocket: '<path d="M12 2.5c3 2.4 4.2 6 4.2 10.5L12 17.5 7.8 13C7.8 8.5 9 4.9 12 2.5z"/><path d="M7.8 13 5 16v3.5l3.5-2.2M16.2 13l2.8 3v3.5l-3.5-2.2"/>',
-  past: '<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4v4.5H8"/><path d="M12 7.5V12l3 2"/>',
 }
 const TIMES = ['раз', 'рази', 'разів']
 const ANSWERS = ['відповідь', 'відповіді', 'відповідей']
+const POSTS = ['пост', 'пости', 'постів']
 const RM = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 // A tiny element builder. how.js has the same helper, but tab 1 must work without loading the deck module.
@@ -115,7 +115,6 @@ export function renderDashboard(root, data) {
   part(root, 'answer', () => answer(f))
   part(root, 'line', () => (f ? sentences(TIER[answerTier].line) : 'Відповідь з’явиться, щойно будуть перші дані.'))
   part(root, 'prob', () => prob(f))
-  part(root, 'chips', () => chips(now, f))
   part(root, 'crossings', () => crossings(now))
   part(root, 'reasons', () => reasons(now))
   part(root, 'glossary', () => glossary(now, data.model))
@@ -145,7 +144,7 @@ function part(root, name, build) {
   }
 }
 
-// Tooltips of a group (chips, reasons): one dark box under the row of the item, inside the group's width, so it never
+// Tooltips of a group (the reasons): one dark box under the row of the item, inside the group's width, so it never
 // leaves the screen. The mouse shows it on hover, the keyboard on focus, a finger on a tap. It hides when the mouse
 // leaves, on blur, on Escape, and on a tap of the same item or anywhere else: Safari on iPhone gives a tapped button
 // no focus, so there no blur ever comes.
@@ -192,7 +191,7 @@ function tips(box, tip) {
   }
 }
 
-// a) the pills, the question's window, the answer, the probability and the chips
+// a) the pills, the question's window, the answer and the probability
 
 function forecastOf(now) {
   const f = now?.forecast
@@ -313,64 +312,31 @@ function meter(f) {
       ORDER.map((t) => h('span', { class: t === tierNow ? 'is-on' : null, text: TIER[t].level }))))
 }
 
-function chip(ico, text, tip) {
-  return h('button', { type: 'button', class: 'chip', 'data-tip': tip, 'aria-label': `${text}. ${tip}` }, icon(ico), h('span', { text }))
-}
-
-// Two chips at most, both from forecast.kind, the past hours when the model gave its own tier of now and the hour was
-// calm (no alert, no attack) when it did: n is how many such forecasts, busy_share the share followed by an attack in
-// 3 hours, missile_share and drone_only_share the shares of those attacks with missiles or with drones only. The
-// record chip hides during an alert: those hours were all calm ones.
-function chips(now, f) {
-  const k = f?.kind
-  if (!k || !isNum(k.n) || k.n <= 0) return null
-  const said = `«${TIER[tierNow].level} ризик»` // the words of the scale, never forecast.label
-  const when = period(k.period)
-  const items = []
-  // The two whole percents of a pair always add up to 100%: the second is 100 minus the first (64% and 36%).
-  if (isNum(k.missile_share)) {
-    const rockets = Math.round(k.missile_share * 100)
-    const drones = 100 - rockets
-    const missiles = rockets >= drones
-    items.push(chip(missiles ? 'rocket' : 'drone',
-      missiles ? `якщо атака, то в ${rockets}% з ракетами` : `якщо атака, то в ${drones}% лише дрони`,
-      `Атаки після прогнозів ${said} ${when}: з ракетами ${rockets}%, лише дрони ${drones}%. Масовану ракетну атаку модель майже не відрізняє від атаки дронів.`))
-  }
-  if (isNum(k.busy_share) && !alertNow) {
-    const hit = Math.round(k.busy_share * 100)
-    items.push(chip('past', `атака була після ${hit}% таких прогнозів`, [
-      `Модель казала ${said} ${num(k.n)} ${plural(k.n, TIMES)} ${when}, щоразу о спокійній годині.`,
-      `Атака за 3 години після цього була у ${hit}% випадків, спокійно було у ${100 - hit}%.`,
-      now?.now?.quiet_now === false ? 'Зараз година не спокійна, тож цей прогноз перевірено менше.' : '',
-    ].filter(Boolean).join(' ')))
-  }
-  if (!items.length) return null
-  const tip = h('p', { class: 'tip', role: 'tooltip', hidden: true })
-  const box = h('div', { class: 'chips' }, items, tip)
-  tips(box, tip)
-  return box
-}
-
-// b) what crosses the Dnipro now: every crossing with its status, the curfew and the sources
+// b) what crosses the Dnipro now: the alert state, then three groups (the metro, the city rail ring, the bridges for
+// cars), each row with its status now as an icon and a word (readable without colour) and its rule during an alert
 
 function crossings(now) {
   const level = now?.now?.alert ? (ALERT_FLAG[now.now.level] ? now.now.level : 'alert') : null
   const state = !now ? 'Стан тривоги невідомий, показано як без тривоги.' : level ? ALERT_STATE[level] : 'Зараз тривоги немає.'
   const curfew = inCurfew() // until it ends nobody crosses without a pass, whatever the alert
-  const rows = crossingsFor(level).map((c) => {
-    const st = curfew ? 'closed' : STATUS_WORD[c.status] ? c.status : 'unknown'
-    const note = curfew ? `до ${CURFEW.to} комендантська година, без перепустки не можна` : c.note
-    return h('li', { class: `cross-row is-${st}` }, icon(st),
-      h('div', { class: 'cross-txt' },
-        h('p', { class: 'cross-name' },
-          METRO.has(c.id) && h('i', { class: `metro metro-${c.id}`, 'aria-hidden': 'true' }),
-          h('b', { text: c.name }), h('span', { class: 'cross-via', text: c.via })),
-        h('p', { class: 'cross-note' }, h('b', { class: 'cross-st', text: STATUS_WORD[st] }), `: ${note}`)))
+  const groups = groupsFor(level).map((g) => {
+    const words = WORDS[g.id] || GOES
+    return h('div', { class: 'cross-group' }, h('h3', { class: 'cross-h', text: g.title }),
+      h('ul', { class: 'cross-list' }, g.items.map((c) => {
+        const st = curfew ? 'closed' : words[c.status] ? c.status : 'unknown'
+        const note = curfew ? `комендантська година до ${CURFEW.to}` : c.note
+        return h('li', { class: `cross-row is-${st}` },
+          h('p', { class: 'cross-name' },
+            METRO.has(c.id) && h('i', { class: `metro metro-${c.id}`, 'aria-hidden': 'true' }),
+            h('b', { text: c.name }), c.via && h('span', { class: 'cross-via', text: c.via })),
+          h('p', { class: 'cross-now' }, icon(st), h('span', {}, h('b', { class: 'cross-st', text: words[st] }), note ? `: ${note}` : null)),
+          h('p', { class: 'cross-rule', text: c.rule }))
+      })))
   })
   return [
-    h('ul', { class: 'cross-list' }, rows),
     h('p', { class: 'cross-meta' }, icon('moon'),
       h('span', { text: curfew ? `${state} Зараз комендантська година, до ${CURFEW.to}.` : `${state} Комендантська година щодня з ${CURFEW.from} до ${CURFEW.to}.` })),
+    ...groups,
     h('details', { class: 'srcs' }, h('summary', { text: `Джерела, ${SOURCES.length}` }),
       h('ul', {}, SOURCES.map((s) => h('li', {},
         h('a', { href: s.url, target: '_blank', rel: 'noopener', text: s.title }),
@@ -379,11 +345,12 @@ function crossings(now) {
   ]
 }
 
-// c) why: the reasons as signed bars of their weight in the model's score (logit)
+// c) why: the reasons as signed bars of their weight in the model's score (logit), then how often an attack came
+// after the same tier before
 
 function reasons(now) {
   const rs = (now?.forecast?.reasons || []).filter((r) => isNum(r?.logit))
-  if (!rs.length) return calm(now ? 'Для цієї години причин немає.' : 'Дані ще не готові.')
+  if (!rs.length) return [calm(now ? 'Для цієї години причин немає.' : 'Дані ще не готові.'), past(now)]
   const most = Math.max(0.5, ...rs.map((r) => Math.abs(r.logit)))
   const tip = h('p', { class: 'tip', role: 'tooltip', hidden: true })
   const rows = rs.map((r) => {
@@ -404,8 +371,20 @@ function reasons(now) {
   return [
     h('div', { class: 'reason-axis', 'aria-hidden': 'true' }, h('span', { text: '← знижує ризик' }), h('span', { text: 'підвищує ризик →' })),
     box,
+    past(now),
     h('p', { class: 'src' }, h('a', { href: `data:text/csv;charset=utf-8,${encodeURIComponent(`﻿${csv}`)}`, download: 'prychyny.csv', text: 'Завантажити таблицю' })),
   ]
+}
+
+// One sentence from forecast.kind in natural frequencies: how often an attack came in 3 hours after the model said the
+// tier of now at a calm hour (no alert, no attack). Hidden during an alert: those hours were all calm ones.
+function past(now) {
+  const k = now?.forecast?.kind
+  if (alertNow || !tierNow || !k || !isNum(k.n) || k.n <= 0 || !isNum(k.busy_share)) return null
+  const x = Math.round(k.busy_share * 10)
+  const often = x < 1 ? 'менше ніж 1 раз з 10' : x > 9 ? 'майже щоразу' : `приблизно ${x} ${plural(x, TIMES)} з 10`
+  const when = period(k.period)
+  return h('p', { class: 'reason-past', text: `Коли модель казала «${TIER[tierNow].level} ризик» о спокійній годині (${num(k.n)} ${plural(k.n, TIMES)}${when ? ` ${when}` : ''}), атака за 3 години потім була ${often}.` })
 }
 
 // d) the words
@@ -436,7 +415,10 @@ function glossary(now, model) {
   ]
 }
 
-// e) live sources
+// e) live sources. The time next to a channel is its last post; a channel silent for 6 hours or more (some write only
+// during alerts or after an incident) is grey and says so.
+
+const QUIET = 6 * 3600 * 1000
 
 function sources(now, meta, model) {
   const chans = (meta?.channels || []).slice()
@@ -452,16 +434,18 @@ function sources(now, meta, model) {
       ? `${num(jev.calls)} ${isNum(jev.calls) ? plural(jev.calls, ANSWERS) : 'відповідей'} Jev збережено, $${isNum(jev.usd) ? jev.usd.toFixed(2) : '?'}`
       : 'даних ще немає'],
   ]
-  const day1 = 24 * 3600 * 1000
   return [
     h('dl', { class: 'facts' }, facts.map(([k, v]) => h('div', {}, h('dt', { text: k }), h('dd', { text: v })))),
     h('p', { class: 'sub', text: 'Публічні канали в Telegram' }),
+    h('p', { class: 'chans-note', text: 'Час біля каналу показує, коли він востаннє писав: деякі пишуть лише під час тривог чи після влучань. Сайт перевіряє всі канали кожні 5 хвилин, тож канал, що мовчить, не робить прогноз застарілим.' }),
     chans.length
       ? h('ul', { class: 'chans', 'aria-label': `Канали в Telegram, ${chans.length}` }, chans.map((c) => {
-        const old = !c.last_post || Date.now() - new Date(c.last_post).getTime() > day1
-        const when = c.last_post ? ago(c.last_post) : 'постів ще не було'
-        return h('li', { class: `chan${old ? ' is-old' : ''}`, title: `${c.name}: останній пост ${when}` },
-          h('span', { class: 'chan-name', text: c.name }), h('span', { class: 'chan-ago', text: when }))
+        const quiet = !c.last_post || Date.now() - new Date(c.last_post).getTime() >= QUIET
+        const said = [c.last_post ? `останній пост ${ago(c.last_post)}` : 'постів ще не було',
+          isNum(c.posts_24h) && `${num(c.posts_24h)} ${plural(c.posts_24h, POSTS)} за добу`]
+        return h('li', { class: `chan${quiet ? ' is-quiet' : ''}` },
+          h('p', { class: 'chan-top' }, h('span', { class: 'chan-name', text: c.name }), quiet && h('span', { class: 'chan-quiet', text: 'мовчить' })),
+          h('p', { class: 'chan-ago', text: said.filter(Boolean).join(', ') }))
       }))
       : calm('Список каналів ще не готовий.'),
   ]
@@ -518,7 +502,7 @@ function move(node, x) {
 
 function trainText() {
   const m1 = crossingsFor(alertLevel).find((c) => c.id === 'm1')
-  const state = m1 ? `${m1.name}, ${m1.via}: ${STATUS_WORD[m1.status] || STATUS_WORD.unknown}. ` : ''
+  const state = m1 ? `${m1.name}, ${m1.via}: ${GOES[m1.status] || GOES.unknown}. ` : ''
   return `${state}Натисни або T: ${alertNow ? 'подивись, що робить потяг.' : 'потяг перетне Дніпро.'}`
 }
 
