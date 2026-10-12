@@ -7,11 +7,12 @@
 | Папка | Що там |
 |---|---|
 | `src/airalerts/` | код пакета: спільне (`paths`, `db`, `telegram`, `jev`), рівні даних `silver/` і `gold/`, спільна оцінка `evaluation/`, моделі трьох питань `strikes/`, `nights/`, `quiet/`, живий сайт `live/` |
-| `scripts/` | `bronze/` збирачі сирих даних, `verify/` зовнішня перевірка і аудит, `analysis/` описовий аналіз тесту (лише друк), `site/` вивантаження чисел розробки для сторінки методології |
-| `site/` | статичний сайт kyianyn-routine.isakov.fyi: `index.html` (головна і методологія), `assets/` (стилі, код, сцени методології, D3), `data/` (числа розробки); `api/` пише цикл, не в git |
+| `scripts/` | `bronze/` збирачі сирих даних, `verify/` зовнішня перевірка і аудит, `analysis/` описовий аналіз тесту (лише друк), `site/` числа розробки для презентації, мапа Києва і викладка сайту, `chats/` експорт чатів з ШІ |
+| `site/` | статичний сайт kyianyn-routine.isakov.fyi: `index.html` (головна і презентація «Як це працює»), `privacy.html`, `assets/` (стилі зі світлою і темною темою, код, 12 сцен презентації, D3), `data/` (числа розробки і мапа Києва); `api/` пише цикл, не в git |
 | `deploy/` | конфіг nginx і юніти systemd живого сайту; `secrets/live.env` з ключем Jev не в git |
 | `tests/` | тести на витік у gold і поділі, тести моделей кожного питання, мірила проти перерахунку в лоб |
 | `data/` | `bronze/` і `silver/` (не в git), `gold/` (у git, версія в [DATASET.md](data/DATASET.md)), `predictions/<strikes\|nights\|quiet>/` (не в git), `verification/` (у git), `live/` живі дані сайту (не в git) |
+| `chats/` | повний експорт чатів з Claude Code без секретів: по файлу на сесію і `all-chats.md` ([ADR-0014](adr/0014-chats-publication.md)) |
 | `reports/` | таблиці порівняння моделей `strikes_leaderboard.md`, `nights_leaderboard.md`, `quiet_leaderboard.md`; їх пишуть оцінювачі, вручну не редагувати |
 | `docs/` | `ASSIGNMENT`, `METHODOLOGY`, `ARCHITECTURE`, `HISTORY`, `HANDOFF`; `adr/` рішення; `data/` (`PARSING`, `JEV`, `VERIFICATION`, `DATASET`, `silver/`, `gold/`); `strikes/`, `nights/`, `quiet/` опис кожного модуля моделей простими словами; у `quiet/` ще [forecast.md](quiet/forecast.md), [model.md](quiet/model.md), [importance.md](quiet/importance.md), [sources.md](quiet/sources.md); `product/` [crossing.md](product/crossing.md): як перетнути Дніпро під час тривоги, з джерелами |
 
@@ -70,7 +71,9 @@ scripts/analysis/                   аналіз заморожених моде
 src/airalerts/live/                 живий сайт: datadir.py копія даних у data/live, fetch.py нові пости t.me/s, features.py
                                     входи фіналіста з живого silver (рівні gold), model.py перенавчання (щотижня), JSON і replay,
                                     publish.py api/*.json, cycle.py один цикл: збір, silver, ознаки, JSON
-scripts/site/                       dev_predictions.py: прогнози розробки для сцени про межі
+scripts/site/                       dev_predictions.py і trust.py: числа розробки для презентації; kyiv_map.py: мапа Києва
+                                    з OpenStreetMap (мости, метро); deploy.py: викладка закоміченого сайту
+scripts/chats/                      export.py: чати Claude Code у chats/ з вирізаними ключами і приватним
 tests/                              test_gold_hourly, test_split, test_strikes*, test_nights*, test_quiet*, test_live*
 ```
 
@@ -172,3 +175,4 @@ flowchart LR
 - [ADR-0011](adr/0011-quiet-hours.md): спокійні 3 години з дронами, перевірка дронової мітки, правила, задані до оцінки, і результат.
 - [ADR-0012](adr/0012-live-site.md): живий сайт: чи встигнеш на інший берег за 3 години, живі дані окремо, цикл кожні 5 хв, перенавчання щотижня.
 - [ADR-0013](adr/0013-retrain-cadence.md): як часто перенавчати живу модель: правило до підрахунку, вибір на розробці, щотижня.
+- [ADR-0014](adr/0014-chats-publication.md): публікуємо чати з ШІ без секретів: що вирізаємо і як це перевіряємо.
