@@ -43,15 +43,18 @@ const SRC_TIPS = [
 ]
 // Verdicts of docs/quiet/sources.md, shown on step 3
 const VERDICTS = [
-  'потрібні, щоб знати, чи тривога зараз',
-  'фінальна модель бере з них 4 колонки',
-  'головне джерело: разом з годиною й днем тижня 0.081',
-  'прогнозу не допомагає',
-  'можна, але не потрібно',
-  'прогнозу не допомагає',
-  'прогнозу не допомагає',
+  'у фінальну модель не увійшли, сайт читає їх лише, щоб знати, чи тривога зараз',
+  'у фінальній моделі 4 з 7 сигналів',
+  'у фінальній моделі 2 з 7 сигналів, головне джерело: разом з годиною й днем тижня 0.081',
+  'у фінальну модель не увійшла, прогнозу не допомагає',
+  'у фінальну модель не увійшли, бо до години й сигналів додають лише 0.001; рахуємо їх самі, без мережі',
+  'у фінальну модель не увійшли, прогнозу не допомагають',
+  'у фінальну модель не увійшли, без них модель на всіх джерелах навіть краща (0.052 проти 0.030)',
 ]
-const STRUCK = [3, 5, 6]
+// Struck on step 3, whole or not at all: no alert, weather, astronomy, date, politics or strike column is among the 7
+// signals of the final model (model.json features: the hour, 4 from the Kyiv channels, 2 preparation signals)
+const STRUCK = [0, 3, 4, 5, 6]
+const LEGEND = 'закреслене: у фінальну модель не увійшло'
 const PY = (i) => 30 + i * 48
 const CY = (i) => PY(i) + 19
 const LANES = [110, 200, 290]
@@ -65,15 +68,19 @@ const BARS = [
 const BX = 320
 const BW = 280
 const BMAX = 0.09
+const BSS_TIP = 'Виграш над простим правилом (BSS): 0 так само, як правило «щогодини та сама частка атак, відома на початок тижня», більше 0 краще, менше 0 гірше'
 
 // What the live site reads (docs/quiet/sources.md, docs/data/PARSING.md section 1)
 const LIVE = [
   { method: 'шаблон', cls: 'plain', out: 'старт, відбій', sub: 'без мовної моделі',
-    tip: 'Офіційні тривоги: шаблон тексту без мовної моделі дає старт, відбій і рівень' },
-  { method: 'Jev, набір 1', cls: 'hi', out: 'мітки атак', tip: '7 київських каналів: Jev, перший набір питань, мітки атак на Київ' },
-  { method: 'Jev, набір 2', cls: 'hi', out: 'хвилі дронів',
-    tip: '6 моніторингових каналів: спершу шаблон, потім Jev, другий набір питань, лише для відібраних постів' },
+    tip: 'Офіційні тривоги з каналу КМВА, одного з 7 київських: шаблон тексту без мовної моделі дає старт, відбій і рівень' },
+  { method: 'Jev', cls: 'hi', out: 'мітки атак', tip: '7 каналів про атаки на Київ: Jev читає їхні пости і ставить мітки атак' },
+  { method: 'шаблон і Jev', cls: 'hi', out: 'хвилі дронів',
+    tip: '6 каналів про підготовку ударів: спершу шаблон відбирає пости, потім Jev читає лише відібрані' },
 ]
+// The forecast channels: 7 of silver/threat_hourly.py and 6 of silver/signals.py, 3 in both lists, plus UkraineAlarmSignal
+// for the alert start (src/airalerts/live/fetch.py CHANNELS)
+const CHANNELS_TIP = 'Для прогнозу 10 каналів: 7 про атаки на Київ і 6 про підготовку ударів, 3 з них в обох списках, тож 7 + 6 - 3 = 10; ще єТривога лише підказує початок тривоги'
 const VOL_TIPS = ['163 042 пости з 17 публічних каналів Telegram з 16.04.2026', '36 006 платних запитів до мовної моделі Jev', '$9.06 за всі запити до Jev разом']
 
 // Timeline of step 2: posts from 2026-04-16, the model data 2026-05-01..2026-10-10 (README.md)
@@ -113,13 +120,17 @@ export default {
         + SRC('README.md, розділи «Коротко» і «Дані»; docs/HANDOFF.md; docs/HISTORY.md.'),
     },
     {
-      note: '<p>Виграш над простим правилом (BSS) показує, наскільки прогноз точніший, ніж завжди казати звичайну частку атак: 0 означає не краще. На навчальних даних (до 28.08) година й день тижня дають 0.024, із сигналами підготовки 0.081, усі джерела разом 0.030. Правило з картки рівнялось на цей слабкий результат, тож формально перемогла сама година; вибір відклали, і сайт працює на фінальній моделі (година, сигнали, київські канали): 0.094.</p>'
-        + SRC('docs/quiet/sources.md: «Відповідь», «Формальне правило», таблиця джерел. Ту саму модель навчали заново для кожного набору джерел; виграш рахували на спокійних годинах (quiet_now), 8 тижнів навчальних даних (dev); година й день тижня там звуться «годинник». Погода, політика, дати й удари по Росії прогнозу не допомагають.'),
+      note: '<p><b>BSS</b>, «виграш над простим правилом»: наскільки ймовірності точніші, ніж щогодини казати ту саму частку атак, відому на початок тижня (0: так само, як це правило; більше 0: краще; менше 0: гірше).</p>'
+        + '<p>На навчальних даних: година й день тижня 0.024, з сигналами підготовки 0.081, усі джерела разом 0.030, фінальна модель з київськими каналами 0.094. '
+        + 'Закреслене прогнозу не допомагає: тривоги нічого не додають, сонце з місяцем лише 0.001.</p>'
+        + SRC('docs/quiet/sources.md: «Відповідь», «Формальне правило», таблиця джерел (тривоги КМВА: «як ознака не потрібна», з годинником і сигналами 0.074 проти 0.081; астрономія: «можна, але не потрібна», 0.082 проти 0.081). Ту саму модель навчали заново для кожного набору джерел; виграш рахували на спокійних годинах (quiet_now), 8 тижнів навчальних даних (dev); година й день тижня там звуться «годинник». Правило з картки рівнялось на слабку модель на всіх джерелах (0.030) і формально обрало саму годину (0.024); вибір відклали, і сайт працює на фінальній моделі. Фінальна модель logit_signals: 0.094 на тих самих тижнях; 7 сигналів у model.json (features): година доби, 4 з київських каналів і 2 сигнали підготовки.'),
       prompts: [RULE],
     },
     {
-      note: '<p>Живий сайт читає лише 10 каналів: 7 київських і 6 моніторингових, 3 з них спільні. Офіційні тривоги розбирає простий шаблон тексту, без мовної моделі: старт, відбій і рівень. Jev отримує два набори питань: про атаки з київських каналів і про сигнали підготовки з моніторингових.</p>'
-        + SRC('docs/quiet/sources.md; README.md; docs/data/PARSING.md, розділ 1. Шаблон тексту це regex; тривоги з каналу КМВА @VA_Kyiv.'),
+      note: '<p>Для прогнозу сайт читає <b>10 каналів</b>: 7 пишуть про атаки на Київ, 6 про підготовку ударів, і 3 є в обох списках, тож 7 + 6 - 3 = 10. '
+        + 'Одинадцятий, єТривога, лише підказує початок тривоги, тож у списку «Звідки дані» каналів 11.</p>'
+        + '<p>Тести перевіряють, що модель не підглядає в майбутнє: навмисно підкладені дані з майбутнього тест мусить зловити (розділ 5).</p>'
+        + SRC('src/airalerts/live/fetch.py, CHANNELS: 7 каналів silver/threat_hourly.py і 6 silver/signals.py, 3 з них в обох, плюс UkraineAlarmSignal; docs/quiet/sources.md; docs/data/PARSING.md, розділ 1. Шаблон тексту це regex; тривоги з каналу КМВА @VA_Kyiv. Тести на витік: tests/test_quiet.py, tests/test_split.py, tests/test_live_features.py.'),
     },
   ],
   prompts: [REGEX],
@@ -129,7 +140,7 @@ export default {
     const svg = canvas(stage, 'Джерела даних, їх обсяг, які з них допомогли прогнозу і що читає живий сайт')
     svg.classList.add(`scene-${ID}`)
 
-    // Source pills; the signals pill gets a pink overlay, three useless sources get a strike line
+    // Source pills; the signals pill gets a pink overlay, every source outside the final model a strike line
     const hi = s('rect', { x: 20, y: PY(2), width: 250, height: 38, rx: 19, class: 'hi' })
     const strikes = []
     const srcs = SOURCES.map((label, i) => {
@@ -169,8 +180,10 @@ export default {
       T(620, 324, 'дані моделі', 'soft', 'end'))
     const win = s('rect', { x: tx(D1), y: 333, width: 620 - tx(D1), height: 14, rx: 4, class: 'win' })
 
-    // Step 3: BSS of three source sets
-    const bssHead = s('g', {}, T(BX, 40, 'виграш (BSS)', 'bold'), T(BX, 340, 'більше краще', 'soft'), s('path', { d: `M${BX} 90V300`, class: 'axis' }))
+    // Step 3: BSS of three source sets with its scale in words, and what a strike line means
+    const bssHead = s('g', {}, T(BX, 32, 'виграш над простим', 'bold'), T(BX, 58, 'правилом (BSS)', 'bold'),
+      T(BX, 330, '0: як просте правило', 'soft'), T(BX, 356, 'більше 0: краще', 'soft'), s('path', { d: `M${BX} 90V300`, class: 'axis' }))
+    const legend = T(20, 390, LEGEND, 'soft')
     const bars = BARS.map((b, i) => {
       const y = 96 + i * 84
       const w = (BW * b.v) / BMAX
@@ -182,19 +195,19 @@ export default {
     })
 
     // Step 4: three live lanes, source to method to what comes out
-    const liveHead = T(20, 48, 'наживо: 10 каналів', 'bold')
+    const liveHead = T(20, 48, 'наживо: 10 каналів для прогнозу', 'bold')
     const lanes = LIVE.map((l, i) => {
       const cy = LANES[i]
       return s('g', {},
-        s('path', { d: `M272 ${cy}H290`, class: 'wire' }),
-        s('rect', { x: 290, y: cy - 19, width: 150, height: 38, rx: 19, class: l.cls }),
+        s('path', { d: `M272 ${cy}H284`, class: 'wire' }),
+        s('rect', { x: 284, y: cy - 19, width: 162, height: 38, rx: 19, class: l.cls }),
         T(365, cy + 7, l.method, '', 'middle'),
-        s('path', { d: `M440 ${cy}H456`, class: 'wire' }),
+        s('path', { d: `M446 ${cy}H456`, class: 'wire' }),
         T(462, cy + 7, l.out),
         l.sub ? T(365, cy + 44, l.sub, 'soft', 'middle') : null)
     })
 
-    svg.append(...srcs, box, ...dots.map((d) => d.out), ...vol, tl, win, bssHead,
+    svg.append(...srcs, box, ...dots.map((d) => d.out), ...vol, tl, win, bssHead, legend,
       ...bars.flatMap((b) => [b.rect, b.label, b.value]), liveHead, ...lanes)
 
     // Tooltip: what is under the pointer at the current step (hover, or tap on a phone)
@@ -206,8 +219,9 @@ export default {
     function describe(x, y) {
       if (cur === 3) {
         const i = LANES.findIndex((c) => Math.abs(y - c) < 45)
-        return i >= 0 ? LIVE[i].tip : 'Живий сайт: 10 каналів Telegram, 3 з них спільні для київських і моніторингових'
+        return i >= 0 ? LIVE[i].tip : CHANNELS_TIP
       }
+      if (cur === 2 && y > 364) return 'Закреслене у фінальну модель не увійшло: вона бере лише годину, київські канали і сигнали підготовки'
       if (x < 285) {
         const i = clamp(Math.floor((y - 25) / 48), SOURCES.length)
         return cur === 2 ? `${SOURCES[i]}: ${VERDICTS[i]}` : SRC_TIPS[i]
@@ -217,7 +231,7 @@ export default {
         return y > 305 ? 'Пости з 16.04.2026; дані для моделі: години з 01.05.2026 до 10.10.2026'
           : VOL_TIPS[clamp(Math.floor((y - 40) / 90), 3)]
       }
-      return BARS[clamp(Math.floor((y - 60) / 84), 3)].tip
+      return y < 66 || y > 305 ? BSS_TIP : BARS[clamp(Math.floor((y - 60) / 84), 3)].tip
     }
     function say(e) {
       const m = svg.getScreenCTM()
@@ -236,7 +250,7 @@ export default {
     const PRE = [
       ...srcs.map((n) => [n, { o: 0, x: -20 }]), ...strikes.map((n) => [n, { kx: 0 }, LEFT]), [hi, { o: 0 }], [box, { o: 0, k: 0.94 }],
       ...dots.flatMap((d) => [[d.out, { o: 1 }], [d.mv, {}], [d.c, { o: 0 }]]), ...rowsOn.map((n) => [n, { o: 0 }]),
-      ...vol.map((n) => [n, { o: 0, y: 10 }]), [tl, { o: 0 }], [win, { kx: 0 }, LEFT], [bssHead, { o: 0 }],
+      ...vol.map((n) => [n, { o: 0, y: 10 }]), [tl, { o: 0 }], [win, { kx: 0 }, LEFT], [bssHead, { o: 0 }], [legend, { o: 0 }],
       ...bars.flatMap((b) => [[b.label, { o: 0 }], [b.rect, { kx: 0 }, LEFT], [b.value, { o: 0 }]]),
       [liveHead, { o: 0 }], ...lanes.map((n) => [n, { o: 0, x: -12 }]),
     ]
@@ -250,7 +264,7 @@ export default {
       srcs.forEach((g, i) => {
         const keep = i <= 2
         const gone = step === 3 && !keep
-        const o = gone ? 0 : step === 1 ? 0.35 : step === 2 && !keep ? 0.4 : 1
+        const o = gone ? 0 : step === 1 ? 0.35 : 1
         const y = step === 3 && keep ? LANES[i] - CY(i) : 0
         A(g, { o, x: gone ? -20 : 0, y }, step === 0 ? stagger(i, 70) : step === 3 && keep ? 300 : 0, step === 3 ? 400 : 320)
       })
@@ -285,6 +299,7 @@ export default {
       // step 3: what helped
       const b = step === 2
       A(bssHead, { o: b ? 1 : 0 }, b ? 200 : 0)
+      A(legend, { o: b ? 1 : 0 }, b ? 1100 : 0)
       bars.forEach((bar, i) => {
         A(bar.label, { o: b ? 1 : 0 }, b ? stagger(i, 250, 300) : 0)
         A(bar.rect, { kx: b ? 1 : 0 }, b ? stagger(i, 250, 350) : 0, 400, LEFT)

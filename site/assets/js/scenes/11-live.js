@@ -1,4 +1,4 @@
-// Scene 10 of the methodology deck: the live pipeline behind this page, one station per step.
+// Scene 11 of the methodology deck: the live pipeline behind this page, one station per step.
 // Facts: src/airalerts/live/ (fetch.py, features.py, model.py), tests/test_live_features.py, docs/adr/0012-live-site.md,
 // docs/adr/0013-retrain-cadence.md, deploy/systemd/kyianyn-routine-cycle.timer and kyianyn-routine-train.timer, README.md «Епоха 4»,
 // docs/quiet/sources.md. The hours the model learned from are read from the live model.json at run time.
@@ -88,9 +88,9 @@ export default {
   lead: 'Кожні 5 хвилин той самий шлях: від постів у Telegram до цієї сторінки.',
   steps: [
     {
-      note: '<p>Кожні <span class="num">5</span> хвилин сервер читає <span class="num">10</span> каналів Telegram: 7 київських (КМВА, Кличко, монітори) і 6 моніторингових, 3 з них спільні; одинадцятий, єТривога, потрібен лише для тривоги (крок 2). '
+      note: '<p>Кожні <span class="num">5</span> хвилин сервер читає <span class="num">11</span> каналів Telegram. Для прогнозу 10: 7 пишуть про атаки на Київ (КМВА, Кличко, монітори), 6 про підготовку ударів, і 3 канали є в обох списках, тож 7 + 6 - 3 = 10; одинадцятий, єТривога, лише підказує початок тривоги (крок 2). '
         + 'Канали читаються по одному з паузою 1.5 с, і додаються лише пости, новіші за останній відомий.</p>'
-        + SRC('src/airalerts/live/fetch.py (EVERY = 300 секунд; публічні сторінки t.me/s; eTryvoga); deploy/systemd/kyianyn-routine-cycle.timer; docs/adr/0012-live-site.md, «Рішення».'),
+        + SRC('src/airalerts/live/fetch.py (CHANNELS: 10 каналів прогнозу і UkraineAlarmSignal; EVERY = 300 секунд; публічні сторінки t.me/s; eTryvoga); deploy/systemd/kyianyn-routine-cycle.timer; docs/adr/0012-live-site.md, «Рішення».'),
     },
     {
       note: '<p>Канал КМВА іде окремою гілкою: тривогу і відбій розпізнає простий шаблон тексту, без мовної моделі. '
@@ -128,7 +128,7 @@ export default {
     },
     {
       note: '<p>Погоду, політичні події, символічні дати й удари по Росії ми не читаємо. '
-        + 'Додані до набору «годинник + сигнали», вони змінюють виграш (BSS) на навчальних даних від <span class="num">-0.014</span> до <span class="num">+0.003</span>, а модель на всіх джерелах без ударів по Росії навіть краща, ніж з ними (0.052 проти 0.030). '
+        + 'Додані до години, дня тижня і сигналів підготовки, вони змінюють виграш (BSS) на навчальних даних від <span class="num">-0.014</span> до <span class="num">+0.003</span>, а модель на всіх джерелах без ударів по Росії навіть краща, ніж з ними (0.052 проти 0.030). '
         + 'Кожне зайве джерело це шум і ще один збирач, який треба тримати живим.</p>'
         + SRC('docs/quiet/sources.md.'),
     },
@@ -161,15 +161,16 @@ export default {
     const P = (node, at, opt) => { pipe.append(node); return add(node, at, opt) }
     const upto = (st) => Math.min(st, 5)
 
-    // The 10 channels fan into Telegram (step 1); the dot nearest the bypass is the alert channel VA_Kyiv.
+    // The 11 channels fan into Telegram (step 1): 10 for the forecast and eTryvoga; the dot nearest the bypass is the alert
+    // channel VA_Kyiv.
     const fan = s('g', {})
-    const chans = [...Array(10)].map((_, j) => {
+    const chans = [...Array(11)].map((_, j) => {
       fan.append(s('line', { x1: 24 + j * 28, y1: 44, x2: 90, y2: 87, class: 'rule' }))
       return s('circle', { cx: 24 + j * 28, cy: 36, r: 8, class: 'pinkf' })
     })
     P(fan, (st) => (st >= 0 ? {} : { o: 0 }), { delay: (st) => (st === 0 ? 500 : 0) })
     chans.forEach((c, j) => P(c, (st) => (st >= 0 ? {} : { o: 0, k: 0 }), { delay: (st) => (st === 0 ? stagger(j, 50) : 0) }))
-    P(s('text', { x: 318, y: 44, class: 'ink', text: '10 каналів, кожні 5 хв' }), (st) => (st >= 0 ? {} : { o: 0, y: 10 }),
+    P(s('text', { x: 326, y: 44, class: 'ink', text: '11 каналів, кожні 5 хв' }), (st) => (st >= 0 ? {} : { o: 0, y: 10 }),
       { delay: (st) => (st === 0 ? 600 : 0) })
     P(s('circle', { cx: 80, cy: 36, r: 13, class: 'ring' }), (st) => (st === 1 ? {} : { o: 0, k: 1.6 }))
 
@@ -279,7 +280,7 @@ export default {
 
     // Hover texts: what each station does, and the facts of this step.
     const STOP = {
-      Telegram: '10 каналів Telegram кожні 5 хвилин, по одному з паузою 1.5 с',
+      Telegram: '11 каналів Telegram кожні 5 хвилин, по одному з паузою 1.5 с',
       Jev: 'класифікатор Jev ставить мітки новим постам, відповіді на старі беруться з кешу',
       'срібло': 'срібний шар: пости, мітки й сигнали, таблиці подій з часом',
       'ознаки': 'ознаки рахують ті самі функції, що будували золотий шар',
@@ -291,10 +292,10 @@ export default {
       { x: 140, y: 170, t: 'погода: не читаємо' },
       { x: 320, y: 170, t: 'політичні події і символічні дати: не читаємо' },
       { x: 500, y: 170, t: 'удари по Росії: не читаємо, модель без них навіть краща (0.052 проти 0.030)' },
-      { x: 320, y: 330, t: 'додані до набору «годинник + сигнали», ці джерела змінюють виграш (BSS) на навчальних даних від -0.014 до +0.003' },
+      { x: 320, y: 330, t: 'додані до години, дня тижня і сигналів підготовки, ці джерела змінюють виграш (BSS) на навчальних даних від -0.014 до +0.003' },
     ]
     const zonesAt = (k) => (k === 6 ? OFF : k < 0 ? [] : [
-      ...(k === 0 ? [{ x: 150, y: 40, t: '10 каналів: 7 київських і 6 моніторингових, 3 з них спільні' }] : []),
+      ...(k === 0 ? [{ x: 164, y: 40, t: '11 каналів: 10 для прогнозу (7 про атаки на Київ і 6 про підготовку ударів, 3 з них в обох списках, тож 7 + 6 - 3 = 10) і єТривога, що лише підказує початок тривоги' }] : []),
       ...(k >= 1 ? [{ x: 120, y: 210, t: 'канал КМВА: тривогу і відбій розпізнає шаблон тексту, без мовної моделі' }] : []),
       ...STATIONS.filter((st0) => upto(k) >= st0.at).map((st0) => ({ x: st0.cx, y: st0.cy, t: STOP[st0.label] })),
     ])
