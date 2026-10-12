@@ -45,7 +45,7 @@ const PATH = {
   past: '<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4v4.5H8"/><path d="M12 7.5V12l3 2"/>',
 }
 const TIMES = ['раз', 'рази', 'разів']
-const CALLS = ['запит', 'запити', 'запитів']
+const ANSWERS = ['відповідь', 'відповіді', 'відповідей']
 const RM = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 // A tiny element builder. how.js has the same helper, but tab 1 must work without loading the deck module.
@@ -181,8 +181,11 @@ function tips(box, tip) {
     el.addEventListener('focus', () => show(el))
     el.addEventListener('blur', () => { if (openTip?.el === el) hideTip() })
     el.addEventListener('click', () => {
-      if (tap && was) hideTip()
-      else show(el)
+      if (was && (tap || openTip?.pinned)) hideTip()
+      else {
+        show(el)
+        openTip.pinned = !tap
+      }
       tap = false
       was = false
     })
@@ -353,19 +356,21 @@ function chips(now, f) {
 function crossings(now) {
   const level = now?.now?.alert ? (ALERT_FLAG[now.now.level] ? now.now.level : 'alert') : null
   const state = !now ? 'Стан тривоги невідомий, показано як без тривоги.' : level ? ALERT_STATE[level] : 'Зараз тривоги немає.'
+  const curfew = inCurfew() // until it ends nobody crosses without a pass, whatever the alert
   const rows = crossingsFor(level).map((c) => {
-    const st = STATUS_WORD[c.status] ? c.status : 'unknown'
+    const st = curfew ? 'closed' : STATUS_WORD[c.status] ? c.status : 'unknown'
+    const note = curfew ? `до ${CURFEW.to} комендантська година, без перепустки не можна` : c.note
     return h('li', { class: `cross-row is-${st}` }, icon(st),
       h('div', { class: 'cross-txt' },
         h('p', { class: 'cross-name' },
           METRO.has(c.id) && h('i', { class: `metro metro-${c.id}`, 'aria-hidden': 'true' }),
           h('b', { text: c.name }), h('span', { class: 'cross-via', text: c.via })),
-        h('p', { class: 'cross-note' }, h('b', { class: 'cross-st', text: STATUS_WORD[st] }), `: ${c.note}`)))
+        h('p', { class: 'cross-note' }, h('b', { class: 'cross-st', text: STATUS_WORD[st] }), `: ${note}`)))
   })
   return [
     h('ul', { class: 'cross-list' }, rows),
     h('p', { class: 'cross-meta' }, icon('moon'),
-      h('span', { text: `${state} Комендантська година щодня з ${CURFEW.from} до ${CURFEW.to}.` })),
+      h('span', { text: curfew ? `${state} Зараз комендантська година, до ${CURFEW.to}.` : `${state} Комендантська година щодня з ${CURFEW.from} до ${CURFEW.to}.` })),
     h('details', { class: 'srcs' }, h('summary', { text: `Джерела, ${SOURCES.length}` }),
       h('ul', {}, SOURCES.map((s) => h('li', {},
         h('a', { href: s.url, target: '_blank', rel: 'noopener', text: s.title }),
@@ -444,7 +449,7 @@ function sources(now, meta, model) {
     ['Останній пост', now?.data_until ? `${kyivStamp(now.data_until)}, ${ago(now.data_until)}` : 'ще немає'],
     ['Модель', md?.trained_at ? `навчена ${kyivStamp(md.trained_at)} на ${num(md.rows)} годинах` : 'ще не готова'],
     ['ШІ читає пости', jev
-      ? `${num(jev.calls)} ${isNum(jev.calls) ? plural(jev.calls, CALLS) : 'запитів'}, $${isNum(jev.usd) ? jev.usd.toFixed(2) : '?'}`
+      ? `${num(jev.calls)} ${isNum(jev.calls) ? plural(jev.calls, ANSWERS) : 'відповідей'} Jev збережено, $${isNum(jev.usd) ? jev.usd.toFixed(2) : '?'}`
       : 'даних ще немає'],
   ]
   const day1 = 24 * 3600 * 1000

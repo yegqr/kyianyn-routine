@@ -274,7 +274,7 @@ function createHero(el, map) {
     const taken = [[0, 0, PX.sun + 20, PX.sun + 16], wb, eb, [W - 112, H - 24, W, H]]
     const rl = riverLabel()
     if (rl) {
-      const t = svg('text', { class: 'hm-label hm-river', x: f(rl.x, 2), y: f(rl.y, 2), 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': f(s(PX.label - 1), 2), transform: `rotate(${f(rl.a)} ${f(rl.x, 2)} ${f(rl.y, 2)})` }, 'Дніпро')
+      const t = svg('text', { class: 'hm-label hm-river', x: f(rl.x, 2), y: f(rl.y, 2), 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': f(s(PX.label), 2), transform: `rotate(${f(rl.a)} ${f(rl.x, 2)} ${f(rl.y, 2)})` }, 'Дніпро')
       t.addEventListener('click', boat)
       labels.append(t)
       const px = (rl.x - vb.x) / k
