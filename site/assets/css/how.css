@@ -1,17 +1,25 @@
-/* The methodology deck (assets/js/how.js). Tokens only from tokens.css. */
+/* The methodology deck "Як це працює" (assets/js/how.js): 12 sections ("розділ"), each in a few steps ("крок").
+   Tokens only from tokens.css. Desktop: the title and the text on the left, the stage with its controls on the right.
+   Phone (760 px and less): the title, the stage, the controls in one row, then the lead, the note and the cards. */
 
 .how {
   display: grid;
   grid-template-columns: minmax(280px, 400px) minmax(0, 1fr);
-  gap: 32px;
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "head side" "body side";
+  column-gap: 40px;
   align-items: start;
 }
+
+.how-head { grid-area: head; min-width: 0; }
+.how-body { grid-area: body; min-width: 0; }
+.how-side { grid-area: side; position: sticky; top: 88px; display: grid; gap: 12px; min-width: 0; }
 
 .how-kicker {
   margin: 0 0 8px;
   color: var(--pink);
-  font-weight: 600;
   font-size: 14px;
+  font-weight: 600;
   letter-spacing: .02em;
 }
 
@@ -21,29 +29,80 @@
   font-size: clamp(22px, 2.6vw, 32px);
   line-height: 1.15;
   color: var(--ink);
+  text-wrap: balance;
+  overflow-wrap: break-word;
 }
 
 .how-lead {
   margin: 0 0 16px;
   font-size: 18px;
+  font-weight: 500;
   line-height: 1.45;
-  color: var(--body);
+  color: var(--ink);
 }
 
 .how-note {
+  min-height: 96px;
   font-size: 16px;
   line-height: 1.55;
   color: var(--body);
-  min-height: 96px;
 }
 
 .how-note p { margin: 0 0 10px; }
 .how-note b, .how-note strong { color: var(--ink); }
 .how-note .num { font-family: var(--font-display); color: var(--pink); }
 
+/* The sources of a step, the last thing in its note:
+   <details class="how-src"><summary>Джерела</summary><p>...</p></details>. Folded, small and quiet;
+   the whole summary row is the tap target. */
+.how-src { margin: 14px 0 0; border-top: 1px solid var(--line); color: var(--soft); }
+
+.how-src > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  border-radius: var(--r-small);
+  color: var(--soft);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.how-src > summary::-webkit-details-marker { display: none; }
+
+.how-src > summary::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  margin-top: -4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 240ms var(--ease);
+}
+
+.how-src[open] > summary::after { transform: translateY(4px) rotate(225deg); }
+.how-src > summary:hover { color: var(--ink); }
+.how-src > summary:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.how-note .how-src p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--soft);
+  overflow-wrap: anywhere;
+}
+
+.how-src code { font-size: 12px; }
+
 .how-prompts { display: grid; gap: 12px; margin-top: 12px; }
+.how-prompts:empty { display: none; }
+.how-prompts > * { min-width: 0; }
 
 .prompt {
+  max-width: 100%;
   margin: 0;
   border: 1px solid var(--line);
   border-left: 4px solid var(--pink);
@@ -76,40 +135,49 @@
   overflow-wrap: anywhere;
 }
 
-.how-side { position: sticky; top: 88px; display: grid; gap: 12px; min-width: 0; }
+/* The stage: scenes draw inside, it clips at its border. A size container, so a scene can hide a wide label
+   with @container how-stage (max-width: 499px). */
+.how-frame { position: relative; }
 
 .how-stage {
   position: relative;
   aspect-ratio: 16 / 10;
+  container: how-stage / inline-size;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   overflow: hidden;
   touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .how-svg { display: block; width: 100%; height: 100%; font-family: var(--font); }
 
-.how-frame { position: relative; }
-
-/* A hover hint over the stage: where we are and how to move on. */
+/* The hint on the stage: shown for a moment when the deck opens, later on hover. */
 .how-cap {
   position: absolute;
   left: 12px;
   bottom: 12px;
+  max-width: calc(100% - 24px);
   margin: 0;
   padding: 4px 12px;
   border-radius: var(--r-pill);
   background: var(--ink);
   color: var(--card);
   font-size: 13px;
+  line-height: 1.4;
   pointer-events: none;
   opacity: 0;
   transform: translateY(4px);
-  transition: transform 200ms var(--ease), opacity 200ms var(--ease);
+  transition: transform 240ms var(--ease), opacity 240ms var(--ease);
 }
 
-.how-frame:hover .how-cap, .how-frame:focus-within .how-cap { opacity: 1; transform: none; }
+.how-frame.is-hint .how-cap { opacity: 1; transform: none; }
+
+@media (hover: hover) {
+  .how-frame:hover .how-cap { opacity: 1; transform: none; }
+}
 
 .how-empty {
   position: absolute;
@@ -117,39 +185,71 @@
   display: grid;
   place-items: center;
   margin: 0;
+  padding: 16px;
   font-family: var(--font-display);
   color: var(--soft);
+  text-align: center;
 }
 
-.how-nav {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+/* Controls: the sections as a segmented bar, then one row: Автопрогравання on the left, the pager on the right. */
+.how-nav { display: grid; gap: 10px; }
 
-.how-dots { display: flex; gap: 6px; flex: 1 1 auto; flex-wrap: wrap; align-items: center; }
+.how-dots { display: flex; gap: 4px; }
 
 .how-dot {
-  width: 10px;
-  height: 10px;
+  display: grid;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 20px;
   padding: 0;
   border: 0;
-  border-radius: var(--r-pill);
-  background: var(--line);
+  border-radius: var(--r-small);
+  background: none;
   cursor: pointer;
-  transition: transform 240ms var(--ease), opacity 240ms var(--ease);
 }
 
-.how-dot:hover { transform: scale(1.3); }
-.how-dot[aria-current="step"] { background: var(--pink); transform: scale(1.35); }
-.how-dot:focus-visible, .how-nav .pill:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.how-dot-bar {
+  display: block;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  overflow: hidden;
+}
 
-.how-step { font-size: 14px; color: var(--soft); min-width: 44px; text-align: center; }
+.how-dot-bar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  background: var(--pink);
+  transform: translateX(calc((var(--p, 0) - 1) * 100%));
+  transition: transform 320ms var(--ease);
+}
+
+.how-dot:hover .how-dot-bar, .how-dot[aria-current="step"] .how-dot-bar { background: var(--pink-soft); }
+
+.how-ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.how-pager { display: flex; align-items: center; gap: 6px; }
+
+.how-step {
+  min-width: 76px;
+  color: var(--soft);
+  font-size: 14px;
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 
 .how-nav .pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   min-height: 40px;
   padding: 0 14px;
@@ -158,23 +258,55 @@
   background: var(--card);
   color: var(--ink);
   font: 500 15px var(--font);
+  white-space: nowrap;
   cursor: pointer;
 }
 
+.how-nav .how-prev { padding: 0 14px 0 10px; }
+.how-nav .how-next { padding: 0 10px 0 14px; }
 .how-nav .pill:hover { border-color: var(--pink); }
 .how-nav .pill:disabled { opacity: .4; cursor: default; }
-.how-nav .pill svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.how-nav .pill:disabled:hover { border-color: var(--line); }
+.how-nav .how-play[aria-pressed="true"] { border-color: var(--pink); background: var(--pink-soft); }
+.how-nav .pill svg { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .how-nav .how-play svg path { fill: currentColor; }
-.how-nav .how-arrow { padding: 0 12px; }
+.how-dot:focus-visible, .how-nav .pill:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
 @media (max-width: 760px) {
-  .how { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  .how-side { position: static; order: -1; }
-  .how-dots { gap: 5px; }
-  .how-step { display: none; }
-  .how-play span { display: none; }
+  .how {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas: "head" "side" "body";
+    row-gap: 14px;
+  }
+  .how-side { position: static; gap: 10px; }
+  /* Two lines kept for every title, so the stage and the controls stay in place from section to section. */
+  .how-title { min-height: 2.3em; margin: 0; }
+  .how-lead { margin-bottom: 12px; font-size: 17px; }
+}
+
+/* Touch: every control at least 44 px tall. */
+@media (max-width: 760px), (pointer: coarse) {
+  .how-nav .pill { min-height: 44px; }
+  .how-dot { height: 28px; }
+  .how-src > summary { min-height: 44px; }
+}
+
+/* Phone: the arrows lose their words (the names stay for screen readers), the toggle keeps its word. */
+@media (max-width: 560px) {
+  .how-nav .pill { padding: 0 12px; font-size: 14px; }
+  .how-nav .how-arrow { width: 44px; padding: 0; }
+  .how-arrow span { display: none; }
+  .how-pager { gap: 4px; }
+  .how-step { min-width: 70px; }
+}
+
+@media (max-width: 374px) {
+  .how-nav .pill { padding: 0 10px; font-size: 13px; }
+  .how-nav .how-arrow { width: 40px; padding: 0; }
+  .how-step { min-width: 62px; font-size: 13px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .how-dot, .how-cap { transition: none; }
+  .how-dot-bar::after, .how-cap, .how-src > summary::after { transition: none; }
 }
