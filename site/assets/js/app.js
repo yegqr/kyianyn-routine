@@ -4,7 +4,7 @@
 // shows a skeleton (body.is-loading). The deck (how.js) loads on the first visit of its tab and shares the data.
 
 import { ago, kyivStamp, kyivTime, kyivDay } from './api.js'
-import { renderDashboard, mountChartsInto, runTrain } from './dashboard.js'
+import { renderDashboard, renderPills, mountChartsInto, runTrain } from './dashboard.js'
 
 const $ = (sel) => document.querySelector(sel)
 const tabMain = $('#tab-main')
@@ -14,7 +14,6 @@ const help = $('#help')
 const live = $('#live')
 const liveWord = $('#live-word')
 const liveAgo = $('#live-ago')
-const liveMore = $('#live-more')
 const toast = $('#toast')
 const RM = window.matchMedia('(prefers-reduced-motion: reduce)')
 const SMALL = ['now', 'model', 'meta'] // a few KB each: the answer and every block but the charts
@@ -29,6 +28,7 @@ let lastHow = ''
 let shown = ''
 let toastTimer = 0
 let ready = false // the first data is drawn and the page has left its loading skeleton
+let chartsOn = false // the charts mount on the first open of their folded block, not on page load
 
 const isHow = () => location.hash.startsWith('#/how')
 const behavior = () => (RM.matches ? 'auto' : 'smooth')
@@ -71,7 +71,7 @@ async function refresh() {
   if (!ready) reveal()
   pill()
   take('history', await big)
-  if (changed.has('history') || changed.has('now')) mountChartsInto($('#charts'), data)
+  if (chartsOn && (changed.has('history') || changed.has('now'))) mountChartsInto($('#charts'), data)
   return changed
 }
 
@@ -88,35 +88,37 @@ const tick = () => refresh().catch((err) => {
   return new Set()
 })
 
-// The live pill: a green dot and "оновлено N хв тому"; stale data: an amber chip "дані за HH:MM, оновлюємо" (on a
-// phone just "дані за HH:MM"); no data yet: a grey dot.
+// The live chip: a green dot and "оновлено N хв тому" (on a phone just "N хв тому"); late data: an amber chip
+// "дані за HH:MM" (on a phone "за HH:MM"), so it always fits whole; no data yet: a grey dot.
 function pill() {
   const now = data.now
   const stale = Boolean(now?.stale)
   live.classList.toggle('is-stale', stale)
   live.classList.toggle('is-empty', !now)
   liveWord.hidden = !now || stale
-  liveMore.hidden = !now || !stale
   if (!now) {
     liveAgo.textContent = 'чекаю на дані'
     live.title = 'Дані ще не готові'
-    live.setAttribute('aria-label', 'Дані ще не готові. Перейти до джерел')
+    live.setAttribute('aria-label', 'Дані ще не готові. Відкрити «Звідки дані»')
     return
   }
-  const reason = now.stale_reason || 'дані застаріли'
   const fresh = now.generated_at ? ago(now.generated_at) : 'невідомо коли'
+  const at = now.hour || now.data_until
   if (stale) {
-    const at = now.hour || now.data_until
+    const word = document.createElement('span')
+    word.className = 'live-word'
+    word.textContent = 'дані '
     const date = document.createElement('span')
     date.className = 'live-date'
     date.textContent = at && kyivDay(at) !== kyivDay(new Date().toISOString()) ? `${kyivDay(at)} ` : ''
-    liveAgo.replaceChildren('дані за ', date, at ? kyivTime(at) : '?')
+    liveAgo.replaceChildren(word, 'за ', date, at ? kyivTime(at) : '?')
   } else {
     liveAgo.textContent = fresh
   }
-  live.title = stale ? `Дані застаріли: ${reason}`
-    : `Оновлено ${now.generated_at ? kyivStamp(now.generated_at) : ''}${now.data_until ? `, найсвіжіший пост ${kyivStamp(now.data_until)}` : ''}`
-  live.setAttribute('aria-label', `${stale ? `Дані застаріли: ${reason}` : `Оновлено ${fresh}`}. Перейти до джерел`)
+  const late = `Дані запізнюються: останні за ${at ? kyivStamp(at) : '?'}`
+  live.title = stale ? late
+    : `Оновлено ${now.generated_at ? kyivStamp(now.generated_at) : ''}${now.data_until ? `, останній пост ${kyivStamp(now.data_until)}` : ''}`
+  live.setAttribute('aria-label', `${stale ? late : `Оновлено ${fresh}`}. Відкрити «Звідки дані»`)
 }
 
 // Tabs: every hash that starts with #/how shows the deck, everything else shows tab 1.
@@ -146,7 +148,7 @@ function waitNote(text) {
 
 function openHow() {
   howLoad ??= (async () => {
-    howRoot.replaceChildren(waitNote('Завантажую кроки...'))
+    howRoot.replaceChildren(waitNote('Завантажую розділи...'))
     try {
       await first
       const { createHow } = await import('./how.js')
@@ -154,20 +156,25 @@ function openHow() {
       if (!isHow()) how.stop()
     } catch (err) {
       console.warn('how', err)
-      howRoot.replaceChildren(waitNote('Цей розділ ще готується. Загляньте трохи згодом.'))
+      howRoot.replaceChildren(waitNote('Не вдалося завантажити. Онови сторінку.'))
     }
   })()
   return howLoad
 }
 
-// Arrows up and down: the previous or next section of tab 1, under the sticky header.
+// Arrows up and down: the previous or next section of tab 1, under the sticky header. From a block that has the focus
+// the step goes to its neighbour, else to the next block below or above the top of the screen. A folded block takes
+// the focus on its summary row, so Enter opens or folds it at once.
 function section(dir) {
   const list = [...tabMain.querySelectorAll(':scope > section')]
+  const at = list.findIndex((s) => s.contains(document.activeElement))
   const top = (s) => s.getBoundingClientRect().top - parseFloat(getComputedStyle(s).scrollMarginTop || '0')
-  const target = dir > 0 ? list.find((s) => top(s) > 4) : list.reverse().find((s) => top(s) < -4)
+  const target = at >= 0 ? list[at + dir]
+    : dir > 0 ? list.find((s) => top(s) > 4) : list.reverse().find((s) => top(s) < -4)
   if (!target) return
   target.scrollIntoView({ behavior: behavior(), block: 'start' })
-  target.focus({ preventScroll: true })
+  const row = target.querySelector(':scope > details > summary') || target
+  row.focus({ preventScroll: true })
 }
 
 function train() {
@@ -246,6 +253,15 @@ document.addEventListener('keydown', (e) => {
         how.toggle()
       }
       break
+    case 'Enter': case 'NumpadEnter': {
+      // A folded block that has the focus itself, not its summary row: Enter opens or folds it too
+      const fold = !onHow && e.target instanceof Element && e.target.matches('.fold-block') ? e.target.querySelector('details') : null
+      if (fold) {
+        e.preventDefault()
+        fold.open = !fold.open
+      }
+      break
+    }
     default:
   }
 })
@@ -263,16 +279,25 @@ live.addEventListener('click', () => {
     const box = $('#sources')
     box.querySelector('details')?.setAttribute('open', '')
     box.scrollIntoView({ behavior: behavior(), block: 'start' })
-    box.focus({ preventScroll: true })
+    const row = box.querySelector('summary') || box
+    row.focus({ preventScroll: true })
   }
   if (isHow()) {
     location.hash = '#/'
     setTimeout(go, 80)
   } else go()
 })
+$('#charts details')?.addEventListener('toggle', (e) => {
+  if (!e.target.open || chartsOn) return
+  chartsOn = true
+  mountChartsInto($('#charts'), data)
+})
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tick() })
 
 const first = tick()
 route()
 setInterval(tick, EVERY_MS)
-setInterval(pill, 30 * 1000)
+setInterval(() => {
+  pill()
+  if (ready) renderPills(tabMain, data)
+}, 30 * 1000)

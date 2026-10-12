@@ -31,7 +31,7 @@ a:focus-visible { border-radius: var(--r-small); }
 .ico svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-/* Header: the bridge mark and the short name, the two tabs, the live dot, the keys button */
+/* Header: the bridge mark and the short name, the two tabs, the live chip, the keys button */
 
 .top { position: sticky; top: 0; z-index: 10; background: var(--paper); border-bottom: 1px solid var(--line); }
 
@@ -84,11 +84,10 @@ a:focus-visible { border-radius: var(--r-small); }
 .tab:focus-visible { border-radius: var(--r-pill); }
 .tab[aria-current="page"] { background: var(--pink); border-color: var(--pink); color: var(--card); }
 
+/* The live chip never cuts its text: on a phone it drops the words "оновлено" and "дані" instead (see below). */
 .live {
   grid-area: live;
   justify-self: end;
-  min-width: 0;
-  max-width: 100%;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -99,12 +98,13 @@ a:focus-visible { border-radius: var(--r-small); }
   background: var(--card);
   color: var(--body);
   font-size: 14px;
+  white-space: nowrap;
   cursor: pointer;
 }
 .live:hover { border-color: var(--pink); }
 .live-dot { flex: none; width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--go); }
 .live.is-empty .live-dot { background: var(--soft); }
-.live-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-text { white-space: nowrap; }
 .live .ico { display: none; width: 18px; height: 18px; }
 .live.is-stale { border-color: var(--risk-fill); background: var(--risk-soft); color: var(--risk); font-weight: 600; }
 .live.is-stale .live-dot { display: none; }
@@ -126,9 +126,9 @@ a:focus-visible { border-radius: var(--r-small); }
 }
 .help-btn:hover { border-color: var(--pink); color: var(--pink); }
 
-/* Blocks (tab 1, the charts, some scenes of the deck) */
+/* Blocks (tab 1, the charts, some scenes of the deck). One radius (--r-card) and one gap between them. */
 
-.tab-main { display: grid; gap: 16px; padding-top: 16px; }
+.tab-main { display: grid; gap: 14px; padding-top: 18px; }
 .tab-how { padding-top: 28px; }
 
 .block {
@@ -152,18 +152,19 @@ p.src { margin-top: 12px; }
 .note b { color: var(--ink); }
 .tip { position: absolute; left: 12px; right: 12px; z-index: 2; padding: 10px 12px; border-radius: var(--r-small); background: var(--ink); color: var(--card); font-size: 14px; line-height: 1.4; box-shadow: var(--shadow-pink); pointer-events: none; animation: fade 200ms var(--ease) both; }
 
-/* a) the first screen: alert chip, answer, line, question, crossing picture, probability, chips. The hero takes the
-   soft colour of the tier and the answer, the number and the chip icons its strong colour. */
+/* a) The hero, top to bottom on a phone: pills, question, window, answer, line, map, probability, chips, safety line.
+   The card takes the soft colour of the tier; the answer, the number and the icons its strong colour (contrast of
+   the strong colour on its soft one is above 4.4:1). From 1001 px the map moves to the right of the words. */
 
 .block.hero {
   --tone: var(--soft);
   --tone-soft: var(--card);
-  --answer-h: clamp(84px, 25vw, 124px);
+  --answer-h: clamp(80px, 24vw, 136px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 32px 28px;
-  border-color: transparent;
+  padding: 26px 32px 24px;
+  border-color: color-mix(in srgb, var(--tone) 22%, var(--tone-soft));
   background: var(--tone-soft);
   text-align: center;
 }
@@ -172,24 +173,32 @@ p.src { margin-top: 12px; }
 .hero[data-tier="medium"] { --tone: var(--risk); --tone-soft: var(--risk-soft); }
 .hero[data-tier="high"] { --tone: var(--stop); --tone-soft: var(--stop-soft); }
 
-.hero-alert { margin-bottom: 4px; }
-.hero-alert:empty, .hero-window:empty, .hero-p:empty, .hero-chips:empty { display: none; }
-.alert-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 14px 0 10px; border-radius: var(--r-pill); font-size: 15px; font-weight: 700; animation: rise 300ms var(--ease) both; }
-.alert-chip .ico { width: 18px; height: 18px; }
-.alert-red { background: var(--stop); color: var(--card); }
-.alert-yellow { background: var(--risk-fill); color: var(--ink); }
+.hero-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 14px; }
+.hero-pills:empty, .hero-window:empty, .hero-p:empty, .hero-chips:empty { display: none; }
+/* The pills are light: white, a thin border and an icon in the colour of what they say, the kind in bold. A long one
+   wraps on a phone into a rounded box of two even, centred lines; on one line the same radius makes it a pill. */
+.flag { display: block; max-width: 100%; min-height: 30px; margin: 0; padding: 5px 14px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--card); color: var(--ink); font-size: 13px; font-weight: 500; line-height: 1.35; text-align: center; text-wrap: balance; animation: rise 300ms var(--ease) both; }
+.flag b { font-weight: 700; }
+.flag .ico { width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px; }
+.flag-red { border-color: var(--stop); }
+.flag-red .ico { color: var(--stop); }
+.flag-yellow, .flag-stale { border-color: var(--risk-fill); }
+.flag-yellow .ico, .flag-stale .ico { color: var(--risk); }
+.flag-night { border-color: var(--night); font-weight: 600; }
+.flag-night .ico { color: var(--night); }
 
-.hero-answer { display: flex; align-items: center; justify-content: center; width: 100%; height: var(--answer-h); }
-.hero .answer { margin: 0; font: 800 var(--answer-h)/1 var(--font-display); letter-spacing: -.02em; color: var(--tone); white-space: nowrap; animation: rise 360ms var(--ease) both; }
-.hero .answer-medium { font-size: clamp(30px, 9vw, 88px); }
+.hero-q { max-width: 26ch; font: 700 clamp(20px, 2.3vw, 30px)/1.3 var(--font); color: var(--ink); text-wrap: balance; }
+.hero-window { margin-top: 4px; font-size: 14px; color: var(--soft); }
+.hero-answer { display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 8px; }
+.hero .answer { margin: 0; font: 800 var(--answer-h)/1.08 var(--font-display); letter-spacing: -.02em; color: var(--tone); white-space: nowrap; animation: none; }
+.hero .answer-new { animation: lift 320ms var(--ease) both; }
 .hero .answer-wait { font-size: clamp(24px, 6vw, 40px); letter-spacing: 0; color: var(--soft); white-space: normal; }
-.hero-line { font: 700 clamp(17px, 1.7vw, 21px)/1.3 var(--font); color: var(--ink); }
+.hero-line { margin-top: 2px; font: 600 clamp(17px, 1.6vw, 20px)/1.35 var(--font); color: var(--ink); }
 .hero[data-tier="none"] .hero-line { font-weight: 500; color: var(--soft); }
-.hero-q { max-width: 60ch; margin-top: 14px; font: 600 15px/1.4 var(--font); color: var(--body); text-wrap: balance; }
-.hero-window { margin-top: 2px; font-size: 14px; color: var(--soft); }
+.sent { display: inline-block; } /* one sentence wraps as a whole (dashboard.js sentences, the safety line) */
 
-/* The crossing picture: a fixed 2:1 box. hero.js draws in it when present; until then the train on the bridge. */
-.hero-map { position: relative; width: 100%; max-width: 600px; aspect-ratio: 2 / 1; margin-top: 18px; overflow: hidden; border-radius: var(--r-card); background: var(--card); }
+/* The crossing map: a fixed 2:1 box. hero.js draws in it when present; until then the train on the bridge. */
+.hero-map { position: relative; width: 100%; max-width: 600px; aspect-ratio: 2 / 1; margin-top: 16px; overflow: hidden; border-radius: var(--r-card); background: var(--card); }
 .hero-map:has(.train:focus-visible) { box-shadow: var(--focus-ring); }
 .hero-map .train { width: 100%; height: 100%; max-width: none; padding: 0; border: 0; border-radius: 0; background: none; }
 .hero-map .train:focus-visible { box-shadow: none; }
@@ -204,33 +213,71 @@ p.src { margin-top: 12px; }
 .hero-map .train-svg text { fill: var(--soft); }
 .hero-map .train-svg .river-name { fill: var(--m2); }
 
-.hero-p { width: 100%; max-width: 520px; margin-top: 18px; }
+/* The probability: the number, its label and the scale in three equal parts with the thresholds at the borders */
+.hero-p { width: 100%; max-width: 480px; margin-top: 20px; }
 .p-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
-.p-num { font: 800 clamp(28px, 6.6vw, 56px)/1 var(--font-display); color: var(--tone); }
-.p-label { max-width: 22ch; font-size: 15px; line-height: 1.3; text-align: left; color: var(--body); }
-.meter { margin-top: 14px; }
-.meter-bar { position: relative; display: flex; height: 10px; }
+.p-num { flex: none; font: 800 clamp(30px, 4vw, 44px)/1 var(--font-display); color: var(--tone); }
+.p-num.p-low { color: var(--go); }
+.p-num.p-medium { color: var(--risk); }
+.p-num.p-high { color: var(--stop); }
+.p-label { max-width: 30ch; font-size: 15px; line-height: 1.3; text-align: left; color: var(--body); }
+.meter { margin-top: 12px; }
+.meter-cuts { position: relative; height: 16px; margin-bottom: 4px; font-size: 12px; line-height: 16px; color: var(--soft); }
+.meter-cuts span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.meter-bar { position: relative; display: flex; gap: 3px; height: 10px; }
+.meter .zone { flex: 1 1 0; }
 .zone-go { background: var(--go); border-radius: var(--r-pill) 0 0 var(--r-pill); }
 .zone-risk { background: var(--risk-fill); }
 .zone-stop { flex: 1; background: var(--stop); border-radius: 0 var(--r-pill) var(--r-pill) 0; }
-.meter-mark { position: absolute; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border: 4px solid var(--card); border-radius: var(--r-pill); background: var(--ink); box-shadow: var(--shadow-pink); animation: pop 320ms var(--ease) 120ms both; }
-.meter-ticks { position: relative; height: 18px; margin-top: 8px; font-size: 13px; line-height: 18px; color: var(--soft); }
-.meter-ticks span { position: absolute; top: 0; white-space: nowrap; }
-.meter-ticks .to-left { transform: translateX(calc(-100% - 3px)); }
-.meter-ticks .to-right { transform: translateX(3px); }
+.meter-mark { position: absolute; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border: 4px solid var(--card); border-radius: var(--r-pill); background: var(--ink); box-shadow: 0 1px 4px var(--line); animation: pop 320ms var(--ease) 120ms both; }
+.meter-words { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 8px; font-size: 13px; line-height: 1.3; color: var(--soft); text-align: center; }
+.meter-words .is-on { color: var(--ink); font-weight: 700; }
 
 .hero-chips { width: 100%; }
 .chips { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
 .chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: 36px; padding: 6px 14px 6px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--card); color: var(--ink); font-size: 14px; font-weight: 600; line-height: 1.25; text-align: left; cursor: help; }
 .chip:hover { border-color: var(--pink); }
 .chip .ico { width: 18px; height: 18px; color: var(--tone); }
-.chips .tip, .pills-box .tip, .reasons-box .tip { left: 0; right: 0; text-align: left; }
+.chips .tip, .reasons-box .tip { left: 0; right: 0; text-align: left; }
+
+.hero-safe { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; font-size: 14px; line-height: 1.4; color: var(--body); text-align: left; }
+.hero-safe .ico { width: 18px; height: 18px; color: var(--tone); }
+
+/* Folded blocks: quiet white cards; the whole summary row (heading and chevron) opens and closes them. */
+
+.block.fold-block { padding: 0; }
+.fold > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 60px; padding: 14px 24px; border-radius: var(--r-card); cursor: pointer; list-style: none; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary h2 { font: 700 clamp(18px, 1.6vw, 21px)/1.3 var(--font); color: var(--ink); }
+.fold > summary:hover h2 { color: var(--pink); }
+.fold > summary .chev { width: 22px; height: 22px; color: var(--soft); transition: transform 240ms var(--ease); }
+.fold > summary:hover .chev { color: var(--pink); }
+.fold[open] > summary .chev { transform: rotate(180deg); }
+.fold-body { padding: 4px 24px 24px; }
 
 /* b) what crosses the Dnipro now */
 
-.block.strip { padding: 20px 28px; }
-.block.strip > h2 { margin-bottom: 12px; font-size: clamp(18px, 1.8vw, 22px); }
-.pills-box { position: relative; }
+.cross-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.cross-row { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+.cross-row:first-child { padding-top: 4px; border-top: 0; }
+.cross-row > .ico { margin-top: 2px; }
+.cross-row.is-open > .ico, .is-open .cross-st { color: var(--go); }
+.cross-row.is-limited > .ico, .is-limited .cross-st { color: var(--risk); }
+.cross-row.is-closed > .ico, .is-closed .cross-st { color: var(--stop); }
+.cross-row.is-unknown > .ico, .is-unknown .cross-st { color: var(--soft); }
+.cross-name { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; color: var(--ink); }
+.cross-via { font-size: 14px; color: var(--soft); }
+.cross-note { margin-top: 2px; font-size: 14px; }
+.cross-meta { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; padding: 12px 14px; border-radius: var(--r-small); background: var(--paper); font-size: 14px; }
+.cross-meta .ico { width: 18px; height: 18px; margin-top: 1px; color: var(--night); }
+.srcs { margin-top: 12px; }
+.srcs summary { display: inline-flex; align-items: center; min-height: 32px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--ink); font-size: 14px; font-weight: 600; cursor: pointer; list-style: none; }
+.srcs summary::-webkit-details-marker { display: none; }
+.srcs summary:hover { border-color: var(--pink); }
+.srcs summary:focus-visible { border-radius: var(--r-pill); }
+.srcs ul { display: grid; gap: 4px; margin: 10px 0 0; padding-left: 20px; font-size: 14px; }
+
+/* The status pills (some scenes of the deck use them) */
 .pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .pill { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px 0 8px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--card); color: var(--ink); font-size: 14px; font-weight: 600; cursor: help; }
 .pill:hover { box-shadow: var(--shadow-pink); }
@@ -246,26 +293,6 @@ p.src { margin-top: 12px; }
 .metro { flex: none; width: 10px; height: 10px; border-radius: var(--r-pill); }
 .metro-m1 { background: var(--m1); }
 .metro-m3 { background: var(--m3); }
-.cross-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 12px; font-size: 14px; color: var(--soft); }
-.cross-line > .ico { width: 18px; height: 18px; color: var(--pink); }
-.cross-line > span:not(.ico) { flex: 1 1 220px; min-width: 0; }
-.srcs summary { display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--ink); font-weight: 600; cursor: pointer; list-style: none; }
-.srcs summary::-webkit-details-marker { display: none; }
-.srcs summary:hover { border-color: var(--pink); }
-.srcs summary:focus-visible { border-radius: var(--r-pill); }
-.srcs[open] { flex-basis: 100%; }
-.srcs ul { display: grid; gap: 4px; margin: 10px 0 0; padding-left: 20px; }
-
-/* Folded blocks: why, glossary, live sources */
-
-.block.fold-block { padding: 0; }
-.fold > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; padding: 12px 28px; border-radius: var(--r-card); cursor: pointer; list-style: none; }
-.fold > summary::-webkit-details-marker { display: none; }
-.fold > summary h2 { font: 700 clamp(18px, 1.8vw, 22px)/1.25 var(--font-display); color: var(--ink); }
-.fold > summary:hover h2 { color: var(--pink); }
-.fold > summary .ico { color: var(--pink); transition: transform 240ms var(--ease); }
-.fold[open] > summary .ico { transform: rotate(180deg); }
-.fold-body { padding: 0 28px 22px; }
 
 /* c) reasons */
 
@@ -284,7 +311,7 @@ p.src { margin-top: 12px; }
 .reason-fill.down { background: var(--go); transform-origin: right center; }
 .reason-w { font: 700 15px/1 var(--font-display); color: var(--ink); text-align: right; }
 
-/* d) glossary */
+/* d) the words */
 
 .gloss { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 8px; }
 .gloss div { padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-card); }
@@ -311,12 +338,13 @@ p.src { margin-top: 12px; }
 .facts dt { font-size: 14px; color: var(--soft); }
 .facts dd { margin-top: 2px; color: var(--ink); font-weight: 600; }
 #sources .facts { gap: 8px; margin-top: 0; }
+#sources .sub { margin: 16px 0 8px; font-size: 15px; }
 .chans { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
 .chan { display: grid; gap: 2px; min-width: 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-card); }
 .chan-name { overflow: hidden; color: var(--ink); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .chan-ago, .chan-n { font-size: 14px; color: var(--soft); }
 .chan.is-old { background: var(--paper); }
-#sources .chans { grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: 6px; margin-top: 12px; }
+#sources .chans { grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: 6px; }
 #sources .chan { display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; font-size: 14px; }
 #sources .chan-ago { flex: none; }
 .safety { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 12px 16px; border-radius: var(--r-card); background: var(--ink); color: var(--card); font-weight: 600; }
@@ -379,18 +407,18 @@ p.src { margin-top: 12px; }
 .train-svg text { font: 600 13px var(--font); fill: var(--body); text-anchor: middle; }
 
 /* Loading. Until the first data (and the web fonts) the hero shows only a skeleton in the place and about the size
-   of the answer, the picture and the number; the other blocks and the live pill wait with display none, so they
-   count as new when they show, not as moved. */
+   of the question, the answer, the map and the number; the other blocks and the live chip wait with display none, so
+   they count as new when they show, not as moved. */
 .app { min-height: 100vh; }
 .is-loading .tab-main > section:not(#hero), .is-loading .hero > :not(.hero-sk), .is-loading .live { display: none; }
 .hero-sk { display: none; width: 100%; }
 .is-loading .hero-sk { display: flex; flex-direction: column; align-items: center; }
 .sk { display: block; border-radius: var(--r-small); background: var(--line); opacity: .6; }
-.sk-answer { width: min(50%, 300px); height: calc(var(--answer-h) * .76); margin: calc(var(--answer-h) * .12) 0; border-radius: var(--r-card); }
+.sk-q { width: min(90%, 440px); height: 26px; }
+.sk-answer { width: min(50%, 300px); height: calc(var(--answer-h) * .8); margin: calc(var(--answer-h) * .14) 0 calc(var(--answer-h) * .1); border-radius: var(--r-card); }
 .sk-line { width: min(70%, 320px); height: 22px; }
-.sk-q { width: min(90%, 440px); height: 18px; margin-top: 16px; }
-.sk-map { width: 100%; max-width: 600px; aspect-ratio: 2 / 1; margin-top: 20px; border-radius: var(--r-card); }
-.sk-p { width: min(80%, 400px); height: 56px; margin-top: 18px; border-radius: var(--r-card); }
+.sk-map { width: 100%; max-width: 600px; aspect-ratio: 2 / 1; margin-top: 16px; border-radius: var(--r-card); }
+.sk-p { width: min(80%, 400px); height: 56px; margin-top: 20px; border-radius: var(--r-card); }
 
 /* Footer */
 
@@ -428,11 +456,37 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 .doc ul { display: grid; gap: 6px; margin: 0; padding-left: 22px; }
 .doc p + p { margin-top: 10px; }
 
-/* Narrower screens: the tabs go under the name; phone: name and keys, then tabs and the live pill */
+/* Wide screens: the hero in two columns, the words on the left and the map on the right */
 
 @media (min-width: 1001px) {
   .tab { min-width: 132px; } /* one width when the web fonts swap in, so the header never shifts */
+  .block.hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 580px);
+    grid-template-areas: "pills pills" "q map" "win map" "ans map" "line map" "prob map" "chips chips" "safe safe";
+    align-items: start;
+    justify-items: start;
+    column-gap: 48px;
+    padding: 32px 40px 26px;
+    text-align: left;
+  }
+  .hero-sk { grid-column: 1 / -1; }
+  .hero-pills { grid-area: pills; justify-content: flex-start; }
+  .hero-q { grid-area: q; max-width: 22ch; }
+  .hero-window { grid-area: win; }
+  .hero-answer { grid-area: ans; justify-content: flex-start; margin-top: 12px; }
+  .hero-line { grid-area: line; }
+  .hero-map { grid-area: map; align-self: center; margin-top: 0; }
+  .hero-p { grid-area: prob; margin-top: 24px; }
+  .p-row { justify-content: flex-start; }
+  .hero-chips { grid-area: chips; }
+  .chips { justify-content: flex-start; margin-top: 22px; }
+  .hero-safe { grid-area: safe; justify-content: flex-start; width: 100%; margin-top: 18px; padding-top: 16px; border-top: 1px solid color-mix(in srgb, var(--tone) 18%, var(--tone-soft)); }
+  .cross-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 36px; }
+  .cross-row:nth-child(2) { padding-top: 4px; border-top: 0; }
 }
+
+/* Narrower screens: the tabs go under the name; phone: name and keys, then tabs and the live chip */
 
 @media (max-width: 1000px) {
   .top-in { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "logo live help" "tabs tabs tabs"; }
@@ -444,21 +498,29 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
   .logo { gap: 8px; font-size: 15px; }
   .logo svg { width: 26px; height: 26px; }
   .tab { min-height: 36px; padding: 0 12px; font-size: 14px; }
-  .live { min-height: 34px; padding: 0 10px; font-size: 13px; }
-  .live-word, .live-more, .live-date { display: none; }
+  .live { min-height: 34px; gap: 6px; padding: 0 10px; font-size: 13px; }
+  .live-word, .live-date { display: none; }
   .help-btn { width: 36px; height: 36px; }
   .tab-main { gap: 12px; padding-top: 12px; }
   .block { padding: 22px 16px; scroll-margin-top: 112px; }
-  .block.hero { padding: 16px 16px 20px; }
-  .hero-q { font-size: 14px; }
+  .block.hero { padding: 18px 16px 18px; }
+  .hero-pills { gap: 4px; margin-bottom: 10px; }
+  .flag { min-height: 28px; padding: 4px 12px; line-height: 1.3; }
+  /* Two or three pills (an alert, the curfew, late data) take room: the answer is then a size smaller and the gaps
+     tighter, so the scale and its words still fit the first screen of a phone */
+  .hero:has(.flag + .flag) { --answer-h: clamp(72px, 20vw, 136px); }
+  .hero:has(.flag + .flag + .flag) .hero-map { margin-top: 12px; }
+  .hero:has(.flag + .flag + .flag) .hero-p { margin-top: 14px; }
+  .hero-p { margin-top: 18px; }
+  .p-label { font-size: 14px; }
   .chip { font-size: 13px; }
-  .block.strip { padding: 18px 16px; }
-  .fold > summary { padding: 12px 16px; }
+  .fold > summary { min-height: 56px; padding: 12px 16px; }
   .fold-body { padding: 0 16px 18px; }
   .keys div { grid-template-columns: 104px minmax(0, 1fr); }
 }
 
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes lift { from { transform: translateY(10px); } }
 @keyframes pop { from { opacity: 0; transform: scale(.6); } }
 @keyframes grow { from { transform: scaleX(0); } }
 @keyframes fade { from { opacity: 0; } }

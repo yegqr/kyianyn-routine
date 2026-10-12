@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kyianyn Routine: чи встигнеш на інший берег за 3 години?</title>
-<meta name="description" content="Чи встигнеш переїхати на інший берег Дніпра в Києві за наступні 3 години: відповідь так чи ні, ймовірність, що прилетять дрони або ракети, і що зараз їде через річку. Оновлюється щогодини.">
+<title>Kyianyn Routine: чи встигнеш переїхати на інший берег за 3 години?</title>
+<meta name="description" content="Чи встигнеш переїхати на інший берег Дніпра в Києві за наступні 3 години: відповідь «Так», «Ризиковано» або «Ні», ймовірність атаки дронів або ракет на Київ і що зараз ходить через Дніпро. Оновлюється щогодини.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="uk_UA">
-<meta property="og:title" content="Kyianyn Routine: чи встигнеш на інший берег за 3 години?">
-<meta property="og:description" content="Так чи ні для переїзду через Дніпро в Києві і ймовірність, що прилетять дрони або ракети. Оновлюється щогодини.">
+<meta property="og:title" content="Kyianyn Routine: чи встигнеш переїхати на інший берег за 3 години?">
+<meta property="og:description" content="«Так», «Ризиковано» або «Ні» для переїзду через Дніпро в Києві і ймовірність атаки дронів або ракет на Київ. Оновлюється щогодини.">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Чи встигнеш на інший берег за 3 години?">
+<meta name="twitter:title" content="Чи встигнеш переїхати на інший берег за 3 години?">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,10 +31,10 @@
       <a class="tab" data-tab="main" href="#/" aria-current="page">Відповідь</a>
       <a class="tab" data-tab="how" href="#/how">Як це працює</a>
     </nav>
-    <button id="live" class="live" type="button" aria-label="Перейти до джерел">
+    <button id="live" class="live" type="button" aria-label="Відкрити «Звідки дані»">
       <span class="live-dot" aria-hidden="true"></span>
       <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.1"/></svg></span>
-      <span class="live-text"><span id="live-word" class="live-word">оновлено </span><span id="live-ago">завантажую</span><span id="live-more" class="live-more" hidden>, оновлюємо</span></span>
+      <span class="live-text"><span id="live-word" class="live-word">оновлено </span><span id="live-ago">завантажую</span></span>
     </button>
     <button id="help-open" class="help-btn" type="button" aria-haspopup="dialog" aria-label="Гарячі клавіші">?</button>
   </div>
@@ -44,16 +44,16 @@
   <noscript><p class="calm">Для відповіді потрібен JavaScript.</p></noscript>
   <div id="tab-main" class="tab-main">
     <section id="hero" class="block hero" data-tier="none" tabindex="-1" aria-labelledby="hero-q" aria-busy="true">
-      <!-- Until the first data: a skeleton in the place and about the size of the answer, the picture and the number;
-           the real parts wait hidden (site.css, "Loading"), so nothing on screen moves when the answer lands. -->
+      <!-- Until the first data: a skeleton in the place and about the size of the question, the answer, the map and the
+           number; the real parts wait hidden (site.css, "Loading"), so nothing on screen moves when the answer lands. -->
       <div class="hero-sk" role="status" aria-label="Завантажую відповідь">
-        <span class="sk sk-answer"></span><span class="sk sk-line"></span><span class="sk sk-q"></span><span class="sk sk-map"></span><span class="sk sk-p"></span>
+        <span class="sk sk-q"></span><span class="sk sk-answer"></span><span class="sk sk-line"></span><span class="sk sk-map"></span><span class="sk sk-p"></span>
       </div>
-      <div class="hero-alert" data-part="alert"></div>
-      <div class="hero-answer" data-part="answer"></div>
-      <p class="hero-line" data-part="line"></p>
+      <div class="hero-pills" data-part="pills"></div>
       <h1 id="hero-q" class="hero-q">Чи встигнеш переїхати на інший берег за наступні 3 години?</h1>
       <p class="hero-window" data-part="window" title="За київським часом"></p>
+      <div class="hero-answer" data-part="answer"></div>
+      <p class="hero-line" data-part="line"></p>
       <div id="hero-map" class="hero-map">
         <button id="train" class="train" type="button" aria-label="Потяг червоної лінії через Дніпро: натисни, і він поїде, клавіша T" aria-describedby="train-hint">
           <svg class="train-svg" viewBox="0 30 400 200" aria-hidden="true" focusable="false">
@@ -81,38 +81,45 @@
       </div>
       <div class="hero-p" data-part="prob"></div>
       <div class="hero-chips" data-part="chips"></div>
+      <p class="hero-safe"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/></svg></span><span><span class="sent">Прогноз не скасовує тривогу.</span> <span class="sent">Коли тривога, йди в укриття.</span></span></p>
     </section>
 
-    <section id="crossings" class="block strip" tabindex="-1" aria-labelledby="h-crossings">
-      <h2 id="h-crossings">Що зараз перетинає Дніпро</h2>
-      <div data-part="crossings"><p class="calm">Завантажую...</p></div>
+    <!-- Every block below the answer is folded on load: the summary row holds the heading and a chevron. -->
+    <section id="crossings" class="block fold-block" tabindex="-1" aria-labelledby="h-crossings">
+      <details class="fold">
+        <summary><h2 id="h-crossings">Що зараз ходить через Дніпро</h2><span class="ico chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+        <div class="fold-body" data-part="crossings"><p class="calm">Завантажую...</p></div>
+      </details>
     </section>
 
     <section id="reasons" class="block fold-block" tabindex="-1" aria-labelledby="h-reasons">
       <details class="fold">
-        <summary><h2 id="h-reasons">Чому так</h2><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+        <summary><h2 id="h-reasons">Чому такий прогноз</h2><span class="ico chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
         <div class="fold-body" data-part="reasons"><p class="calm">Завантажую...</p></div>
       </details>
     </section>
 
-    <section id="charts" class="block" tabindex="-1" aria-labelledby="h-charts">
-      <h2 id="h-charts">Прогноз проти реальності</h2>
-      <p class="lead">Що модель казала щогодини і що сталося насправді.</p>
-      <div data-chart="timeline"><p class="calm chart-wait">Графік ще готується.</p></div>
-      <div data-chart="calibration"><p class="calm chart-wait">Графік ще готується.</p></div>
-      <div data-chart="days"><p class="calm chart-wait">Графік ще готується.</p></div>
+    <section id="charts" class="block fold-block" tabindex="-1" aria-labelledby="h-charts">
+      <details class="fold">
+        <summary><h2 id="h-charts">Як прогноз справджувався</h2><span class="ico chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+        <div class="fold-body">
+          <div data-chart="timeline"><p class="calm chart-wait">Завантажую графік...</p></div>
+          <div data-chart="calibration"><p class="calm chart-wait">Завантажую графік...</p></div>
+          <div data-chart="days"><p class="calm chart-wait">Завантажую графік...</p></div>
+        </div>
+      </details>
     </section>
 
     <section id="glossary" class="block fold-block" tabindex="-1" aria-labelledby="h-glossary">
       <details class="fold">
-        <summary><h2 id="h-glossary">Словничок</h2><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+        <summary><h2 id="h-glossary">Що означають слова</h2><span class="ico chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
         <div class="fold-body" data-part="glossary"><p class="calm">Завантажую...</p></div>
       </details>
     </section>
 
     <section id="sources" class="block fold-block" tabindex="-1" aria-labelledby="h-sources">
       <details class="fold">
-        <summary><h2 id="h-sources">Джерела наживо</h2><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+        <summary><h2 id="h-sources">Звідки дані</h2><span class="ico chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></summary>
         <div class="fold-body" data-part="sources"><p class="calm">Завантажую...</p></div>
       </details>
     </section>
@@ -125,7 +132,7 @@
 
 <footer class="foot">
   <div class="wrap foot-in">
-    <p>Дані: публічні Telegram-канали, збір кожні 5 хв, ймовірність щогодини</p>
+    <p>Дані: публічні Telegram-канали, перевірка кожні 5 хв, прогноз щогодини</p>
     <p class="foot-links"><a href="privacy.html">Приватність</a><a class="credit" href="https://isakov.fyi" aria-label="ЄІ, isakov.fyi">ЄІ</a></p>
   </div>
 </footer>
@@ -136,9 +143,10 @@
     <dl class="keys">
       <div><dt><kbd>1</kbd></dt><dd>вкладка «Відповідь»</dd></div>
       <div><dt><kbd>2</kbd></dt><dd>вкладка «Як це працює»</dd></div>
-      <div><dt><kbd>↑</kbd><kbd>↓</kbd></dt><dd>попередній або наступний розділ</dd></div>
-      <div><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>крок назад або вперед у «Як це працює»</dd></div>
-      <div><dt><kbd>Пробіл</kbd></dt><dd>грати або пауза в «Як це працює»</dd></div>
+      <div><dt><kbd>↑</kbd><kbd>↓</kbd></dt><dd>попередній або наступний блок</dd></div>
+      <div><dt><kbd>Enter</kbd></dt><dd>відкрити або згорнути блок</dd></div>
+      <div><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>«Назад» і «Далі» в «Як це працює»</dd></div>
+      <div><dt><kbd>Пробіл</kbd></dt><dd>«Автопрогравання» в «Як це працює»: увімкнути або вимкнути</dd></div>
       <div><dt><kbd>T</kbd></dt><dd>потяг через Дніпро</dd></div>
       <div><dt><kbd>R</kbd></dt><dd>перевірити свіжі дані</dd></div>
       <div><dt><kbd>?</kbd></dt><dd>ця підказка</dd></div>
