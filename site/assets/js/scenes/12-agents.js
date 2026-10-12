@@ -1,4 +1,4 @@
-// Scene 11 of the methodology deck: how the project was built, by a person who decides and a swarm of agents.
+// Scene 12 of the methodology deck: how the project was built, by a person who decides and a swarm of agents.
 // Facts: README.md «Як ми працювали» (also the verifier rule), docs/adr/0009-three-models.md, docs/HISTORY.md;
 // the brief is from the author's orchestration rules (~/.claude/skills/swarm/SKILL.md), outside the repo.
 import { h, s, canvas, put, stagger } from '../how.js'
@@ -12,6 +12,7 @@ const CSS = `
 .scene-agents .ink { fill: var(--ink); }
 .scene-agents .pinkt { fill: var(--pink); font-weight: 600; }
 .scene-agents .wt { fill: var(--card); font-weight: 600; }
+.scene-agents .fin { fill: var(--card); }
 .scene-agents .card { fill: var(--card); stroke: var(--line); stroke-width: 2; }
 .scene-agents .stamp { fill: var(--card); stroke: var(--pink); stroke-width: 3; }
 .scene-agents .rule { stroke: var(--line); stroke-width: 2; }
@@ -62,15 +63,18 @@ function tips(stage, svg, zonesAt) {
   return { set(k) { cur = k; tip.hidden = true } }
 }
 
-// Hover texts: who acts (always), then the facts of each step.
+// Hover texts: who acts (always), then the facts of each step. Step 1 repeats each tip at three points along its pill or card,
+// so the nearest point anywhere on a pill or on the final card is its own.
 const SPINE_TIPS = [
   { x: 70, y: 54, t: 'користувач: ставить питання й ухвалює рішення' },
   { x: 70, y: 188, t: 'Claude Code: головний агент, ділить роботу на шматки' },
   { x: 70, y: 324, t: 'агенти: кожен будує свій шматок, а свіжі перевіряють' },
 ]
 const ZONES = [
-  ['етап 1: чи буде ракетний удар по Києву за 3 години', 'етап 2: о 22:00, чи спати в коридорі', 'етап 3: чи буде атака на Київ за наступні 3 години',
-    'етап 4: які джерела читати для живого сайту'].map((t, i) => ({ x: 390, y: 56 + i * 84, t })),
+  [...['етап 1: чи буде ракетний удар по Києву за 3 години', 'етап 2: о 22:00, чи спати в коридорі', 'етап 3: чи буде атака на Київ за наступні 3 години',
+    'етап 4: які джерела читати для живого сайту'].map((t, i) => [t, 28 + i * 54]),
+  ...[262, 340].map((y) => ['фінал: прогноз етапу 3 на 10 каналах етапу 4, живий сайт оновлює його щогодини', y])]
+    .flatMap(([t, y]) => [260, 400, 540].map((x) => ({ x, y, t }))),
   [0, 1, 2, 3].map((i) => ({ x: 296 + (i % 2) * 215, y: 102 + Math.floor(i / 2) * 150, t: 'шматок роботи: одне завдання, свої файли, команда для перевірки' })),
   [
     { x: 265, y: 160, t: 'свіжий агент лише читає код і стартує з «не пройдено»' },
@@ -93,6 +97,8 @@ const ZONES = [
 ]
 
 const QUESTIONS = ['ракетний удар за 3 год?', 'спати в коридорі?', 'атака за 3 години?', 'що читати наживо?']
+// The final stage, the same words as in scene 9, in the four lines of its pink card after the bold «Фінал:».
+const FINAL = ['живий сайт щогодини', 'відповідає, чи встигнеш переїхати', 'на інший берег, тобто чи буде', 'тихо наступні 3 години']
 const MISTAKES = ['тестові дані щоразу', '15 хибних годин з 77', 'переписані пости', 'поріг питали в людини', 'витік у змінних']
 
 export default {
@@ -102,8 +108,9 @@ export default {
   steps: [
     {
       note: '<p>Питання ставив і рішення ухвалював користувач: що прогнозувати, які дані брати, які програмні пакети дозволити, коли відкрити тестові дані. '
-        + 'Після кожного етапу він ставив нове питання: від ударів до ночей, від ночей до атак у найближчі 3 години, а звідти до живого сайту.</p>'
-        + SRC('docs/HISTORY.md, «Рішення користувача» і «Рішення користувача в моделюванні».'),
+        + 'Після кожного етапу він ставив нове питання: від ударів до ночей, від ночей до атак у найближчі 3 години, а звідти до джерел для живого сайту. '
+        + '<b>Фінал:</b> живий сайт щогодини відповідає, чи встигнеш переїхати на інший берег, тобто чи буде тихо наступні 3 години.</p>'
+        + SRC('docs/HISTORY.md, «Рішення користувача» і «Рішення користувача в моделюванні»; README.md, «Епоха 4» («Разом 10 каналів Telegram») і «Живий сайт» («Ймовірність щогодини»).'),
       prompts: [{
         title: 'Рішення користувача',
         text: '2026-10-10 | Ціль: ракетний удар по місту Київ (вибухи, збиття, уламки, влучання), горизонт 3 год. ... Агенти на Sonnet',
@@ -196,18 +203,23 @@ export default {
     })
     add(s('path', { d: 'M70 116v42M62 150l8 8 8-8M70 250v42M62 284l8 8 8-8', class: 'sline' }), (st) => (st >= 0 ? {} : { o: 0 }))
 
-    // Step 1: the questions leave the person and line up as the epochs of the project.
+    // Step 1: the questions leave the person and line up as the epochs of the project, on a path that ends at the pink final stage.
+    const fly = (cy) => (st) => (st === 0 ? {} : st < 0 ? { o: 0, x: -150, y: 54 - cy, k: 0.4 } : { o: 0, y: -12 })
+    add(s('path', { d: 'M208 28V228', class: 'sline' }), (st) => (st === 0 ? {} : { o: 0 }), { delay: (st) => (st === 0 ? 300 : 0) })
     QUESTIONS.forEach((q, i) => {
-      const cy = 56 + i * 84
+      const cy = 28 + i * 54
       add(s('g', {},
-        s('rect', { x: 190, y: cy - 26, width: 400, height: 52, rx: 26, class: 'card' }),
-        s('text', { x: 212, y: cy + 8, class: 'pinkt', text: String(i + 1) }),
-        s('text', { x: 236, y: cy + 8, class: 'ink', text: q }),
-        s('circle', { cx: 560, cy, r: 15, class: 'pinkf' }),
-        s('text', { x: 560, y: cy + 8, 'text-anchor': 'middle', class: 'wt', text: '?' })),
-      (st) => (st === 0 ? {} : st < 0 ? { o: 0, x: -150, y: 54 - cy, k: 0.4 } : { o: 0, y: -12 }),
-      { delay: (st) => (st === 0 ? stagger(i, 120) : 0), dur: 400 })
+        s('rect', { x: 180, y: cy - 20, width: 440, height: 40, rx: 20, class: 'card' }),
+        s('text', { x: 202, y: cy + 8, class: 'pinkt', text: String(i + 1) }),
+        s('text', { x: 226, y: cy + 8, class: 'ink', text: q }),
+        s('circle', { cx: 592, cy, r: 14, class: 'pinkf' }),
+        s('text', { x: 592, y: cy + 8, 'text-anchor': 'middle', class: 'wt', text: '?' })),
+      fly(cy), { delay: (st) => (st === 0 ? stagger(i, 120) : 0), dur: 400 })
     })
+    add(s('g', {},
+      s('rect', { x: 180, y: 228, width: 440, height: 148, rx: 20, class: 'pinkf' }),
+      ...FINAL.map((t, j) => s('text', { x: 202, y: 264 + j * 28, class: 'fin' }, j ? null : s('tspan', { class: 'wt', text: 'Фінал: ' }), t))),
+    fly(302), { delay: (st) => (st === 0 ? stagger(4, 120) : 0), dur: 400 })
 
     // Step 2: the work splits into pieces that fly from Claude Code to one builder each.
     for (let i = 0; i < 4; i++) {
