@@ -1,10 +1,10 @@
-// Scene "model" of the methodology deck: how the frozen quiet model turns 7 numbers about an hour into one
-// probability, step by step, with its real weights from api/model.json (fallback: docs/quiet/model.md sections 4, 5, 7).
+// Scene "model" of the methodology deck: how the frozen model turns 7 signals about an hour into one probability,
+// step by step, with its real weights from api/model.json (fallback: docs/quiet/model.md sections 4, 5, 7).
 import { h, s, canvas, put, reduced } from '../how.js'
 
 const SIGNALS = {
-  title: 'Входи моделі',
-  source: 'src/airalerts/quiet/linear.py',
+  title: 'Сигнали моделі в коді',
+  source: 'код моделі',
   text: `EVENING = (18, 23)                   # Kyiv hours, both included
 
 # A feature is (column, how): "sin" and "cos" of the Kyiv hour on the 24 h circle, "evening" a 0/1 flag, "log1p", "raw".
@@ -13,15 +13,15 @@ SIGNALS = SMALL + (("p_drone_max_1h", "raw"), ("s4_kyiv_6h", "raw"), ("s4_3h", "
                    ("hours_since_drone", "log1p"))`,
 }
 const FORMULA = {
-  title: 'Формула',
-  source: 'src/airalerts/live/model.py',
+  title: 'Формула в коді',
+  source: 'код живого прогнозу',
   text: 'A fitted model as api/model.json: p = 1 / (1 + exp(-(intercept + sum(coef * (x - mean) / scale)))).',
 }
 
 // When api/model.json is missing: docs/quiet/model.md section 5 (means, spreads, weights), sections 4 and 7 (the shift
 // -0.729, the scale 0.197 and 0.300).
 const FALLBACK = {
-  source: 'docs/quiet/model.md, розділи 4, 5 і 7',
+  source: 'docs/quiet/model.md, розділи 4, 5 і 7', day: '',
   intercept: -0.729, busy_at: 0.197, high_at: 0.3, evening: [18, 23],
   features: [
     { column: 'hour_kyiv', how: 'sin', mean: 0.002, scale: 0.707, coef: -0.067 },
@@ -40,20 +40,22 @@ const FALLBACK = {
 const BASE = { hour_kyiv: 14, hours_since_busy: 12, hours_since_drone: 24, p_drone_max_1h: 0.05, s4_kyiv_6h: 0, s4_3h: 5, posts_jev_1h: 8 }
 const BASE_WI = { hour: 14, waves: 0, since: 12, pdrone: 0.05 }
 const TOGETHER_WI = { hour: 21, waves: 2, since: 2, pdrone: 0.6 }
+const hh = (v) => `${String(v % 24).padStart(2, '0')}:00`
 const CONTROLS = [
-  { key: 'hour', label: 'година доби', min: 0, max: 23, fmt: (v) => `${v}:00` },
+  { key: 'hour', label: 'година доби', min: 0, max: 23, fmt: hh },
   { key: 'waves', label: 'хвилі на Київ', min: 0, max: 8, fmt: (v) => String(v) },
   { key: 'since', label: 'від атаки, год', min: 1, max: 72, fmt: (v) => `${v} год` },
 ]
 
+// short stage labels; the notes use the plain names from api/model.json (feature.text) when they are there
 const LABEL = {
   hour_kyiv: 'година', hours_since_busy: 'від атаки, год', p_drone_max_1h: 'пости про дрони',
   s4_kyiv_6h: 'хвилі на Київ', s4_3h: 'запуски за 3 год', posts_jev_1h: 'постів за год', hours_since_drone: 'від дронів, год',
 }
-const LOG = { hours_since_busy: 'від атаки, log', posts_jev_1h: 'постів, log', hours_since_drone: 'від дронів, log' }
+const LOG = { hours_since_busy: 'від атаки, лог', posts_jev_1h: 'постів, лог', hours_since_drone: 'від дронів, лог' }
 const HOWS = ['sin', 'cos', 'evening', 'log1p', 'raw']
-const CAPTION = ['7 входів', '9 чисел', 'одна шкала', 'множимо на ваги', 'плюс зсув: бали', 'S-крива: бали стають p', 'що якщо']
-const LEVEL = ['швидше тихо', 'середній ризик', 'високий ризик']   // src/airalerts/quiet/forecast.py level()
+const CAPTION = ['7 сигналів', '9 чисел', 'одна шкала', 'множимо на ваги', 'плюс зсув: бали', 'крива: бали стають ймовірністю', 'спробуй сам']
+const LEVEL = ['низький ризик', 'середній ризик', 'високий ризик']   // src/airalerts/quiet/forecast.py level()
 
 // geometry in the 640 x 400 units of the canvas
 const XL = 16, XV = 330, X0 = 470, RAW = 25, U = 50, BAR = 50, P = 67.5
@@ -65,11 +67,16 @@ const sig = (z) => 1 / (1 + Math.exp(-z))
 
 const num = (v, d) => (Number.isFinite(v) ? v : d)
 const pct = (p) => `${Math.round(p * 100)}%`
+// a scale line as the reader sees it: 0.197 is 19.7%, 0.3 is 30%
+const pctx = (p) => { const t = (p * 100).toFixed(1); return `${t.endsWith('.0') ? t.slice(0, -2) : t}%` }
 const plain = (v) => (Number.isInteger(v) ? String(v) : Math.abs(v) < 0.005 ? '0' : v.toFixed(2))
 function sign(v, d = 2) {
   const t = Math.abs(v).toFixed(d)
   return Number(t) === 0 ? t : (v < 0 ? '-' : '+') + t
 }
+const n = (v) => `<span class="num">${v}</span>`
+// file paths and code names live only in this folded block at the end of a note
+const src = (text) => `<details class="how-src"><summary>Джерела</summary><p>${text}</p></details>`
 
 function pick(m) {
   const ok = m && Number.isFinite(m.intercept) && Array.isArray(m.features) && m.features.length > 0 &&
@@ -82,6 +89,7 @@ function pick(m) {
     evening: Array.isArray(m.evening) && m.evening.length === 2 ? m.evening : FALLBACK.evening,
     busy_at: num(m.busy_at, FALLBACK.busy_at), high_at: num(m.high_at, FALLBACK.high_at),
     source: day ? `api/model.json, навчена ${day}` : 'api/model.json',
+    day: /^\d{4}-\d{2}-\d{2}$/.test(day) ? `${day.slice(8, 10)}.${day.slice(5, 7)}` : '',
   }
 }
 
@@ -110,10 +118,11 @@ function compute(m, x) {
 const whatIf = (wi) => ({ ...BASE, hour_kyiv: wi.hour, s4_kyiv_6h: wi.waves, hours_since_busy: wi.since,
   hours_since_drone: Math.max(BASE.hours_since_drone, wi.since), p_drone_max_1h: wi.pdrone })
 
-function label9(f, ev) {
-  if (f.how === 'sin' || f.how === 'cos') return `година, ${f.how}`
-  if (f.how === 'evening') return `вечір ${ev[0]}..${ev[1]}`
-  return f.how === 'log1p' ? LOG[f.column] || `${LABEL[f.column]}, log` : LABEL[f.column]
+function label9(f) {
+  if (f.how === 'sin') return 'година: синус'
+  if (f.how === 'cos') return 'година: косинус'
+  if (f.how === 'evening') return 'вечір'
+  return f.how === 'log1p' ? LOG[f.column] || `${LABEL[f.column]}, лог` : LABEL[f.column]
 }
 
 function text(x, y, str, { anchor = 'start', size = 22, display = false, fill = 'var(--body)' } = {}) {
@@ -126,15 +135,15 @@ const CSS = `
 .scene-model { position: absolute; inset: 0; }
 .scene-model .wi { position: absolute; left: 0; right: 0; bottom: 0; height: 50%; box-sizing: border-box; padding: 6px 16px 8px;
   display: grid; grid-template-rows: repeat(4, minmax(0, 1fr)); align-items: center; background: var(--card);
-  border-top: 1px solid var(--line); font-size: 15px; color: var(--body); }
+  border-top: 1px solid var(--line); font-size: 16px; color: var(--body); }
 .scene-model .wi[hidden] { display: none; }
 .scene-model .wi-row { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 11fr) minmax(0, 4fr); gap: 12px; align-items: center; }
 .scene-model .wi-row label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.scene-model .wi-row output { font-family: var(--font-display); color: var(--ink); text-align: right; white-space: nowrap; font-size: 14px; }
+.scene-model .wi-row output { font-family: var(--font-display); color: var(--ink); text-align: right; white-space: nowrap; font-size: 15px; }
 .scene-model input[type=range] { width: 100%; min-width: 0; height: 24px; margin: 0; font-size: 16px; accent-color: var(--pink); cursor: pointer; }
 .scene-model input[type=range]:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-pill); }
 .scene-model .wi-presets { display: flex; gap: 8px; align-items: center; min-width: 0; }
-.scene-model .wi-pill { font: inherit; font-size: 14px; height: 30px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--line);
+.scene-model .wi-pill { font: inherit; font-size: 15px; height: 32px; padding: 0 16px; border-radius: var(--r-pill); border: 1px solid var(--line);
   background: var(--card); color: var(--ink); cursor: pointer; flex: none; }
 .scene-model .wi-pill:hover { border-color: var(--pink); }
 .scene-model .wi-pill[aria-pressed="true"] { border-color: var(--pink); color: var(--pink); }
@@ -142,13 +151,14 @@ const CSS = `
 .scene-model .wi-fixed { color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .scene-model .wi-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .scene-model .tip { position: absolute; z-index: 2; max-width: 280px; padding: 6px 10px; border-radius: var(--r-small); background: var(--card);
-  border: 1px solid var(--line); color: var(--ink); font-size: 14px; line-height: 1.35; pointer-events: none; }
+  border: 1px solid var(--line); color: var(--ink); font-size: 15px; line-height: 1.35; pointer-events: none; }
 .scene-model .tip[hidden] { display: none; }
 @media (max-width: 600px) {
-  .scene-model .wi { padding: 2px 10px 4px; font-size: 13px; }
+  .scene-model .wi { padding: 2px 10px 4px; font-size: 14px; }
   .scene-model .wi-row { gap: 8px; }
-  .scene-model .wi-row output { font-size: 12px; }
-  .scene-model .wi-pill { height: 26px; padding: 0 10px; font-size: 13px; }
+  .scene-model .wi-row output { font-size: 14px; }
+  .scene-model .wi-pill { height: 26px; padding: 0 12px; font-size: 14px; }
+  .scene-model .tip { max-width: 220px; font-size: 14px; }
 }
 `
 
@@ -158,35 +168,42 @@ function notes(M, R, T) {
   const hsb = M.features.find((f) => f.column === 'hours_since_busy')
   const name = (f) => f.text || LABEL[f.column]
   const level = (p) => LEVEL[p < M.busy_at ? 0 : p < M.high_at ? 1 : 2]
+  const live = M === FALLBACK ? '' : `ваги живої моделі${M.day ? `, навченої ${M.day}` : ''}`
   return [
-    '<p>Модель дивиться на сім чисел про годину. Візьмемо базову тиху годину з розділу 6 <b>docs/quiet/model.md</b>: ' +
-      '14:00, атака була 12 год тому, дрони 24 год тому, пости моніторів про дрони 0.05, 0 хвиль дронів з курсом на Київ, ' +
-      '5 запусків за 3 год і 8 постів за годину.</p>',
-    `<p>Година стає трьома числами: sin і cos на колі з 24 годин (тоді 23:00 стоїть поруч з 0:00) і прапорець «вечір ${ev[0]}..${ev[1]}». ` +
-      'Години й пости беремо як log(1 + x): різниця між 1 і 3 годинами тиші важить більше, ніж між 100 і 102. ' +
-      `Разом <span class="num">${M.features.length}</span> чисел (розділ 4 <b>docs/quiet/model.md</b>).</p>`,
-    '<p>Числа мають різні одиниці: години, частки, штуки. Від кожного віднімаємо середнє і ділимо на розкид, обидва з годин навчання: ' +
-      'рисочки середніх з’їжджаються в 0, і тепер +1 означає «на один розкид більше, ніж зазвичай». ' +
-      `Середні й розкиди: <b>${M.source}</b>.</p>`,
-    `<p>Кожне число множимо на його вагу. Найбільша вага в колонки «${name(top)}» (<span class="num">${sign(top.coef)}</span>)` +
-      (hsb ? `, від’ємна в давності атаки (<span class="num">${sign(hsb.coef)}</span>): що довша тиша, то нижчий ризик` : '') +
-      `. Добутки стають в один ряд, їхня сума <span class="num">${sign(R.sum)}</span>.</p>`,
-    `<p>До суми додаємо зсув (intercept) <span class="num">${sign(M.intercept)}</span>: так модель запам’ятала звичайний рівень ризику. ` +
-      `Виходять бали, або logit: <span class="num">${sign(R.score)}</span> для базової години. 0 балів означало б 50 на 50.</p>`,
-    `<p>S-крива p = 1 / (1 + e^(-бали)) стискає будь-які бали в ймовірність від 0 до 1: ${sign(R.score)} бала дають <span class="num">${pct(R.p)}</span>. ` +
-      `Пунктири це межі шкали з наступного кроку: від ${M.busy_at.toFixed(3)} «середній ризик», від ${M.high_at.toFixed(3)} «високий ризик». ` +
-      `Базова година тут «${level(R.p)}».</p>`,
-    '<p>Посувайте повзунки мишею або стрілками клавіатури: p рахується тут же, тими самими вагами. ' +
-      'Кнопка «разом» ставить випадок з розділу 6 <b>docs/quiet/model.md</b>: 21:00, атака 2 год тому, пости про дрони 0.6, 2 хвилі на Київ; там вийшло 77%. ' +
-      (M === FALLBACK ? `Тут ваги з того ж розділу 5, і виходить <span class="num">${pct(T.p)}</span>.</p>`
-        : `Тут ваги з <b>${M.source}</b>, тому число може трохи відрізнятись: <span class="num">${pct(T.p)}</span>.</p>`),
+    '<p>Модель дивиться на 7 сигналів про годину. Приклад, звичайна спокійна година: 14:00, атака була 12 годин тому, дрони 24 години тому, ' +
+      '0 хвиль дронів з курсом на Київ, 5 запусків хвиль за 3 години, 8 постів моніторів за годину, сигнал постів про дрони на Київ 0.05 з 1.</p>' +
+      src('docs/quiet/model.md, розділ 6: базова тиха година.'),
+    '<p>Годину модель бачить як точку на циферблаті з 24 годин (синус і косинус), тож 23:00 стоїть поруч з 00:00, ' +
+      `і ще як прапорець «вечір», з ${hh(ev[0])} до ${hh(ev[1] + 1)}. ` +
+      'Давність і кількість постів беремо як логарифм: різниця між 1 і 3 годинами без атак важить більше, ніж між 100 і 102. ' +
+      `Разом ${n(M.features.length)} чисел.</p>` +
+      src('docs/quiet/model.md, розділ 4: sin і cos години, прапорець evening, log1p.'),
+    '<p>Числа мають різні одиниці: години, частки, штуки. Від кожного віднімаємо середнє і ділимо на розкид, обидва з годин навчання, ' +
+      'тож рисочки середніх з’їжджаються в 0. Тепер +1 означає «на один розкид більше, ніж зазвичай».</p>' +
+      src(`Середні й розкиди: ${M.source}.`),
+    '<p>Кожне число множимо на його вагу: вона каже, наскільки сильно це число штовхає ризик вгору чи вниз. ' +
+      `Найбільша вага в сигналу «${name(top)}» (${n(sign(top.coef))})` +
+      (hsb ? `, від’ємна в давності атаки (${n(sign(hsb.coef))}): що довше без атак, то нижчий ризик` : '') +
+      `. Добутки стають в один ряд, їхня сума ${n(sign(R.sum))}.</p>` +
+      src(`Ваги: ${M.source}.`),
+    `<p>До суми додаємо зсув ${n(sign(M.intercept))}: так модель пам’ятає звичайний рівень ризику. ` +
+      `Виходять бали: ${n(sign(R.score))} для нашої години. 0 балів означало б 50 на 50.</p>` +
+      src(`Зсув (intercept) і бали (logit): ${M.source}; docs/quiet/model.md, розділ 4.`),
+    `<p>Крива у формі літери S перетворює будь-які бали на ймовірність від 0% до 100%: ${sign(R.score)} бала дають ${n(pct(R.p))}. ` +
+      `Пунктири це межі ризику з наступного розділу: від ${pctx(M.busy_at)} середній, від ${pctx(M.high_at)} високий. ` +
+      `Наша година має ${level(R.p)}.</p>` +
+      src(`docs/quiet/model.md, розділ 4: p = 1 / (1 + e^(-бали)); межі busy_at і high_at: ${M.source}.`),
+    '<p>Посувай повзунки мишею або стрілками: ймовірність рахується тут же, тими самими вагами. ' +
+      'Кнопка «разом» ставить вечір 21:00, атаку 2 години тому, пости про дрони 0.6 і 2 хвилі на Київ; у звіті про модель вийшло 77%. ' +
+      (live ? `Тут ${live}, тож число трохи інше: ${n(pct(T.p))}.</p>` : `Тут ваги з того ж звіту, і виходить ${n(pct(T.p))}.</p>`) +
+      src(`docs/quiet/model.md, розділ 6: разом +1.184 бала, 77%; ваги: ${M.source}.`),
   ]
 }
 
 const scene = {
   id: 'model',
-  title: 'Модель крок за кроком',
-  lead: 'Сім чисел про годину стають однією ймовірністю: перетворення, одна шкала, ваги, S-крива.',
+  title: 'Як модель рахує ймовірність',
+  lead: 'Сім сигналів про годину модель зважує, додає і перетворює на одну ймовірність атаки.',
   steps: [
     { note: '', prompts: [SIGNALS] }, { note: '', prompts: [SIGNALS] }, { note: '', prompts: [FORMULA] },
     { note: '', prompts: [FORMULA] }, { note: '', prompts: [FORMULA] }, { note: '', prompts: [FORMULA] },
@@ -197,12 +214,12 @@ const scene = {
     const M = pick(data?.model)
     const R = compute(M, BASE)
     const T = compute(M, whatIf(TOGETHER_WI))
-    notes(M, R, T).forEach((n, i) => { scene.steps[i].note = n })
+    notes(M, R, T).forEach((note, i) => { scene.steps[i].note = note })
     const level = (p) => LEVEL[p < M.busy_at ? 0 : p < M.high_at ? 1 : 2]
 
     const root = h('div', { class: 'scene-model' }, h('style', { text: CSS }))
     stage.append(root)
-    const svg = canvas(root, 'Як сім чисел про годину стають однією ймовірністю')
+    const svg = canvas(root, 'Як сім сигналів про годину стають однією ймовірністю атаки')
     const cols = [...new Set(M.features.map((f) => f.column))]
     const n9 = M.features.length
     const g9 = Math.min(36, 288 / Math.max(1, n9 - 1))
@@ -211,14 +228,14 @@ const scene = {
     const Y7 = (i) => 70 + i * g7
     const top = Y9(0) - 20, bot = Y9(n9 - 1) + 20
 
-    // the table: 7 inputs, then 9 numbers with their number lines
+    // the table: 7 signals, then 9 numbers with their number lines
     const caption = text(XL, 20, CAPTION[0], { fill: 'var(--soft)' })
     const zero = s('line', { x1: X0, x2: X0, y1: top, y2: bot, style: { stroke: 'var(--line)', strokeWidth: 2 } })
     const brackets = s('path', { d: `M236,${top}H228V${bot}H236M334,${top}H342V${bot}H334`,
       style: { fill: 'none', stroke: 'var(--ink)', strokeWidth: 2 } })
     const ins = cols.map((c, i) => ({
       label: text(XL, Y7(i), LABEL[c]),
-      value: text(XV, Y7(i), c === 'hour_kyiv' ? `${BASE[c]}:00` : plain(BASE[c]), { anchor: 'end', display: true, fill: 'var(--ink)' }),
+      value: text(XV, Y7(i), c === 'hour_kyiv' ? hh(BASE[c]) : plain(BASE[c]), { anchor: 'end', display: true, fill: 'var(--ink)' }),
       to: M.features.findIndex((f) => f.column === c),
     }))
     let cum = 0
@@ -227,7 +244,7 @@ const scene = {
       const q = R.parts[j]
       const r = {
         f, q, y, cum, from: cols.indexOf(f.column),
-        label: text(XL, y, label9(f, M.evening)),
+        label: text(XL, y, label9(f)),
         tX: text(XV, y, plain(q.t), { anchor: 'end', display: true, fill: 'var(--ink)' }),
         tZ: text(XV, y, sign(q.z), { anchor: 'end', display: true, fill: 'var(--ink)' }),
         tW: text(XV, y, sign(q.w), { anchor: 'end', display: true, fill: 'var(--pink)' }),
@@ -261,8 +278,8 @@ const scene = {
     const thresholds = s('g', {},
       s('line', { x1: ax(AX.lo), x2: ax(AX.hi), y1: ay(M.high_at), y2: ay(M.high_at), style: dash }),
       s('line', { x1: ax(AX.lo), x2: ax(AX.hi), y1: ay(M.busy_at), y2: ay(M.busy_at), style: dash }),
-      text(ax(AX.hi), ay(M.high_at) - 14, M.high_at.toFixed(3), { anchor: 'end', display: true, fill: 'var(--ink)' }),
-      text(ax(AX.hi), ay(M.busy_at) + 16, M.busy_at.toFixed(3), { anchor: 'end', display: true, fill: 'var(--ink)' }))
+      text(ax(AX.hi), ay(M.high_at) - 14, pctx(M.high_at), { anchor: 'end', display: true, fill: 'var(--ink)' }),
+      text(ax(AX.hi), ay(M.busy_at) + 16, pctx(M.busy_at), { anchor: 'end', display: true, fill: 'var(--ink)' }))
     const point = s('circle', { cx: 0, cy: 0, r: 9, style: { fill: 'var(--pink)', stroke: 'var(--card)', strokeWidth: 3 } })
     const pText = text(80, 104, pct(R.p), { size: 40, display: true, fill: 'var(--pink)' })
     const tierText = text(80, 142, level(R.p), { fill: 'var(--ink)' })
@@ -276,7 +293,7 @@ const scene = {
       ...rows.map((r) => r.bar), ...rows.flatMap((r) => [r.tick, r.dot, r.label, r.tX, r.tZ, r.tW]),
       ...ins.flatMap((r) => [r.label, r.value]), plot, eqA, eqB, eqC)
 
-    // what if: three sliders recompute p with the same weights
+    // what if: three sliders recompute the probability with the same weights
     let wi = { ...BASE_WI }
     let W = compute(M, whatIf(wi))
     const inputs = {}, outs = {}
@@ -307,19 +324,19 @@ const scene = {
     function tipText(ux, uy) {
       if (cur <= 0) {
         const i = near(ins.map((_, j) => j), (j) => Y7(j) - uy)
-        return `${LABEL[cols[i]]}: ${ins[i].value.textContent}, базова година з розділу 6 docs/quiet/model.md`
+        return `${LABEL[cols[i]]}: ${ins[i].value.textContent}, наш приклад спокійної години`
       }
       if (cur <= 2) {
         const r = near(rows, (q) => q.y - uy)
-        return `${label9(r.f, M.evening)}: x ${plain(r.q.t)}, середнє ${r.f.mean.toFixed(3)}, розкид ${r.f.scale.toFixed(3)}, в одній шкалі ${sign(r.q.z)}`
+        return `${label9(r.f)}: значення ${plain(r.q.t)}, середнє ${r.f.mean.toFixed(3)}, розкид ${r.f.scale.toFixed(3)}, в одній шкалі ${sign(r.q.z)}`
       }
       if (cur === 3) {
         const r = near(rows, (q) => ax(q.cum + q.q.w / 2) - ux)
-        return `${label9(r.f, M.evening)}: вага ${sign(r.f.coef, 3)} x ${sign(r.q.z)} = ${sign(r.q.w)}`
+        return `${label9(r.f)}: вага ${sign(r.f.coef, 3)} × ${sign(r.q.z)} = ${sign(r.q.w)}`
       }
       if (cur === 4) return `сума ${sign(R.sum)} + зсув ${sign(M.intercept)} = бали ${sign(R.score)}`
       const S = cur >= 6 ? W : R
-      return `бали ${sign(S.score)}: p ${pct(S.p)}, ${level(S.p)}`
+      return `бали ${sign(S.score)}: ймовірність ${pct(S.p)}, ${level(S.p)}`
     }
     function showTip(e) {
       const b = root.getBoundingClientRect()
@@ -345,7 +362,7 @@ const scene = {
       presets.forEach(([b, pr]) => b.setAttribute('aria-pressed', String(Object.keys(pr).every((k) => pr[k] === wi[k]))))
       fixed.textContent = `пости про дрони ${wi.pdrone}`
       W = compute(M, whatIf(wi))
-      live.textContent = `p ${pct(W.p)}, ${level(W.p)}`
+      live.textContent = `ймовірність ${pct(W.p)}, ${level(W.p)}`
       if (cur === 6) {
         pText.textContent = pct(W.p)
         pText.setAttribute('data-p', W.p.toFixed(4))
@@ -439,12 +456,12 @@ const scene = {
         put(point, { x: ax(AX.lo), y: ay(sig(AX.lo)), o: 1 }, { delay: 300 })
         put(icpt, { x: R.sum * P, kx: (M.intercept * P) / BAR, o: 0.35 }, { origin: 'left center' })
         rows.forEach((r) => put(r.bar, { x: ax(r.cum) - X0, y: AX.y - r.y, kx: (r.q.w * P) / BAR, o: 0.35 }, { origin: 'left center' }))
-        const n = 4
-        for (let i = 1; i <= n; i++) {
-          const z = AX.lo + ((R.score - AX.lo) * i) / n
+        const steps = 4
+        for (let i = 1; i <= steps; i++) {
+          const z = AX.lo + ((R.score - AX.lo) * i) / steps
           later(500 + (i - 1) * 280, () => put(point, { x: ax(z), y: ay(sig(z)), o: 1 }, { dur: 260 }))
         }
-        later(500 + n * 280, () => end(5, {}))
+        later(500 + steps * 280, () => end(5, {}))
       }
     }
 
