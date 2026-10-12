@@ -4,7 +4,8 @@
 // islands between them; the 7 bridges take the status colour of the road traffic on them now (crossing.js: green open,
 // amber limited, red closed); the metro lines M1, M2, M3 run in their own colours, and a line that cannot cross now
 // dims over the river and gets a stop mark. Quiet extras: a few landmarks (names on hover or tap), the sun or the moon
-// by Kyiv time, drones toward Kyiv when the risk is high, a ballistic streak at the red level, a cloud when it is calm.
+// by Kyiv time, drones and missiles flying at Kyiv from every side when the risk is middle or high or an alert is on
+// (the rule is above stateOf) and keeping off the labels, the landmarks and the train, a cloud when it is calm.
 // During the curfew (crossing.js CURFEW) nobody crosses without a pass: the bridges turn red, the metro lines stop at the
 // river, the train stays put, and the sentence for screen readers and every tip say so.
 // The trick: the M1 train crosses the Metro bridge on a click or the key T; in an alert it rolls to the bank, stops and
@@ -13,7 +14,7 @@
 // Motion: transform and opacity only, set each frame; with prefers-reduced-motion nothing flies or loops and every
 // effect shows its end state at once.
 
-import { crossingsFor, CURFEW } from './crossing.js'
+import { crossingsFor, CURFEW, LEVELS } from './crossing.js'
 
 const NS = 'http://www.w3.org/2000/svg'
 const SPRITES = 'assets/img/sprites.svg'
@@ -26,7 +27,7 @@ const SYM = {
   sophia: [-1.5, -0.5, 103, 74], 'golden-gate': [-0.5, -3.5, 81, 68], 'tv-tower': [-4, 0, 48, 163],
   'freedom-arch': [0.5, 5.5, 79, 42.5], shahed: [5.5, 11, 58.5, 42], 'ballistic-missile': [1, 0, 96, 28],
   'interceptor-burst': [5, 5, 54, 54], chestnut: [12.5, 12.5, 44.5, 46.5], 'metro-train': [-2.5, 2.5, 105, 32.5],
-  cloud: [10.5, 6.5, 47.5, 29], moon: [10.5, 7.5, 48, 44], sun: [7.5, 7.5, 49, 49],
+  cloud: [10.5, 6.5, 47.5, 29], moon: [10.5, 7.5, 48, 44], sun: [7.5, 7.5, 49, 49], 'cruise-missile': [2.5, -0.5, 96.5, 25],
 }
 // Landmarks of kyiv_map.json: symbol and height in px, by priority. A mark that would touch an earlier one, a label
 // or the edge is left out, so a phone shows fewer.
@@ -36,11 +37,16 @@ const MARKS = [
 ]
 // What sets the colour of each bridge (the road entry of crossing.js) and which rail line runs on it.
 const ROAD = { pivnichnyi: 'bridges', podilskyi: 'podilskyi', metro: 'bridges', patona: 'bridges', darnytskyi: 'bridges', pivdennyi: 'pivdennyi' }
-const ON = { metro: 'm1', pivdennyi: 'm3', darnytskyi: 'rail' }
+const ON = { metro: 'm1', pivdennyi: 'm3', darnytskyi: 'rail', rybalskyi: 'rail' }
 const RIDE = { m1: 'червона лінія метро', m3: 'зелена лінія метро', rail: 'міська електричка' }
 const CAR = { open: 'авто їдуть', limited: 'авто їдуть з обмеженнями', closed: 'авто не їдуть' }
 const GOES = { open: 'ходить', limited: 'ходить з обмеженнями', closed: 'не ходить' }
-const PX = { label: 11.5, train: 26, drone: 22, missile: 30, cloud: 44, sun: 22, chestnut: 16, burst: 30 }
+// Sizes in px; tap is the radius of the circle a drone catches taps in.
+const PX = { label: 11.5, train: 26, drone: 22, tap: 16, missile: 30, cruise: 30, cloud: 44, sun: 22, chestnut: 16, burst: 30 }
+// The side each drone comes from, by its number: the right bank (west) and the left bank (east) first, so 2 drones show
+// both banks, then the north, the right bank, the south and the right bank again: its flights to the centre are the
+// shortest, so it gets more of them.
+const SIDES = ['west', 'east', 'north', 'west', 'south', 'west']
 const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA']
 const HOUR = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Kyiv', hour: '2-digit', hourCycle: 'h23' })
 const HM = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Kyiv', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
@@ -125,15 +131,27 @@ function cropOf(map, w, h) {
   return { x, y, w: cw, h: ch }
 }
 
+// What flies at Kyiv on the map, by the forecast of the next 3 hours and the alert now:
+//   low risk and no alert: nothing, a cloud drifts by;
+//   middle risk: 2 drones;
+//   high risk: 4 to 6 drones, by how far the probability has gone from the high mark (high_at, 30%) toward 100%, and a
+//     cruise missile; a ballistic one too when missiles came in at least half of the recent attacks (kind.missile_share, the
+//     share of the attack windows with missiles);
+//   an alert: at least 3 drones; the red level (missiles or a massive attack): a cruise and a ballistic missile too.
+// They come from every side, the right bank most (SIDES), and take off in turn (drones()).
 function stateOf(data) {
   const now = data?.now
+  const fc = now?.forecast
   const alert = Boolean(now?.now?.alert)
   const level = alert ? now.now.level || 'alert' : null
-  const tier = now?.forecast?.tier || null
+  const tier = fc?.tier || null
   const kyiv = (Array.isArray(now?.waves) ? now.waves : []).filter((w) => w?.kyiv).length
+  const up = Math.min(1, Math.max(0, (fc?.p - fc?.high_at) / (1 - fc?.high_at))) || 0 // 0 at the high mark, 1 at 100%
+  const high = tier === 'high'
   return {
-    alert, level, tier, red: level === 'red', kyiv, curfew: inCurfew(),
-    drones: Math.min(5, Math.max(kyiv, tier === 'high' ? 2 : 0)),
+    alert, level, tier, kyiv, curfew: inCurfew(),
+    drones: Math.max(high ? 4 + Math.round(2 * up) : tier && tier !== 'low' ? 2 : 0, alert ? 3 : 0),
+    missiles: level === 'red' ? 2 : high ? (fc?.kind?.missile_share >= 0.5 ? 2 : 1) : 0,
     st: Object.fromEntries(crossingsFor(level).map((c) => [c.id, c])),
   }
 }
@@ -198,6 +216,7 @@ function createHero(el, map) {
   let trainAt = null
   let cross = {}
   let placed = {}
+  let avoid = []
   let flyers = []
   let tweens = []
   let raf = 0
@@ -344,6 +363,17 @@ function createHero(el, map) {
       T = { w: clamp(tw0 - dir * back), e: clamp(te0 + dir * back), ew: tw0 - dir * half, ee: te0 + dir * half, dir }
     }
     placeMarks(marks, taken, W, H)
+    // What the flyers keep clear of (course()): the labels, the landmarks, the sun or the moon, the link, the stop marks and
+    // the train where it waits on either bank, as boxes in px grown by 5 px, so a drone's tap circle also stays out of the
+    // tap area of a landmark (3 px around it; its box here is 1 px inside it).
+    const around = (x, y, rx, ry) => { const u = (x - vb.x) / k; const v = (y - vb.y) / k; return [u - rx, v - ry, u + rx, v + ry] }
+    const rest = (T ? [T.w, T.e] : []).map((t) => {
+      const p = track.at(t)
+      const c = Math.abs(Math.cos((p.a * Math.PI) / 180))
+      const sn = Math.abs(Math.sin((p.a * Math.PI) / 180))
+      return around(p.x, p.y, (PX.train / 2) * c + 5 * sn, (PX.train / 2) * sn + 5 * c)
+    })
+    avoid = [...taken, ...Object.values(cross).map((c) => around(c.cx, c.cy, 6, 6)), ...rest].map((b) => [b[0] - 5, b[1] - 5, b[2] + 5, b[3] + 5])
     btn.hidden = !T
     return true
   }
@@ -579,22 +609,24 @@ function createHero(el, map) {
 
   // ---------- what flies ----------
 
+  // How many fly is the rule above stateOf. The missiles come first, so that standing still they get a free spot first.
   function setFlyers() {
     if (!fly) return
     fly.replaceChildren()
     flyers = []
-    for (let i = 0; i < state.drones; i++) flyers.push(drone(i, state.drones))
-    if (state.red) flyers.push(missile())
-    if (!state.drones && !state.alert) flyers.push(cloud())
+    if (state.missiles) flyers.push(cruise())
+    if (state.missiles > 1) flyers.push(missile())
+    flyers.push(...drones(state.drones))
+    if (!flyers.length) flyers.push(cloud())
     if (RM.matches) hold(flyers)
     else for (const fl of flyers) fl.frame(performance.now())
     kick()
   }
 
-  // Reduced motion: each flyer stands still at the first spot of its path that covers no bridge, label, landmark, sun
-  // or moon, the train, the link or an earlier flyer (screen boxes with 2 px of air, bridge lines with 7 px). The cloud
-  // also tries lower rows. A missile with no such spot drops its trail; a drone or a missile may then cross a bridge
-  // line; a flyer that still finds none is left out.
+  // Reduced motion: each flyer stands still at the first spot of its path that keeps 7 px off every bridge line, 10 px
+  // off an earlier flyer, and covers no label, landmark, sun or moon, the train or the link (screen boxes with 2 px of
+  // air). The cloud also tries lower rows. A missile with no such spot drops its trail; a flyer that still finds none is
+  // left out.
   function hold(list) {
     // A use counts by its own x, y, width and height, so it has its box before the sprite file is in.
     const box = (n) => {
@@ -623,77 +655,151 @@ function createHero(el, map) {
     }
     const onDeck = (a) => deck.some((p) => p.x > a.left - 7 && p.x < a.right + 7 && p.y > a.top - 7 && p.y < a.bottom + 7)
     const shown = (fl) => fl.parts.filter((n) => n.style.display !== 'none').map(box).filter((r) => r.width)
-    const fits = (fl, decks) => shown(fl).every((a) => taken.every((b) => !air(a, b)) && !(decks && onDeck(a)))
-    const clear = (fl, decks) => {
+    const fits = (fl) => shown(fl).every((a) => taken.every((b) => !air(a, b)) && !onDeck(a))
+    const clear = (fl) => {
       for (const row of fl.rows || [fl.row]) {
         fl.row = row
-        const t = fl.times.find((x) => { fl.frame(x); return fits(fl, decks) })
+        const t = fl.times.find((x) => { fl.frame(x); return fits(fl) })
         if (t != null) return t
       }
       return null
     }
     for (const fl of list) {
-      let t = clear(fl, true)
-      if (t == null && fl.parts.length > 1) { fl.parts[0].style.display = 'none'; t = clear(fl, true) }
-      if (t == null && !fl.rows) t = clear(fl, false)
+      let t = clear(fl)
+      if (t == null && fl.parts.length > 1) { fl.parts[0].style.display = 'none'; t = clear(fl) }
       if (t == null) { fl.g.style.display = 'none'; continue }
       fl.frame(t)
-      taken.push(...shown(fl))
+      taken.push(...shown(fl).map((r) => ({ left: r.left - 8, top: r.top - 8, right: r.right + 8, bottom: r.bottom + 8 })))
     }
   }
 
-  // A shahed drifts from the north or the east edge toward the centre and fades before it gets there. Its tip says why
-  // it is there; a tap downs it.
-  function drone(i, n) {
-    const r1 = rnd(i + 1)
-    const r2 = rnd(i + 11)
-    const from = i % 2 ? [vb.x + vb.w * (0.45 + 0.4 * r1), vb.y + s(16)] : [vb.x + vb.w - s(16), vb.y + vb.h * (0.44 + 0.3 * r1)]
-    const goal = [city[0] + (r2 - 0.5) * s(70), city[1] + (r1 - 0.5) * s(50)]
-    const to = [from[0] + (goal[0] - from[0]) * 0.7, from[1] + (goal[1] - from[1]) * 0.7]
-    const ang = (Math.atan2(to[1] - from[1], to[0] - from[0]) * 180) / Math.PI
-    const dur = 17000 + 2300 * i
-    const off = (dur * i) / n + 2500
+  // A straight course from one side of the map toward the city centre, each flyer aiming a little apart, cut at `stop`
+  // of the way there, that keeps `r` px off everything in `avoid`. The start slides along its side (west, east, north,
+  // south: the middle 70% of it; a corner: half the map's height each way) away from the spot it would take, then the aim
+  // moves 30 px around the centre; with no clear course the clearest one ends where it would first come closer.
+  function course(side, i, stop, r) {
+    const e = s(14)
+    const c = vb.h / 2
+    const [L, T0, R, B] = [vb.x, vb.y, vb.x + vb.w, vb.y + vb.h]
+    const band = walker({
+      west: [[L + e, T0 + vb.h * 0.15], [L + e, B - vb.h * 0.15]], east: [[R - e, T0 + vb.h * 0.15], [R - e, B - vb.h * 0.15]],
+      north: [[L + vb.w * 0.15, T0 + e], [R - vb.w * 0.15, T0 + e]], south: [[L + vb.w * 0.15, B - e], [R - vb.w * 0.15, B - e]],
+      'north-west': [[L + e, T0 + e + c], [L + e, T0 + e], [L + e + c, T0 + e]], 'north-east': [[R - e - c, T0 + e], [R - e, T0 + e], [R - e, T0 + e + c]],
+    }[side])
+    const want = side.includes('-') ? 0.5 : 0.2 + 0.6 * rnd(i + 1)
+    const jx = (rnd(i + 11) - 0.5) * s(70)
+    const jy = (rnd(i + 1) - 0.5) * s(50)
+    const near = (x, y) => {
+      const u = (x - vb.x) / k
+      const v = (y - vb.y) / k
+      return avoid.some((b) => Math.hypot(Math.max(b[0] - u, 0, u - b[2]), Math.max(b[1] - v, 0, v - b[3])) < r)
+    }
+    let best = null
+    const d = s(30)
+    for (const [ax, ay] of [[jx, jy], [0, 0], [0, -d], [0, d], [-d, 0], [d, 0], [-d, -d], [d, -d], [-d, d], [d, d]]) {
+      for (const t of span(0, 1, s(5) / band.total, want)) {
+        const p = band.at(t)
+        const to = [p.x + (city[0] + ax - p.x) * stop, p.y + (city[1] + ay - p.y) * stop]
+        const n = Math.max(1, Math.ceil(Math.hypot(to[0] - p.x, to[1] - p.y) / s(3)))
+        let j = 0
+        while (j <= n && !near(p.x + ((to[0] - p.x) * j) / n, p.y + ((to[1] - p.y) * j) / n)) j++
+        if (!best || j - 1 > best.free * n) best = { from: [p.x, p.y], to, free: Math.max(0, j - 1) / n }
+        if (best.free >= 0.9) break
+      }
+      if (best.free >= 0.9) break
+    }
+    const { from, free } = best
+    const to = [from[0] + (best.to[0] - from[0]) * free, from[1] + (best.to[1] - from[1]) * free]
+    return { from, to, len: Math.hypot(to[0] - from[0], to[1] - from[1]), ang: (Math.atan2(best.to[1] - from[1], best.to[0] - from[0]) * 180) / Math.PI }
+  }
+
+  // Where a steady flyer is at `now`: it flies its course in `go` ms once every `cyc` ms, fading in over the first 12%
+  // and out over the last 20%, and waits unseen at the end for the rest of the cycle.
+  function glide(c, go, cyc, off, now) {
+    const q = now + off
+    const p = Math.min(1, (q % cyc) / go)
+    return { x: c.from[0] + (c.to[0] - c.from[0]) * p, y: c.from[1] + (c.to[1] - c.from[1]) * p, o: p < 0.12 ? p / 0.12 : p > 0.8 ? (1 - p) / 0.2 : 1, cyc: Math.floor(q / cyc) }
+  }
+
+  // Drone i comes from SIDES[i] at one speed (the map's width in 45 s, at least 13 s a flight) and fades three quarters
+  // of the way to the centre, or before, where it would come near a label, a landmark or the train (course()). All share one cycle and take off in turn, the first 1 s after the page opens, so at most
+  // about 4 are in the air at once, however many there are.
+  function drones(n) {
+    const cs = Array.from({ length: n }, (_, i) => course(SIDES[i % SIDES.length], i, 0.75, PX.tap))
+    const go = cs.map((c) => Math.max(13000, (c.len / vb.w) * 45000))
+    const cyc = Math.max(Math.max(...go) + 3000, go.reduce((a, b) => a + b, 0) / 4)
+    return cs.map((c, i) => drone(i, c, go[i], cyc, cyc * (1 + i / n) - 1000))
+  }
+
+  // A shahed on its course. Its tip says why it is there; a tap downs it. A faint or downed one lets taps through.
+  function drone(i, c, go, cyc, off) {
     const w = PX.drone
     const h = (w * 42) / 58.5
-    const inner = svg('g', { class: 'hm-drone-in' }, svg('circle', { class: 'hm-drone-hit', r: 16 }), use('shahed', -w / 2, -h / 2, w, h))
+    const inner = svg('g', { class: 'hm-drone-in' }, svg('circle', { class: 'hm-drone-hit', r: PX.tap }), use('shahed', -w / 2, -h / 2, w, h))
     const g = svg('g', { class: 'hm-drone' }, inner)
     fly.append(g)
     let down = -1
+    const show = (o) => { inner.style.opacity = f(o, 3); g.style.pointerEvents = o < 0.2 ? 'none' : '' }
     const self = {
-      g, at: null, cyc: 0, o: 0,
+      g, at: null, cyc: 0,
       frame(now) {
-        const q = now + off
-        const p = (q % dur) / dur
-        self.cyc = Math.floor(q / dur)
-        self.at = { x: from[0] + (to[0] - from[0]) * p, y: from[1] + (to[1] - from[1]) * p }
-        self.o = self.cyc === down ? 0 : p < 0.12 ? p / 0.12 : p > 0.84 ? (1 - p) / 0.16 : 1
-        g.setAttribute('transform', `translate(${f(self.at.x, 2)} ${f(self.at.y, 2)}) ${pose(ang)} scale(${f(k, 4)})`)
-        inner.style.opacity = f(self.o, 3)
+        const q = glide(c, go, cyc, off, now)
+        self.at = q
+        self.cyc = q.cyc
+        g.setAttribute('transform', `translate(${f(q.x, 2)} ${f(q.y, 2)}) ${pose(c.ang)} scale(${f(k, 4)})`)
+        show(q.cyc === down ? 0 : q.o)
       },
       parts: [inner.querySelector('use')],
-      times: [0.35 + 0.3 * rnd(i + 5), ...span(0.15, 0.81, 0.03, 0.5)].map((x) => dur * (10 + x) - off),
+      times: [0.3 + 0.3 * rnd(i + 5), ...span(0.15, 0.78, 0.03, 0.45)].map((x) => cyc * 10 + go * x - off),
     }
     g.addEventListener('click', () => {
-      if (self.o < 0.2 || !self.at) return
       burst(self.at)
       down = self.cyc
-      if (RM.matches) inner.style.opacity = 0
+      if (RM.matches) show(0)
     })
-    g.addEventListener('pointerenter', () => {
-      if (self.o >= 0.2 && self.at) showTip(state.kyiv ? 'Дрони з курсом на Київ' : 'Високий ризик атаки дронів або ракет на Київ', { x: self.at.x, y: self.at.y - s(12) })
-    })
+    g.addEventListener('pointerenter', () => showTip(why(), { x: self.at.x, y: self.at.y - s(12) }))
     g.addEventListener('pointerleave', hideTip)
     return self
   }
 
-  // The red level: a ballistic missile streaks in from the north-east every few seconds.
+  // Why the drones fly, for their tip: drones heading for Kyiv now, else the alert, else the risk.
+  function why() {
+    if (state.kyiv) return 'Дрони з курсом на Київ'
+    if (state.alert) return ['yellow', 'red'].includes(state.level) ? `Тривога, ${LEVELS[state.level].name.toLowerCase()}: ${LEVELS[state.level].short}` : 'Тривога в Києві'
+    return `${state.tier === 'high' ? 'Високий' : 'Середній'} ризик атаки дронів або ракет на Київ`
+  }
+
+  // A cruise missile comes in low from the north-west (the right bank, apart from the drones that crowd its west side on
+  // a phone), fast and steady, every 9 s (or 3 s after a longer flight), the first 1.5 s after the page opens.
+  function cruise() {
+    const c = course('north-west', 6, 0.8, PX.cruise / 2 + 2)
+    const [, , sw, sh] = SYM['cruise-missile']
+    const w = PX.cruise
+    const h = (w * sh) / sw
+    const go = Math.max(3500, (c.len / vb.w) * 12000)
+    const cyc = Math.max(9000, go + 3000)
+    const off = cyc - 1500
+    const inner = svg('g', {}, use('cruise-missile', -w / 2, -h / 2, w, h))
+    const g = svg('g', { class: 'hm-missile' }, inner)
+    fly.append(g)
+    return {
+      frame(now) {
+        const q = glide(c, go, cyc, off, now)
+        g.setAttribute('transform', `translate(${f(q.x, 2)} ${f(q.y, 2)}) ${pose(c.ang)} scale(${f(k, 4)})`)
+        inner.style.opacity = f(q.o, 3)
+      },
+      g,
+      parts: [...inner.children],
+      times: span(0.15, 0.78, 0.03, 0.5).map((x) => cyc * 10 + go * x - off),
+    }
+  }
+
+  // A ballistic missile streaks in from the north-east toward the centre every 7 s, the first 2.8 s after the page opens.
   function missile() {
-    const from = [vb.x + vb.w - s(24), vb.y + s(18)]
-    const to = [vb.x + vb.w * 0.6, vb.y + vb.h * 0.62]
-    const ang = (Math.atan2(to[1] - from[1], to[0] - from[0]) * 180) / Math.PI
+    const c = course('north-east', 7, 0.8, PX.missile / 2 + 2)
     const dur = 7000
     const go = 1400
-    const off = 2200
+    const off = 4200
     const w = PX.missile
     const h = (w * 28) / 96
     const tl = RM.matches ? 30 : 58
@@ -702,19 +808,18 @@ function createHero(el, map) {
       use('ballistic-missile', -w / 2, -h / 2, w, h))
     const g = svg('g', { class: 'hm-missile' }, inner)
     fly.append(g)
-    const self = {
+    return {
       frame(now) {
         const q = (now + off) % dur
         const p = Math.min(1, q / go)
         const e = p ** 1.6
-        g.setAttribute('transform', `translate(${f(from[0] + (to[0] - from[0]) * e, 2)} ${f(from[1] + (to[1] - from[1]) * e, 2)}) ${pose(ang)} scale(${f(k, 4)})`)
+        g.setAttribute('transform', `translate(${f(c.from[0] + (c.to[0] - c.from[0]) * e, 2)} ${f(c.from[1] + (c.to[1] - c.from[1]) * e, 2)}) ${pose(c.ang)} scale(${f(k, 4)})`)
         inner.style.opacity = f(q > go ? 0 : p < 0.15 ? p / 0.15 : p > 0.75 ? (1 - p) / 0.25 : 1, 3)
       },
       g,
       parts: [...inner.children],
       times: span(0.16, 0.74, 0.02, 0.55).map((p) => go * p - off + dur * 10),
     }
-    return self
   }
 
   // Calm: one cloud drifts across the sky, slowly. Standing still (reduced motion), it may take a lower row.
