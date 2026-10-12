@@ -1,118 +1,196 @@
 # Лівий берег: як перетнути Дніпро в Києві під час тривог
 
-Станом на 11.10.2026. Позначки: (підтверджено) = офіційне джерело або 2 незалежні медіа; (одне джерело) = лише одне. Канали КМВА, КМДА і метро напряму не читав: факти взято з медіа, які їх цитують (сторінка Суспільного віддала 403). Дата біля кожного посилання: дата публікації з метаданих сторінки (datePublished), звірено 11.10.2026.
+Станом на 12.10.2026, друга перевірка (перша 11.10.2026). Позначки: (підтверджено) = офіційне джерело (КМВА, Укрзалізниця, Київський метрополітен) або 2 незалежні медіа; (одне джерело) = одне медіа, Вікіпедія, OpenStreetMap або канал, чий статус не перевірено; (не підтверджено) = джерела немає. Дата біля посилання: дата публікації; для Telegram дата поста зі сторінки t.me/s; для Вікіпедії, OpenStreetMap і файлів сайту дата звірки. Цього разу канали прочитано напряму: КМВА t.me/s/VA_Kyiv, Укрзалізниця t.me/s/UkrzalInfo, метро t.me/s/kyiv_metro, електричка t.me/s/kyiv_city_express (офіційний канал) і t.me/s/kyivcityexpress (фан-канал). Сторінка kyivcity.gov.ua віддала 403.
 
 ## Коротко
 
-1. Будь-яка тривога, жовта чи червона, зупиняє червону лінію M1 через Дніпро: поїзди їдуть лише під землею Академмістечко-Арсенальна (підтверджено) [https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026; https://www.dsnews.ua/ukr/politics/u-stolici-pid-chas-zhovtogo-rivnya-povitryanoji-trivogi-ne-pracyuvatime-chastina-chervonoji-gilki-metro-17092026-467838, 17.09.2026]
-2. За жовтого рівня через річку їде лише зелена лінія M3 Південним мостом: після ударів 1 і 2 жовтня її повернули 4 жовтня, у піки на мосту по одному поїзду; за червоного метро через Дніпро не їде зовсім (підтверджено) [https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026; https://zn.ua/ukr/UKRAINE/po-odnomu-pojizdu-cherez-mist-u-kijevi-obmezhili-rukh-zelenoju-linijeju-metro.html, 06.10.2026]
-3. Авто, правила КМВА від 3 жовтня: стоп лише на Південному (з правого берега на лівий 15 хв від початку тривоги) і Подільсько-Воскресенському (15 хв на початку і після відбою); Північний, Дарницький, Патона, Метро без обмежень (підтверджено) [https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026; https://investigator.org.ua/ua/news-2/novosti-vlast/286777/, 03.10.2026]
-4. Наземний транспорт під час тривог курсує, замість червоної лінії через річку ходить автобус 1М, електричка Видубичі-Дарниця мала 18 додаткових рейсів 5-9 жовтня (одне джерело на кожен факт) [https://www.unian.ua/society/metro-kijiv-yak-kursuvatimut-pojizdi-pid-chas-riznogo-rivnya-trivog-13492674.html, 07.09.2026; https://kyiv.znaj.ua/567531-18-dodatkovih-reysiv-miskoji-elektrichki-mizh-beregami-kiyeva-yak-perejihati-pislya-udariv-po-mostah, 05.10.2026]
-5. Комендантська година з 10 вересня 2026: 01:00-05:00, на годину коротша, ніж була (підтверджено) [https://www.kyivpost.com/uk/post/83945, 07.09.2026; https://vikna.tv/dlia-tebe/novyny-ukrayiny/komendantska-godyna-v-kyyevi-z-01-00-do-05-00-koly-skorotyat-chas/amp/, 09.09.2026; https://www.rbc.ua/rus/news/kievi-nabuli-chinnosti-novi-pravila-trivogah-1788789351.html, 10.09.2026]
+1. Червона лінія M1 за будь-якої тривоги, жовтої чи червоної, через Дніпро не їде: лише під землею Академмістечко-Арсенальна (підтверджено) [https://t.me/VA_Kyiv/20278, 02.09.2026; https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026; https://www.dsnews.ua/ukr/politics/u-stolici-pid-chas-zhovtogo-rivnya-povitryanoji-trivogi-ne-pracyuvatime-chastina-chervonoji-gilki-metro-17092026-467838, 17.09.2026]
+2. Зелена лінія M3 їде Південним мостом без тривоги і за жовтого рівня (знову з 04.10), за червоного через Дніпро не їде; у піки, орієнтовно 7:30-10:00 і 16:00-20:00, на мосту лише один поїзд, про це повідомили 06.10 (підтверджено); чи діє 12.10, не підтверджено: новіших повідомлень після 06.10 немає [https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026; https://zn.ua/ukr/UKRAINE/po-odnomu-pojizdu-cherez-mist-u-kijevi-obmezhili-rukh-zelenoju-linijeju-metro.html, 06.10.2026; https://t.me/s/kyiv_metro, звірено 12.10.2026]
+3. Авто, правила КМВА від 03.10, досі останні: на Південному з правого берега на лівий рух обмежують на 15 хв від оголошення тривоги, потім відновлюють; Подільсько-Воскресенський стоїть в обидва боки 15 хв після оголошення і 15 хв після відбою; Північний, Дарницький, Патона, Метро без обмежень (підтверджено) [https://t.me/VA_Kyiv/21404, 03.10.2026; https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026]
+4. Електричка Kyiv City Express це кільце, яке двічі перетинає Дніпро: на півночі Рибальським залізничним мостом між Почайною і Райдужним, на півдні між Видубичами і Дарницею. За жовтого рівня їде і бере пасажирів, за червоного посадку і висадку припиняють; за будь-якого рівня Укрзалізниця може зупинити все кільце на час загрози, як 12.09, 07.10, 10.10 і 11.10 (підтверджено) [https://t.me/UkrzalInfo/8237, 24.06.2026; https://t.me/UkrzalInfo/8539, 04.10.2026; https://t.me/UkrzalInfo/8509, 18.09.2026; https://t.me/kyiv_city_express/1463, 23.09.2026; https://www.ukrinform.ua/rubric-regions/4163542-u-kievi-cerez-pidvisenu-povitranu-zagrozu-prizupinenij-ruh-kilcevoi-elektricki.html, 12.09.2026; https://t.me/kyiv_city_express/1650, 07.10.2026; https://t.me/kyiv_city_express/1695, 10.10.2026; https://t.me/kyiv_city_express/1706, 11.10.2026]
+5. Комендантська година 01:00-05:00 з 10.09.2026; новішого рішення не знайдено (підтверджено) [https://www.kyivpost.com/uk/post/83945, 07.09.2026; https://www.rbc.ua/rus/news/kievi-nabuli-chinnosti-novi-pravila-trivogah-1788789351.html, 10.09.2026]
+
+## Що змінилось з 11.10
+
+- Знайдено, хто визначає рівні: Генштаб і Повітряні сили разом з урядом, Міноборони, МВС і ДСНС щотижня вирішують, які загрози оголошувати жовтим, а які червоним (підтверджено) [https://t.me/VA_Kyiv/20278, 02.09.2026]
+- Правила мостів від 03.10 прочитано напряму в КМВА; новіших правил руху мостами до 12.10 немає, лише пости про удари по Північному мосту 03.10 і 04.10 (підтверджено) [https://t.me/s/VA_Kyiv?q=мост, звірено 12.10.2026; https://t.me/VA_Kyiv/21410, 03.10.2026; https://t.me/VA_Kyiv/21449, 04.10.2026]
+- Південний міст: КМВА пише, що рух з правого берега на лівий «обмежується» на 15 хв, а «припиняється» лише на Подільсько-Воскресенському; перша перевірка писала «стоп», тепер тут «рух обмежують» (підтверджено) [https://t.me/VA_Kyiv/21404, 03.10.2026; https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026]
+- Знайдено раніший, суворіший пост КМВА від 02.10: Південний перекривали з обох берегів, Метро і Подільсько-Воскресенський з лівого на правий, Дарницьким їхали однією смугою з правого на лівий; пост від 03.10 його замінив (підтверджено) [https://t.me/VA_Kyiv/21390, 02.10.2026; https://t.me/VA_Kyiv/21404, 03.10.2026]
+- Електричка перетинає Дніпро і на півночі, Рибальським залізничним мостом між Почайною і Райдужним; повне кільце відновили 28.06.2026 після ремонту мосту (підтверджено) [https://t.me/UkrzalInfo/8237, 24.06.2026]
+- Електричка 11.10 стояла в обидва боки за вказівкою моніторингової групи Укрзалізниці, того ж дня рух відновили (підтверджено) [https://t.me/kyiv_city_express/1706, 11.10.2026; https://t.me/kyiv_city_express/1707, 11.10.2026]
+- Додаткові рейси електрички ходять і 12-16.10: 18 рейсів Київ-Деміївський - Видубичі - Березняки - Дарниця і назад, так пише офіційний канал (підтверджено) [https://t.me/kyiv_city_express/1693, 09.10.2026]
+- 18 додаткових рейсів на 5-9.10 тепер підтвердила сама Укрзалізниця (підтверджено) [https://t.me/UkrzalInfo/8539, 04.10.2026; https://lb.ua/society/2026/10/05/771256_ukrzaliznitsya_dodast_18_reysiv.html, 05.10.2026]
+- З 12.10 Укрзалізниця змінила графік електрички, щоб вона точніше стикувалась з метро (одне джерело) [https://kyiv.znaj.ua/568384-miska-elektrichka-zminyuye-ruh-mizh-beregami-kiyeva-z-12-zhovtnya, 11.10.2026]
+- Метро 10.10 після зникнення напруги відновило рух з інтервалами 12-15 хв на червоній і зеленій лініях і понад 15 хв на синій (одне джерело) [https://t.me/kyiv_metro/51, 10.10.2026]
+- Рибальський залізничний міст на мапі сайту перевірено: це колишній Петрівський, він стоїть над головним руслом Дніпра і Десенкою, а не лише над гаванню (одне джерело, OpenStreetMap згоден) [https://uk.wikipedia.org/wiki/Петрівський_залізничний_міст, звірено 12.10.2026; https://www.openstreetmap.org/way/244211418, звірено 12.10.2026]
+- Знайдено правила Укрзалізниці для рівнів, оголошені 18.09.2026: за жовтого поїзди курсують і беруть пасажирів, за червоного посадку і висадку припиняють, а поїзди в дорозі не стають автоматично (підтверджено) [https://t.me/UkrzalInfo/8509, 18.09.2026; https://t.me/kyiv_city_express/1413, 18.09.2026]
+- Знайдено ще одну зупинку всього кільця електрички: 07.10 вранці, через підвищену загрозу та обстріл столиці (підтверджено) [https://t.me/kyiv_city_express/1650, 07.10.2026]
+- Перевірено канали електрички: t.me/kyiv_city_express має позначку перевіреного каналу Telegram і опис «Офіційний канал Київської кільцевої електрички від Укрзалізниці», тож факти з нього тут позначено як підтверджені; t.me/kyivcityexpress описує себе як фан-канал (підтверджено) [https://t.me/s/kyiv_city_express, звірено 12.10.2026; https://t.me/s/kyivcityexpress, звірено 12.10.2026]
 
 ## Рівні тривоги
 
-- Жовтий: загроза дронів. Червоний: ракети, ракети разом з дронами або масована атака дронів (підтверджено) [https://kyiv.news/bezpeka-kriminal/kyiv-vvodyt-zhovtyi-chervonyi-rivni-tryvohy/, 03.09.2026; https://jurliga.ligazakon.net/news/246063_povtryan-trivogi-podlyat-na-dva-rvn-yak-zmozhe-pratsyuvati-bznes, 07.09.2026; https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026]
-- За червоного треба одразу в укриття; жовтий менш критичний, але теж вимагає реакції (одне джерело) [https://kyiv.news/bezpeka-kriminal/kyiv-vvodyt-zhovtyi-chervonyi-rivni-tryvohy/, 03.09.2026]
-- Рівні запровадив уряд: постанова Кабміну від 4 вересня 2026 № 1092 ділить сигнал «Повітряна тривога» в загальнодержавній системі оповіщення на жовтий і червоний (підтверджено) [https://jurliga.ligazakon.net/news/246063_povtryan-trivogi-podlyat-na-dva-rvn-yak-zmozhe-pratsyuvati-bznes, 07.09.2026; https://7eminar.ua/news/24316-diyi-robotodavcya-pid-cas-zovtogo-ta-cervonogo-rivniv-povitryanoyi-trivogi, 21.09.2026]
-- У Києві сповіщення за видами загроз працюють з 6 вересня 2026, за dtkt.ua з 06:00 (підтверджено) [https://news.dtkt.ua/society/community/114411-novi-opovishhennia-pro-povitriani-zagrozi-v-kijevi-z-6-veresnia-diiut-dva-tipi, 07.09.2026; https://vikna.tv/dlia-tebe/novyny-ukrayiny/komendantska-godyna-v-kyyevi-z-01-00-do-05-00-koly-skorotyat-chas/amp/, 09.09.2026]
-- Міські правила для метро і мостів за рівнями діють з 00:00 10 вересня 2026; їх ухвалила Рада оборони Києва за постановою уряду (підтверджено) [https://kyiv.tsn.ua/kyiv/zovtyy-i-chervonyy-rivni-zahrozy-metro-ta-mosty-kyyeva-zminiat-rezym-roboty-pid-chas-tryvohy-novi-pravyla-3163667.html, 07.09.2026; https://www.kyivpost.com/uk/post/83945, 07.09.2026; https://www.rbc.ua/rus/news/kievi-nabuli-chinnosti-novi-pravila-trivogah-1788789351.html, 10.09.2026]
-- Хто саме оголошує рівень (Повітряні сили, КМВА чи інший орган): не знайдено.
-- Де бачити рівень: застосунок «Київ Цифровий» (одне джерело) [https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026]
-- Медіа пишуть рівень у новинах про тривогу: 10 жовтня було 9 тривог, остання 22:25-23:29 жовтого рівня (одне джерело) [https://glavcom.ua/country/incidents/u-kijevi-ta-niztsi-oblastej-oholosheno-povitrjanu-trivohu-1148285.html, 10.10.2026]
-- Окремі звукові сигнали для кожного рівня на 3 вересня лише планували; чи запустили, не знайдено (одне джерело) [https://kyiv.news/bezpeka-kriminal/kyiv-vvodyt-zhovtyi-chervonyi-rivni-tryvohy/, 03.09.2026]
+- Жовтий: наліт дронів; червоний: ракетна небезпека, зокрема балістика, і масовані атаки (підтверджено) [https://t.me/VA_Kyiv/20278, 02.09.2026; https://kyiv.news/bezpeka-kriminal/kyiv-vvodyt-zhovtyi-chervonyi-rivni-tryvohy/, 03.09.2026; https://jurliga.ligazakon.net/news/246063_povtryan-trivogi-podlyat-na-dva-rvn-yak-zmozhe-pratsyuvati-bznes, 07.09.2026]
+- Які загрози оголошувати жовтим, а які червоним, щотижня визначають Генштаб і Повітряні сили разом з урядом, Міноборони, МВС і ДСНС (підтверджено) [https://t.me/VA_Kyiv/20278, 02.09.2026]
+- Рівні запровадила постанова Кабміну від 4 вересня 2026 № 1092 (підтверджено) [https://jurliga.ligazakon.net/news/246063_povtryan-trivogi-podlyat-na-dva-rvn-yak-zmozhe-pratsyuvati-bznes, 07.09.2026; https://7eminar.ua/news/24316-diyi-robotodavcya-pid-cas-zovtogo-ta-cervonogo-rivniv-povitryanoyi-trivogi, 21.09.2026]
+- У Києві сповіщення за рівнями з 6 вересня 2026, міські правила для метро і мостів з 00:00 10 вересня 2026, їх ухвалила Рада оборони Києва (підтверджено) [https://news.dtkt.ua/society/community/114411-novi-opovishhennia-pro-povitriani-zagrozi-v-kijevi-z-6-veresnia-diiut-dva-tipi, 07.09.2026; https://kyiv.tsn.ua/kyiv/zovtyy-i-chervonyy-rivni-zahrozy-metro-ta-mosty-kyyeva-zminiat-rezym-roboty-pid-chas-tryvohy-novi-pravyla-3163667.html, 07.09.2026; https://www.rbc.ua/rus/news/kievi-nabuli-chinnosti-novi-pravila-trivogah-1788789351.html, 10.09.2026]
+- КМВА називає рівень і причину в постах про тривогу; 12.10 до 10:30 було три тривоги «Жовтий рівень небезпеки ... через дронову загрозу», о 05:42, 06:57 і 10:27 (підтверджено) [https://t.me/VA_Kyiv/21712, 12.10.2026; https://t.me/VA_Kyiv/21714, 12.10.2026; https://t.me/VA_Kyiv/21717, 12.10.2026]
+- Рівень видно і в застосунку «Київ Цифровий» (одне джерело) [https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026]
+- Окремі звукові сигнали для рівнів обіцяли; чи запустили, не знайдено (не підтверджено) [https://t.me/VA_Kyiv/20278, 02.09.2026]
+
+## Мости через головне русло Дніпра, з півночі на південь
+
+Сім мостів мапи сайту (site/data/kyiv_map.json, id у дужках) і восьмий, Дарницький залізничний, якого на мапі окремо немає. [site/data/kyiv_map.json, звірено 12.10.2026; https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026]
+
+Північний міст (pivnichnyi; OpenStreetMap «Північний міст»):
+- Авто; однопілоновий вантовий автомобільний міст, відкритий 03.12.1976 (одне джерело) [https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026]
+- Правий кінець на Оболоні; куди саме виходить на лівому березі, не перевірено (не підтверджено) [https://www.openstreetmap.org/way/23145427, звірено 12.10.2026]
+- Ним ходять тролейбуси: 03.10 удар пошкодив полотно і тролейбусну мережу (підтверджено) [https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026; https://investigator.org.ua/ua/news-2/novosti-vlast/286777/, 03.10.2026]
+- 04.10 вранці дрон знову вдарив по мосту; чи це зупиняло рух, не знайдено (підтверджено удар, вплив на рух не підтверджено) [https://t.me/VA_Kyiv/21449, 04.10.2026]
+- Під час тривоги без обмежень (підтверджено) [https://t.me/VA_Kyiv/21404, 03.10.2026]
+
+Рибальський залізничний міст (rybalskyi; OpenStreetMap «Рибальський залізничний міст», стара назва «Петрівський міст»):
+- Лише залізниця, одна колія; переважно вантажні поїзди, також міська електричка (одне джерело) [https://uk.wikipedia.org/wiki/Петрівський_залізничний_міст, звірено 12.10.2026]
+- Стоїть між станціями Почайна (правий берег) і Райдужний (лівий берег); після двомісячного ремонту відкритий з 28.06.2026 (підтверджено) [https://t.me/UkrzalInfo/8237, 24.06.2026]
+- Перетинає головне русло Дніпра і протоку Десенку, з Рибальського острова на Воскресенку і Русанівські сади; лінія русла на мапі сайту перетинає його один раз (одне джерело, OpenStreetMap згоден) [https://uk.wikipedia.org/wiki/Петрівський_залізничний_міст, звірено 12.10.2026; site/data/kyiv_map.json, звірено 12.10.2026]
+- Назву «Рибальський залізничний міст» дала КМДА 18.01.2024, до того неофіційно Петрівський: це той самий міст (одне джерело) [https://uk.wikipedia.org/wiki/Петрівський_залізничний_міст, звірено 12.10.2026]
+- В OpenStreetMap ним проходять обидва маршрути «Міська електричка» (за і проти годинникової стрілки) (одне джерело) [https://www.openstreetmap.org/relation/7786516, звірено 12.10.2026; https://www.openstreetmap.org/relation/276149, звірено 12.10.2026]
+- Правила КМВА для нього немає, бо він не для авто; поїзди стоять, коли Укрзалізниця зупиняє кільце електрички (підтверджено) [https://t.me/VA_Kyiv/21404, 03.10.2026; https://t.me/kyiv_city_express/1706, 11.10.2026]
+
+Подільсько-Воскресенський міст (podilskyi; так у КМВА; OpenStreetMap «Подільський мостовий перехід»; у Вікіпедії «Подільський міст»):
+- Авто; арково-підвісний міст, відкритий 01.12.2023 (одне джерело) [https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026]
+- З Подолу через Труханів острів на лівий берег (одне джерело) [https://www.openstreetmap.org/way/661363522, звірено 12.10.2026]
+- Метро ним не ходить: колія в OpenStreetMap лише запроектована, «Подільсько-Вигурівська лінія» (одне джерело) [https://www.openstreetmap.org/way/166106474, звірено 12.10.2026]
+- Під час тривоги рух в обидва боки стоїть 15 хв після оголошення тривоги і 15 хв після відбою, потім відновлюється повністю (підтверджено) [https://t.me/VA_Kyiv/21404, 03.10.2026; https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026]
+
+Міст Метро (metro; OpenStreetMap «міст Метро»):
+- Червона лінія M1 і авто; метроміст, відкритий 05.11.1965 (одне джерело) [https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026]
+- Від станції Дніпро (правий берег) до Гідропарку на Венеційському острові; далі M1 і Броварський проспект перетинають Русанівську протоку Русанівським метромостом до Лівобережної (одне джерело) [https://www.openstreetmap.org/way/23260778, звірено 12.10.2026; https://www.openstreetmap.org/way/887638300, звірено 12.10.2026]
+- Авто під час тривоги без обмежень (підтверджено) [https://t.me/VA_Kyiv/21404, 03.10.2026]
+- Метро під час будь-якої тривоги мостом не їде (підтверджено) [https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026; https://www.dsnews.ua/ukr/politics/u-stolici-pid-chas-zhovtogo-rivnya-povitryanoji-trivogi-ne-pracyuvatime-chastina-chervonoji-gilki-metro-17092026-467838, 17.09.2026]
+
+Міст Патона (patona; OpenStreetMap «міст Патона»; у Вікіпедії «Міст імені Є. О. Патона»):
+- Авто; балковий автомобільний міст, відкритий 05.11.1953 (одне джерело) [https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026]
+- В OpenStreetMap дорога мостом зветься «міст Патона» (одне джерело) [https://www.openstreetmap.org/way/45985363, звірено 12.10.2026]
+- Між якими місцями стоїть, не перевірено (не підтверджено)
+- Під час тривоги без обмежень (підтверджено) [https://t.me/VA_Kyiv/21404, 03.10.2026]
+
+Дарницький залізнично-автомобільний міст (darnytskyi; у КМВА «Дарницький міст»):
+- Авто і залізниця; комбінований міст, відкритий 27.09.2010 (одне джерело) [https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026]
+- В OpenStreetMap дорога мостом зветься «Дарницький залізнично-автомобільний міст» (одне джерело) [https://www.openstreetmap.org/way/45143450, звірено 12.10.2026]
+- Авто під час тривоги без обмежень (підтверджено) [https://t.me/VA_Kyiv/21404, 03.10.2026]
+- Ним ходять автобуси 22 і 91 (одне джерело) [https://kyiv.znaj.ua/567531-18-dodatkovih-reysiv-miskoji-elektrichki-mizh-beregami-kiyeva-yak-perejihati-pislya-udariv-po-mostah, 05.10.2026]
+- Між якими місцями стоїть і котрим із двох Дарницьких мостів їде електричка Видубичі-Дарниця, не перевірено (не підтверджено)
+
+Дарницький залізничний міст (нового id ще немає; OpenStreetMap «Дарницький залізничний міст»):
+- Лише залізниця; відкритий 1949 (одне джерело) [https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026]
+- Стоїть поруч із Дарницьким залізнично-автомобільним; на мапі сайту окремо не намальований (одне джерело) [https://www.openstreetmap.org/way/696988567, звірено 12.10.2026; site/data/kyiv_map.json, звірено 12.10.2026]
+- Які поїзди ним ходять, не знайдено (не підтверджено)
+- Для всіх поїздів Укрзалізниці діють правила за рівнями, оголошені 18.09: за жовтого їдуть, за червоного посадки і висадки немає, поїзди в дорозі не стають автоматично (підтверджено) [https://t.me/UkrzalInfo/8509, 18.09.2026]
+
+Південний міст (pivdennyi; OpenStreetMap «Південний міст»):
+- Авто і зелена лінія M3; комбінований вантовий міст, відкритий 25.12.1990 (одне джерело) [https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026]
+- В OpenStreetMap дорога мостом зветься «Південний міст» (одне джерело) [https://www.openstreetmap.org/way/4335942, звірено 12.10.2026]
+- На правому березі в'їзд зі Столичного шосе, Наддніпрянського шосе і від автовокзалу «Видубичі» (підтверджено) [https://t.me/VA_Kyiv/21404, 03.10.2026]
+- Метро мостом їде з Видубичів (правий берег) на Славутич (лівий берег) (одне джерело) [https://www.unian.ua/society/metro-kijiv-yak-kursuvatimut-pojizdi-pid-chas-riznogo-rivnya-trivog-13492674.html, 07.09.2026]
+- Авто під час тривоги: з лівого берега на правий без обмежень; з правого на лівий рух обмежують на 15 хв від оголошення тривоги, потім відновлюють; КМВА пише «обмежується», а «припиняється» лише про Подільсько-Воскресенський, і не пише, як саме обмежують (підтверджено) [https://t.me/VA_Kyiv/21404, 03.10.2026; https://investigator.org.ua/ua/news-2/novosti-vlast/286777/, 03.10.2026]
+- 01.10 два дрони влучили біля опори під час руху поїзда метро, того ж дня повторний удар, 02.10 ще один; 02.10 міст перекривали для авто повністю (підтверджено) [https://nv.ua/ukr/kyiv/u-kiyevi-dva-rosiyski-bezpilotniki-vluchili-poblizu-opornoji-chastini-pivdennogo-mostu-50646253.html, 01.10.2026; https://glavcom.ua/country/incidents/pivdennij-mist-kijeva-zaznav-povtornoji-ataki-droniv-1146548.html, 01.10.2026; https://t.me/VA_Kyiv/21390, 02.10.2026]
+- Автобуси Південним мостом пустили знову після удару 01.10 (підтверджено) [https://www.rbc.ua/rus/news/prilot-pivdennomu-mostu-kievi-poshkodzhennya-1790855634.html, 01.10.2026; https://112.ua/u-kievi-vidnovili-ruh-nazemnogo-transportu-cerez-pivdennij-mist-pisla-ataki-bezpilotnikiv-188697, 02.10.2026]
+- Ремонт покриття: частину смуг закрито з 30.05 до 31.10.2026; чи це ще діє, не перевірено (одне джерело) [https://www.rbc.ua/rus/news/pivdenniy-mist-kievi-chastkovo-zakrivayut-1780067852.html, 29.05.2026]
+
+Не переправи на лівий берег (не плутати):
+- Парковий пішохідний міст (1957) веде лише на Труханів острів; в OpenStreetMap це пішохідна і велодоріжка (одне джерело) [https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026; https://www.openstreetmap.org/way/163254636, звірено 12.10.2026]
+- Рибальський пішохідний міст (1963, закритий) і Гаванський міст (2007) стоять над гаванню на Рибальський півострів, західніше головного русла (одне джерело) [https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026; https://www.openstreetmap.org/way/8385841, звірено 12.10.2026; https://www.openstreetmap.org/way/83371634, звірено 12.10.2026]
+- Русанівський метроміст (1965) перетинає лише Русанівську протоку між Гідропарком і Лівобережною (одне джерело) [https://uk.wikipedia.org/wiki/Мости_Києва, звірено 12.10.2026; https://www.openstreetmap.org/way/887638300, звірено 12.10.2026]
 
 ## Метро
 
 Червона M1, міст Метро:
-- За будь-якої тривоги лише Академмістечко-Арсенальна під землею; наземна ділянка Дніпро, Гідропарк, Лівобережна, Дарниця, Чернігівська, Лісова стоїть (підтверджено) [https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026; https://www.dsnews.ua/ukr/politics/u-stolici-pid-chas-zhovtogo-rivnya-povitryanoji-trivogi-ne-pracyuvatime-chastina-chervonoji-gilki-metro-17092026-467838, 17.09.2026; https://www.unian.ua/society/metro-kijiv-yak-kursuvatimut-pojizdi-pid-chas-riznogo-rivnya-trivog-13492674.html, 07.09.2026]
-- Чому: заступник голови КМДА Петро Пантелеєв каже, що варіантів роботи червоної гілки в жовту тривогу немає, бо задовга відкрита ділянка (одне джерело) [https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026]
-- Як часто: у неділю 28 вересня наземна ділянка працювала менше 5 годин за добу (одне джерело) [https://kyiv.znaj.ua/566520-nazemna-dilyanka-chervonoji-gilki-metro-kiyeva-cherez-droni-pracyuvala-menshe-5-godin, 29.09.2026]
+- За будь-якої тривоги лише Академмістечко-Арсенальна під землею; наземна ділянка Дніпро, Гідропарк, Лівобережна, Дарниця, Чернігівська, Лісова стоїть (підтверджено) [https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026; https://www.unian.ua/society/metro-kijiv-yak-kursuvatimut-pojizdi-pid-chas-riznogo-rivnya-trivog-13492674.html, 07.09.2026]
+- Під час тривог Святошинсько-Броварську лінію через річку підміняє наземний транспорт (підтверджено) [https://t.me/VA_Kyiv/20278, 02.09.2026]
+- Чому: заступник голови КМДА Петро Пантелеєв каже, що задовга відкрита ділянка (одне джерело) [https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026]
+- У неділю 28.09 наземна ділянка працювала менше 5 годин за добу (одне джерело) [https://kyiv.znaj.ua/566520-nazemna-dilyanka-chervonoji-gilki-metro-kiyeva-cherez-droni-pracyuvala-menshe-5-godin, 29.09.2026]
 
 Зелена M3, Південний міст:
-- Правила з вересня: за жовтого їде без обмежень, і через Південний міст; за червоного дві окремі ділянки Сирець-Видубичі і Славутич-Червоний хутір (підтверджено) [https://www.unian.ua/society/metro-kijiv-yak-kursuvatimut-pojizdi-pid-chas-riznogo-rivnya-trivog-13492674.html, 07.09.2026; https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026]
-- 1 жовтня два дрони влучили біля опори Південного мосту, рух метро мостом зупинили (підтверджено) [https://politerno.com.ua/2026/10/01/dva-drony-atakuvaly-pivdennyj-mist-u-kyyevi-ruh-avtobusiv-vidnovlyuyut-metro-poky-ni/, 01.10.2026; https://nv.ua/ukr/kyiv/u-kiyevi-dva-rosiyski-bezpilotniki-vluchili-poblizu-opornoji-chastini-pivdennogo-mostu-50646253.html, 01.10.2026; https://zn.ua/ukr/UKRAINE/v-kijevi-droni-vdarili-po-pivdennomu-mostu-rukh-metro-cherez-mist-zupinili.html, 01.10.2026]
-- Удар стався під час руху поїзда метро мостом (підтверджено) [https://kyiv.tsn.ua/kyiv/u-kyyevi-shakhed-vdaryv-po-pivdennomu-mostu-pid-chas-rukhu-potiaha-metro-pershi-detali-video-3179207.html, 01.10.2026; https://www.unian.ua/economics/transport/udar-po-pivdennomu-mostu-v-kiyevi-dron-atakuvav-pivdenniy-mist-pid-chas-ruhu-potyaga-metro-novini-kiyeva-13515483.html, 01.10.2026]
-- Того ж дня повторний удар по мосту, 2 жовтня ще один; 2 жовтня Південний міст повністю закрили для авто (підтверджено) [https://glavcom.ua/country/incidents/pivdennij-mist-kijeva-zaznav-povtornoji-ataki-droniv-1146548.html, 01.10.2026; https://nv.ua/ukr/kyiv/pivdenniy-mist-mist-metro-ta-mist-patona-v-kiyevi-perekriti-pislya-udaru-2-zhovtnya-novini-kiyeva-50646401.html, 02.10.2026; https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026]
-- 4 жовтня КМДА повернула рух зеленої лінії мостом за жовтого рівня; за червоного рух мостом стоп, ділянки Сирець-Видубичі і Осокорки-Червоний хутір (підтверджено) [https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026; https://life.kyiv.ua/news/u-kyievi-vidnovyly-rukh-nazemnoiu-diliankoiu-zelenoi-hilky-metro, 05.10.2026]
-- З 6 жовтня у піки, орієнтовно 7:30-10:00 і 16:00-20:00, на мосту одночасно лише один поїзд, поїзди по черзі розвертаються на Видубичах і Осокорках; поза піками звичайний графік (підтверджено) [https://zn.ua/ukr/UKRAINE/po-odnomu-pojizdu-cherez-mist-u-kijevi-obmezhili-rukh-zelenoju-linijeju-metro.html, 06.10.2026; https://my.ua/uk/news/cluster/2026-10-06-zelenaia-vetv-metro-v-kieve-izmenila-grafik-poezda-vozvrashchaiut-na-osokorkakh-i-vydubichakh/8f607170-90e2-336f-f665-f1f58d10a855, 06.10.2026]
+- За жовтого рівня Сирецько-Печерська лінія працює повністю, і через Південний міст (правило з вересня) (підтверджено) [https://t.me/VA_Kyiv/20278, 02.09.2026; https://www.unian.ua/society/metro-kijiv-yak-kursuvatimut-pojizdi-pid-chas-riznogo-rivnya-trivog-13492674.html, 07.09.2026]
+- Після ударів 01.10 рух мостом зупинили; 04.10 КМДА повернула його за жовтого рівня (підтверджено) [https://zn.ua/ukr/UKRAINE/v-kijevi-droni-vdarili-po-pivdennomu-mostu-rukh-metro-cherez-mist-zupinili.html, 01.10.2026; https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026; https://life.kyiv.ua/news/u-kyievi-vidnovyly-rukh-nazemnoiu-diliankoiu-zelenoi-hilky-metro, 05.10.2026]
+- За червоного мостом не їде: дві ділянки Сирець-Видубичі і Осокорки-Червоний хутір (підтверджено) [https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026; https://life.kyiv.ua/news/u-kyievi-vidnovyly-rukh-nazemnoiu-diliankoiu-zelenoi-hilky-metro, 05.10.2026]
+- У піки, орієнтовно 7:30-10:00 і 16:00-20:00, на мосту одночасно лише один поїзд (повідомлено 06.10, дату початку не названо), поїзди по черзі розвертаються на Видубичах і Осокорках; поза піками звичайний графік (підтверджено) [https://zn.ua/ukr/UKRAINE/po-odnomu-pojizdu-cherez-mist-u-kijevi-obmezhili-rukh-zelenoju-linijeju-metro.html, 06.10.2026; https://my.ua/uk/news/cluster/2026-10-06-zelenaia-vetv-metro-v-kieve-izmenila-grafik-poezda-vozvrashchaiut-na-osokorkakh-i-vydubichakh/8f607170-90e2-336f-f665-f1f58d10a855, 06.10.2026]
+- Новіших повідомлень про зелену лінію після 06.10 немає ні в КМВА, ні в каналі метро, тож чи діє пік-правило 12.10, не підтверджено (не підтверджено) [https://t.me/s/VA_Kyiv?q=метро, звірено 12.10.2026; https://t.me/s/kyiv_metro, звірено 12.10.2026]
 
-Синя M2: через Дніпро не йде [з постановки задачі, 11.10.2026]; окремих правил для неї за рівнями не знайдено.
+Синя M2 через Дніпро не йде; окремих правил для неї за рівнями не знайдено (не підтверджено)
 
-Новіше:
-- 10 жовтня метро тимчасово зупиняло поїзди й ескалатори через зникнення напруги (підтверджено) [https://lb.ua/kyiv/2026/10/10/772444_kiievi_timchasovo_zupinili_ruh.html, 10.10.2026; https://obozrevatel.com/ukr/section-zhizn-stolitsyi/news-u-kyyevi-cherez-znyknennya-napruhy-u-metro-pryzupynyly-rukh-poyizdiv-i-robotu-eskalatoriv-usi-podrobytsi-10-10-2026.html, 10.10.2026]
-- Кличко пов'язав це з пошкодженням енергооб'єкта в Київській області (підтверджено) [https://lb.ua/kyiv/2026/10/10/772444_kiievi_timchasovo_zupinili_ruh.html, 10.10.2026; https://obozrevatel.com/ukr/section-zhizn-stolitsyi/news-u-kyyevi-cherez-znyknennya-napruhy-u-metro-pryzupynyly-rukh-poyizdiv-i-robotu-eskalatoriv-usi-podrobytsi-10-10-2026.html, 10.10.2026]
-- Новин за 11 жовтня про метро чи мости не знайдено.
+Загальне:
+- З 10.09 метро працює до 23:38, останні поїзди до кінцевих до опівночі (одне джерело) [https://t.me/kyiv_metro/47, 09.09.2026]
+- 10.10 метро зупиняло поїзди й ескалатори через зникнення напруги (підтверджено) [https://t.me/kyiv_metro/50, 10.10.2026; https://lb.ua/kyiv/2026/10/10/772444_kiievi_timchasovo_zupinili_ruh.html, 10.10.2026; https://obozrevatel.com/ukr/section-zhizn-stolitsyi/news-u-kyyevi-cherez-znyknennya-napruhy-u-metro-pryzupynyly-rukh-poyizdiv-i-robotu-eskalatoriv-usi-podrobytsi-10-10-2026.html, 10.10.2026]
 
-## Мости
+## Електричка Kyiv City Express
 
-- Правила з вересня: Південний і Подільсько-Воскресенський перекривали на 30 хв після початку тривоги і на 30 хв після відбою; Патона, Метро, Північний, Дарницький без змін (підтверджено) [https://www.unian.ua/society/metro-kijiv-yak-kursuvatimut-pojizdi-pid-chas-riznogo-rivnya-trivog-13492674.html, 07.09.2026; https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026]
-- Нові правила КМВА, 3 жовтня: Південний з лівого берега на правий без обмежень; з правого на лівий стоп 15 хв від оголошення тривоги, далі рух (підтверджено) [https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026; https://investigator.org.ua/ua/news-2/novosti-vlast/286777/, 03.10.2026]
-- Подільсько-Воскресенський: стоп 15 хв в обидва боки при тривозі і при відбої, далі повний рух (підтверджено) [https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026; https://investigator.org.ua/ua/news-2/novosti-vlast/286777/, 03.10.2026]
-- Північний, Дарницький, Патона, Метро: без обмежень під час тривоги (підтверджено) [https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026; https://investigator.org.ua/ua/news-2/novosti-vlast/286777/, 03.10.2026]
-- У правилах мостів рівень тривоги (жовтий чи червоний) не згадано (одне джерело) [https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026]
-- 2 жовтня після удару перекривали Південний, Метро і Патона (одне джерело) [https://nv.ua/ukr/kyiv/pivdenniy-mist-mist-metro-ta-mist-patona-v-kiyevi-perekriti-pislya-udaru-2-zhovtnya-novini-kiyeva-50646401.html, 02.10.2026]
-- 3 жовтня вранці удар по Північному мосту: пошкоджено полотно і тролейбусну мережу (підтверджено) [https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026; https://investigator.org.ua/ua/news-2/novosti-vlast/286777/, 03.10.2026]
-- Повністю закритих мостів на 11 жовтня не знайдено; новіших за 3 жовтня правил для мостів теж не знайдено.
+- Кільце навколо Києва, двічі через Дніпро: на півночі Рибальським залізничним мостом між Почайною і Райдужним, на півдні між Видубичами і Дарницею (підтверджено) [https://t.me/UkrzalInfo/8237, 24.06.2026; https://t.me/UkrzalInfo/8539, 04.10.2026]
+- Поїзди ходять в обидва боки кільця, наприклад «А07 Святошин - Почайна - Дарниця» і «А11 Дарниця - Вокзальна - Святошин» (підтверджено) [https://t.me/kyiv_city_express/1708, 12.10.2026; https://t.me/kyiv_city_express/1705, 11.10.2026]
+- Правила за рівнями затвердив уряд, Укрзалізниця оголосила їх 18.09.2026, діють увесь воєнний стан: за жовтого рівня поїзди курсують, посадка і висадка є, на вокзалах з підземними переходами до колій посадка може йти через них; за червоного посадку і висадку припиняють, пасажирів ведуть в укриття, а поїзди в дорозі не стають автоматично, про кожен вирішують окремо (підтверджено) [https://t.me/UkrzalInfo/8509, 18.09.2026; https://t.me/kyiv_city_express/1413, 18.09.2026]
+- За будь-якого рівня поїзд зупиняють, якщо ракета чи дрон загрожує саме цьому рейсу чи ділянці колії; рух відновлюють, коли моніторингова група Укрзалізниці підтвердить, що загроза минула (підтверджено) [https://t.me/kyiv_city_express/1463, 23.09.2026]
+- Усе кільце зупиняли 12.09, 07.10, 10.10 і 11.10 через підвищену загрозу; 10.10 і 11.10 в обидва боки за вказівкою моніторингової групи, і того ж дня рух відновили (підтверджено) [https://www.ukrinform.ua/rubric-regions/4163542-u-kievi-cerez-pidvisenu-povitranu-zagrozu-prizupinenij-ruh-kilcevoi-elektricki.html, 12.09.2026; https://t.me/kyiv_city_express/1650, 07.10.2026; https://t.me/kyiv_city_express/1695, 10.10.2026; https://t.me/kyiv_city_express/1696, 10.10.2026; https://t.me/kyiv_city_express/1706, 11.10.2026; https://t.me/kyiv_city_express/1707, 11.10.2026]
+- Під час такої зупинки не лишатися у вагонах, а бути в укритті або за 200 м від колії (підтверджено) [https://t.me/kyiv_city_express/1706, 11.10.2026; https://www.rbc.ua/rus/news/kyiv-city-express-zupinyatimut-pid-chas-povitryanih-1784894677.html, 24.07.2026]
+- Під час масованої атаки 23.09 поїзди не зупиняли; на Центральному вокзалі і Дарниці посадка йшла через підземні переходи, як передбачено для жовтого рівня, коли цілі біля вокзалів (підтверджено) [https://t.me/UkrzalInfo/8525, 23.09.2026]
+- 02.10, після атаки, електричка їхала між берегами за повним маршрутом і графіком (підтверджено) [https://t.me/UkrzalInfo/8536, 02.10.2026; https://www.pravda.com.ua/news/2026/10/02/8056085/, 02.10.2026]
+- 10.10 о 14:10 офіційний канал: рух в обох напрямках призупинено через підвищену повітряну загрозу за вказівкою моніторингової групи; о 14:39 рух кільцем відновили (підтверджено) [https://t.me/kyiv_city_express/1695, 10.10.2026; https://t.me/kyiv_city_express/1696, 10.10.2026]
+- Шатли Видубичі-Дарниця-Видубичі: 18 додаткових рейсів на 5-9.10, у піки 6:00-9:00 і 16:00-21:00, через ускладнений рух мостами (підтверджено) [https://t.me/UkrzalInfo/8539, 04.10.2026; https://www.pravda.com.ua/news/2026/10/04/8056462/, 04.10.2026]
+- 12-16.10 додаткові рейси продовжили: 18 рейсів у ранкові й вечірні піки маршрутом Київ-Деміївський - Видубичі - Березняки - Дарниця і назад, інтервал 10-15 хв (підтверджено) [https://t.me/kyiv_city_express/1693, 09.10.2026; https://t.me/kyivcityexpress/1245, 12.10.2026]
+- З 12.10 графік змінено, щоб електричка точніше стикувалась з метро (одне джерело) [https://kyiv.znaj.ua/568384-miska-elektrichka-zminyuye-ruh-mizh-beregami-kiyeva-z-12-zhovtnya, 11.10.2026]
+- Офіційний канал електрички t.me/kyiv_city_express: позначка перевіреного каналу Telegram, опис «Офіційний канал Київської кільцевої електрички від Укрзалізниці», 18.09 і 23.09 він повторив пости Укрзалізниці; t.me/kyivcityexpress описує себе як фан-канал («Раді Вас бачити на фан-каналі київської кільцевої електрички») (підтверджено) [https://t.me/s/kyiv_city_express, звірено 12.10.2026; https://t.me/kyiv_city_express/1413, 18.09.2026; https://t.me/s/kyivcityexpress, звірено 12.10.2026]
 
-## Наземний транспорт і електричка
+## Наземний транспорт
 
-- Наземний громадський транспорт під час тривог курсує без обмежень, слова Кличка (одне джерело) [https://www.unian.ua/society/metro-kijiv-yak-kursuvatimut-pojizdi-pid-chas-riznogo-rivnya-trivog-13492674.html, 07.09.2026]
-- Автобус 1М підміняє червону лінію через Дніпро: Палац спорту-Лісова (одне джерело) [https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026]
-- Після удару 1 жовтня автобуси Південним мостом пустили знову (підтверджено) [https://www.rbc.ua/rus/news/prilot-pivdennomu-mostu-kievi-poshkodzhennya-1790855634.html, 01.10.2026; https://112.ua/u-kievi-vidnovili-ruh-nazemnogo-transportu-cerez-pivdennij-mist-pisla-ataki-bezpilotnikiv-188697, 02.10.2026]
-- Дарницьким мостом їздять автобуси 22 і 91 (одне джерело) [https://kyiv.znaj.ua/567531-18-dodatkovih-reysiv-miskoji-elektrichki-mizh-beregami-kiyeva-yak-perejihati-pislya-udariv-po-mostah, 05.10.2026]
-- Електричка Kyiv City Express: Укрзалізниця дала 18 додаткових рейсів щодня 5-9 жовтня, Видубичі-Дарниця-Видубичі, 06:00-09:00 і 16:00-21:00; від заторів на мостах не залежить (одне джерело) [https://kyiv.znaj.ua/567531-18-dodatkovih-reysiv-miskoji-elektrichki-mizh-beregami-kiyeva-yak-perejihati-pislya-udariv-po-mostah, 05.10.2026]
-- Окремих правил для електрички на жовтий і червоний рівень не знайдено. 12 вересня 2026 через підвищену повітряну загрозу, за вказівкою моніторингової групи Укрзалізниці, рух Kyiv City Express в обидва боки тимчасово зупиняли, потім відновили (одне джерело, Укрінформ цитує канал УЗ) [https://www.ukrinform.ua/rubric-regions/4163542-u-kievi-cerez-pidvisenu-povitranu-zagrozu-prizupinenij-ruh-kilcevoi-elektricki.html, 12.09.2026]
-- Раніше, у 2022, Kyiv City Express казав, що під час тривоги поїзди рух не переривають; чи це правило діє у 2026, не знайдено (одне джерело) [https://glavcom.ua/kyiv/news/stalo-vidomo-chi-bude-spinjatisja-kijivska-miska-elektrichka-pid-chas-povitrjanoji-trivohi-865243.html, 03.08.2022]
+- Наземний громадський транспорт під час тривог курсує і підміняє червону лінію через річку (підтверджено) [https://t.me/VA_Kyiv/20278, 02.09.2026; https://www.unian.ua/society/metro-kijiv-yak-kursuvatimut-pojizdi-pid-chas-riznogo-rivnya-trivog-13492674.html, 07.09.2026]
+- Автобус 1М Палац спорту-Лісова підміняє червону лінію через Дніпро (одне джерело) [https://kyiv.znaj.ua/564574-chervona-gilka-metro-kiyeva-ne-vijide-z-pid-zemli-navit-u-zhovtu-trivogu-poyasnennya-kmda, 17.09.2026]
 
 ## Комендантська година
 
-- З 10 вересня 2026 у Києві комендантська година 01:00-05:00, на годину коротша, ніж була (підтверджено) [https://www.kyivpost.com/uk/post/83945, 07.09.2026; https://vikna.tv/dlia-tebe/novyny-ukrayiny/komendantska-godyna-v-kyyevi-z-01-00-do-05-00-koly-skorotyat-chas/amp/, 09.09.2026; https://www.rbc.ua/rus/news/kievi-nabuli-chinnosti-novi-pravila-trivogah-1788789351.html, 10.09.2026]
-- Рішення ухвалила Рада оборони Києва 7 вересня за постановою уряду; громадський транспорт працює на годину довше, графік кафе, закладів і ТРЦ без змін (підтверджено) [https://www.kyivpost.com/uk/post/83945, 07.09.2026; https://kyiv.tsn.ua/kyiv/zovtyy-i-chervonyy-rivni-zahrozy-metro-ta-mosty-kyyeva-zminiat-rezym-roboty-pid-chas-tryvohy-novi-pravyla-3163667.html, 07.09.2026; https://vikna.tv/dlia-tebe/novyny-ukrayiny/komendantska-godyna-v-kyyevi-z-01-00-do-05-00-koly-skorotyat-chas/amp/, 09.09.2026; https://www.rbc.ua/rus/news/kievi-nabuli-chinnosti-novi-pravila-trivogah-1788789351.html, 10.09.2026]
+- З 10.09.2026 у Києві 01:00-05:00, на годину коротша, ніж була (підтверджено) [https://www.kyivpost.com/uk/post/83945, 07.09.2026; https://vikna.tv/dlia-tebe/novyny-ukrayiny/komendantska-godyna-v-kyyevi-z-01-00-do-05-00-koly-skorotyat-chas/amp/, 09.09.2026; https://www.rbc.ua/rus/news/kievi-nabuli-chinnosti-novi-pravila-trivogah-1788789351.html, 10.09.2026]
+- Рішення Ради оборони Києва від 07.09; громадський транспорт працює на годину довше (підтверджено) [https://www.kyivpost.com/uk/post/83945, 07.09.2026; https://kyiv.tsn.ua/kyiv/zovtyy-i-chervonyy-rivni-zahrozy-metro-ta-mosty-kyyeva-zminiat-rezym-roboty-pid-chas-tryvohy-novi-pravyla-3163667.html, 07.09.2026]
+- Новішого рішення до 12.10 не знайдено: сторінка kyivcity.gov.ua віддала 403, пошук КМВА за словом «комендант» дає лише пости 2022-2023 (не підтверджено)
+
+## Як це показує сайт
+
+Блок «Що зараз ходить через Дніпро» (site/assets/js/crossing.js, перевірено 12.10.2026) бере ці правила як є: три групи (метро, міська електричка, мости для авто), для кожного рівня тривоги статус і одне речення правила.
+- Електричка: за жовтого рівня «обмежено» (за правилом ходить, але на час загрози кільце можуть зупинити), за червоного «не ходить» (посадки і висадки немає).
+- Південний міст: «обмежено», бо КМВА пише «обмежується на 15 хвилин», а не «припиняється».
+- Автобус 1М не показуємо: про нього лише одне джерело від 17.09.
+- На мапі сайту сім мостів; старого Дарницького залізничного мосту, що стоїть поруч із Дарницьким, окремо немає [https://www.openstreetmap.org/way/696988567, звірено 12.10.2026]. Подільський мостовий перехід на сайті зветься, як у КМВА, «Подільсько-Воскресенський міст».
 
 ## Скільки їхати
 
-- Метро від Лівобережної чи Дарниці до центру: надійної цифри не знайдено (див. Відкриті питання).
-- Авто через міст у годину пік: не знайдено.
+- Метро від Лівобережної чи Дарниці до центру і авто через міст у пік: надійної цифри не знайдено (не підтверджено)
 - KSE: вул. Миколи Шпака, 3 (KSE Dragon Capital Building), так пише офіційний сайт KSE (підтверджено) [https://kse.ua/ua/contacts/, 24.10.2019 (дата сторінки; адресу в підвалі сайту перевірено 11.10.2026)]
-- Маршрут з лівого берега до KSE у джерелах не знайдено. Висновок з фактів вище, не з джерела: без тривоги їхати метро через Дніпро; під час будь-якої тривоги червона лінія через річку стоїть, тож за жовтого лишаються зелена лінія Південним мостом, автобус 1М, авто, електричка; за червоного лише наземний транспорт і авто, а краще укриття.
+- Крім Шпака, 3, у KSE є кампус на Оболонській набережній з укриттями (одне джерело) [https://www.kyivpost.com/uk/post/77611, 06.06.2026]
 
 ## Ідея продукту
 
-Головна думка: будь-яка тривога одразу забирає червону лінію через Дніпро, а червона тривога забирає все метро через Дніпро. Тому «чи буде тихо 3 години» і є «чи переїду я метро».
+Це задум, не факти; біля фактів стоять джерела, частки тривог після оцінки моделі взято з docs/quiet/forecast.md, таблиця 3.
 
-Три формулювання головного питання:
-1. «Чи встигну я перетнути Дніпро за наступні 3 години?»
-2. «Їхати на інший берег зараз чи почекати?»
-3. «Чи буде метро через Дніпро найближчі 3 години?»
+Головна думка: будь-яка тривога одразу забирає червону лінію через Дніпро, а червона тривога забирає все метро через Дніпро. Тому «чи буде тихо 3 години» і є «чи переїду я метро». [https://t.me/VA_Kyiv/20278, 02.09.2026; https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026]
 
-Тексти відповідей. Пороги і частки з моделі проєкту: швидше тихо нижче 19,7%, високий ризик від 30%; тривога за 3 год після «швидше тихо» в 17% тестових випадків, після «високий ризик» у 74% [дані моделі проєкту, з постановки задачі, 11.10.2026]
-- Швидше тихо: «Швидше тихо. Після такої оцінки тривога за 3 години була приблизно 1 раз з 6. Зараз обидві лінії метро їдуть через Дніпро. Можна їхати.»
-- Середній ризик: «Тривога можлива. Якщо їхати, то зараз, а не за годину. Якщо почнеться тривога, червона лінія через Дніпро стане; за жовтого рівня ще їде зелена лінія Південним мостом.»
-- Високий ризик: «Високий ризик. Після такої оцінки тривога за 3 години була приблизно 3 рази з 4. Не терміново: краще відкласти. Терміново: зелена лінія, авто або електричка, не червона лінія.»
-- Тривога зараз, жовтий: «Тривога, жовтий рівень (дрони). Через Дніпро їде: зелена лінія Південним мостом (у пік по одному поїзду), авто мостами Північний, Дарницький, Патона, Метро, автобуси і 1М. Південний з правого берега на лівий стоїть перші 15 хв, Подільсько-Воскресенський 15 хв на початку і після відбою. Не їде: червона лінія від Дніпра до Лісової.» [https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026; https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026]
-- Тривога зараз, червоний: «Тривога, червоний рівень (ракети або масована атака). Найкраще в укриття. Метро через Дніпро не їде: червона лінія лише Академмістечко-Арсенальна, зелена окремо Сирець-Видубичі і Осокорки-Червоний хутір. Мости для авто за тими ж правилами, що й за жовтого.» [https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026; https://www.ukrinform.ua/rubric-regions/4170694-u-kievi-zminili-pravila-ruhu-mostami-pid-cas-povitranoi-trivogi.html, 03.10.2026]
+Три формулювання головного питання: «Чи встигну я перетнути Дніпро за наступні 3 години?»; «Їхати на інший берег зараз чи почекати?»; «Чи буде метро через Дніпро найближчі 3 години?»
 
-Що людина має бачити, щоб вирішити:
-1. Одну відповідь великими літерами і до котрої години вона діє.
-2. Чи є тривога зараз, якого рівня і з котрої години.
-3. Стан переправ зараз: червона лінія, зелена лінія (пік-режим), мости для авто (15 хв стоп), електричка.
-4. Чесну підказку: «після такої оцінки тривога була N разів з 10».
-5. План Б для свого маршруту: 1М, зелена лінія з пересадкою, електричка, найближче укриття.
-6. Комендантську 01:00-05:00, час оновлення даних, посилання на @VA_Kyiv і «Київ Цифровий».
-7. На майбутнє: окрему ймовірність червоного рівня, бо для зеленої лінії вирішує саме він.
+Межі ризику моделі проєкту: «швидше тихо» нижче 19,7%, «високий ризик» від 30% [docs/quiet/forecast.md, рядок 23, звірено 12.10.2026]. На тестових даних офіційна тривога в Києві за наступні 3 години була після «швидше тихо» у 17% випадків (5 з 29), після «високий ризик» у 74% [docs/quiet/forecast.md, таблиця 3, стовпець «Тест», звірено 12.10.2026]
+
+Тексти відповідей:
+- Швидше тихо: «Швидше тихо. Після такої оцінки тривога за 3 години була приблизно 1 раз з 6. Зараз обидві лінії метро їдуть через Дніпро. Можна їхати.» [docs/quiet/forecast.md, таблиця 3: 17%, 5 з 29, звірено 12.10.2026]
+- Середній ризик: «Тривога можлива. Якщо їхати, то зараз, а не за годину. Якщо почнеться тривога, червона лінія через Дніпро стане; за жовтого рівня ще їде зелена лінія Південним мостом.» [https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026]
+- Високий ризик: «Високий ризик. Після такої оцінки тривога за 3 години була приблизно 3 рази з 4. Не терміново: краще відкласти. Терміново: зелена лінія, авто або електричка, не червона лінія.» [docs/quiet/forecast.md, таблиця 3: 74%, звірено 12.10.2026]
+- Тривога зараз, жовтий: «Тривога, жовтий рівень (дрони). Через Дніпро їде: зелена лінія Південним мостом (у пік по одному поїзду), авто мостами Північний, Дарницький, Патона, Метро, автобуси і 1М, електричка, якщо Укрзалізниця її не зупинила. На Південному з правого берега на лівий рух обмежують перші 15 хв, Подільсько-Воскресенський стоїть 15 хв на початку і після відбою. Не їде: червона лінія від Дніпра до Лісової.» [https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026; https://t.me/VA_Kyiv/21404, 03.10.2026; https://t.me/kyiv_city_express/1706, 11.10.2026]
+- Тривога зараз, червоний: «Тривога, червоний рівень (ракети або масована атака). Найкраще в укриття. Метро через Дніпро не їде: червона лінія лише Академмістечко-Арсенальна, зелена окремо Сирець-Видубичі і Осокорки-Червоний хутір. Електричка пасажирів не бере. Мости для авто за тими ж правилами, що й за жовтого.» [https://lb.ua/kyiv/2026/10/04/771090_kiievi_vidnovili_ruh_poyizdiv.html, 04.10.2026; https://t.me/UkrzalInfo/8509, 18.09.2026; https://t.me/VA_Kyiv/21404, 03.10.2026]
+
+Що людина має бачити, щоб вирішити: одну відповідь великими літерами і до котрої години вона діє; чи є тривога зараз, якого рівня і з котрої години; стан переправ (червона лінія, зелена лінія з пік-режимом, мости для авто з 15-хвилинними обмеженнями, електричка); чесну підказку «після такої оцінки тривога була N разів з 10»; план Б (1М, зелена лінія з пересадкою, електричка, укриття); комендантську 01:00-05:00, час оновлення даних, посилання на @VA_Kyiv і «Київ Цифровий»; на майбутнє окрему ймовірність червоного рівня, бо для зеленої лінії вирішує саме він.
 
 ## Відкриті питання
 
-1. Хто оголошує жовтий і червоний рівень і за якими ознаками: не знайдено.
-2. Дати старту з'ясовано: сповіщення за рівнями в Києві з 6 вересня, міські правила з 10 вересня (див. Рівні тривоги). З якої дати рівні діють по всій країні: не знайдено.
-3. Ранній план (3 вересня) казав, що за жовтого червона лінія їде «до станції Дніпро»; пізніші джерела кажуть «до Арсенальної». Варто перевірити в метро.
-4. Канали @VA_Kyiv, metro.kyiv.ua і Telegram метро напряму не читалися.
-5. Чи правило мостів 15 хв від 3 жовтня діє й на 11 жовтня: новіших змін не знайдено, офіційно не перевірено.
-6. Чи триває пік-режим «один поїзд на Південному мосту» після 6 жовтня.
-7. LB.ua, заголовок 2 жовтня: Кличко про готовність відновити рух метро мостом під час жовтих тривог після експертного висновку; у переказі інструмента там Північний міст, яким метро не ходить. Не перевірено.
-8. Чи їде електричка під час звичайної тривоги у 2026 (12 вересня її зупиняли через підвищену загрозу); чи продовжили додаткові рейси після 9 жовтня.
-9. Час у дорозі: довідкові сайти в пошуку дали суперечливі 8 і 20 хв для Лівобережна-Хрещатик; авто в пік не знайдено. Треба виміряти самим.
-10. KSE: куди саме їде людина, треба питати. Найближча станція до Шпака, 3, ймовірно Шулявська на червоній лінії, джерелом не перевірена; якщо так, будь-яка тривога ламає прямий маршрут M1 з лівого берега. Крім Шпака, 3, у KSE є кампус на Оболонській набережній з укриттями (одне джерело) [https://www.kyivpost.com/uk/post/77611, 06.06.2026]
-11. Частка тривог після «середній ризик»: у постановці немає.
-12. Постраждалі 1 жовтня: дані різних медіа розходяться.
+1. Котрим із двох Дарницьких мостів їде електричка і які поїзди ходять старим Дарницьким залізничним (не підтверджено)
+2. Чи діє пік-правило «один поїзд на Південному мосту» 12.10: новіших повідомлень після 06.10 немає (не підтверджено)
+3. Автобус 1М під час тривоги: лише одне джерело від 17.09 (не підтверджено)
+4. Комендантська година: офіційну сторінку kyivcity.gov.ua не відкрито, 403 (не підтверджено)
+5. Між якими місцями стоять міст Патона, лівий кінець Північного і Дарницькі мости (не підтверджено)
+6. Чи можна перейти пішки кожним мостом під час тривоги (не підтверджено)
+7. Чи ще закриті смуги на Південному мосту через ремонт до 31.10 (не підтверджено)
+8. Час у дорозі метро і авто між берегами треба виміряти самим (не підтверджено)
+9. Постраждалі 01.10: дані різних медіа розходяться (не підтверджено)
