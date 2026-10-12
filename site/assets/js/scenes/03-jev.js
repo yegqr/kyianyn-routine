@@ -16,6 +16,8 @@ const CSS = `
 .scene-jev .hollow { fill: var(--card); stroke: var(--soft); stroke-width: 2; }
 .scene-jev .wire { fill: none; stroke: var(--line); stroke-width: 3; }
 .scene-jev .disp { font-family: var(--font-display); }
+.scene-jev.tip { position: fixed; z-index: 20; display: none; max-width: 280px; padding: 6px 10px; border-radius: var(--r-small);
+  background: var(--ink); color: var(--card); font: 500 14px/1.35 var(--font); pointer-events: none; }
 `
 
 // Jev answers for the posts of the strike of 2026-10-07 (docs/data/JEV.md, Приклад) and the thresholds of the hour rule
@@ -48,6 +50,9 @@ function director() {
   }
 }
 
+// Sources go into a folded block at the end of the note; file paths and code names live only there
+const SRC = (text) => `<details class="how-src"><summary>Джерела</summary><p>${text}</p></details>`
+
 const QUESTIONS = `Post "{pid}" (a post without a place name from a Kyiv channel is about the city of Kyiv; war_monitor covers all of Ukraine).
 
 "strike": Does this post report that missiles caused explosions, a shoot-down, falling debris or a hit in the city of Kyiv? Earlier posts of the state only show the weapon type.
@@ -55,40 +60,53 @@ const QUESTIONS = `Post "{pid}" (a post without a place name from a Kyiv channel
 "drone": Does this post say that drones are flying toward or over the city of Kyiv, or exploding there?
 "ballistic": Does this post say that ballistic missiles are heading to the city of Kyiv?`
 
+// The questions belong to step 2, where they are asked. The verbatim text is cut in two before the "threat" question, so each
+// card fits without its own scroll on a 390 px phone (a scrolled code box reads as an overlap to the layout check)
+const CUT = QUESTIONS.indexOf('\n"threat"')
+const ASKED = [
+  { title: 'Питання до Jev: вступ і удар', text: QUESTIONS.slice(0, CUT), source: 'програма розмітки постів, дослівно' },
+  { title: 'Питання до Jev: загроза, дрони, балістика', text: QUESTIONS.slice(CUT + 1), source: 'програма розмітки постів, дослівно' },
+]
+
 export default {
   id: 'jev',
   title: 'Як Jev читає пости',
-  lead: 'Мовна модель Jev не пише текст: вона відповідає на точні питання про кожен пост ймовірністю «так», а висновок про годину робить код.',
+  lead: 'Мовна модель Jev відповідає на точні питання про кожен пост числом від 0 до 1, а мітку години ставить програма.',
   steps: [
     {
-      note: '<p>Ніч на 7 жовтня 2026, 03:14 за Києвом. Канал truexakyiv пише одне слово: «Гучно!». Про цей удар пишуть ще kyiv_airdef, VA_Kyiv, war_monitor і Кличко (<code>docs/data/JEV.md</code>, пост з <code>data/bronze/telegram/<wbr>truexakyiv.jsonl</code>).</p>',
+      note: '<p>Ніч на 7 жовтня 2026, 03:14. Київський канал truexakyiv пише одне слово: «Гучно!». Про цей удар пишуть ще 4 канали, серед них КМВА і Віталій Кличко.</p>'
+        + SRC('docs/data/JEV.md, розділ «Приклад»: пости kyiv_airdef, VA_Kyiv, truexakyiv, war_monitor і Кличка; пост з data/bronze/telegram/truexakyiv.jsonl.'),
     },
     {
-      note: '<p>Код ставить Jev чотири питання англійською про кожен пост: ракетний удар по місту, ракетна загроза Києву, дрони над Києвом, балістика. Одне питання це одне судження: складне ділимо на прості (правило 2). Питання дослівно в <code>src/airalerts/silver/<wbr>threat_hourly.py</code>.</p>',
-      prompts: [{ title: 'Правило 2 з 8', text: '2. Одне судження на питання. Складне ділимо на кілька простих і поєднуємо в коді.', source: 'docs/data/JEV.md' }],
+      note: '<p>Програма ставить Jev англійською однакові питання про кожен пост: чи був ракетний удар по Києву, чи є ракетна загроза, чи летять дрони, чи летить балістика. Кожне питання перевіряє одну річ, складне ділимо на прості: це правило 2 з картки. На схемі три питання з чотирьох.</p>'
+        + SRC('Питання дослівно: src/airalerts/silver/threat_hourly.py; правила: docs/data/JEV.md.'),
+      prompts: [...ASKED, { title: 'Правило питань 2 з 8', text: '2. Одне судження на питання. Складне ділимо на кілька простих і поєднуємо в коді.', source: 'правила питань до Jev' }],
     },
     {
-      note: '<p>Jev відповідає не словами, а ймовірністю «так» від 0 до 1. Для постів цього удару, перевірено 2026-10-10: ракетний удар по місту <span class="num">0.89</span>, ракетна загроза <span class="num">0.97</span>, удар дронами <span class="num">0.13</span> (<code>docs/data/JEV.md</code>, розділ Приклад).</p>',
-      prompts: [{ title: 'Правило 8 з 8', text: '8. Поріг для noul за замовчуванням 0.5. У silver зберігаємо самі ймовірності, а не лише 0 чи 1.', source: 'docs/data/JEV.md' }],
+      note: '<p>Jev відповідає не словами, а ймовірністю «так» від 0 до 1: 0.97 означає майже напевно так, 0.13 майже напевно ні. Для постів цього удару: ракетний удар <span class="num">0.89</span>, ракетна загроза <span class="num">0.97</span>, дрони <span class="num">0.13</span>.</p>'
+        + SRC('docs/data/JEV.md, розділ «Приклад», перевірено 10.10.2026.'),
+      prompts: [{ title: 'Правило питань 8 з 8', text: '8. Поріг для noul за замовчуванням 0.5. У silver зберігаємо самі ймовірності, а не лише 0 чи 1.', source: 'правила питань до Jev' }],
     },
     {
-      note: '<p>Прапорець годині ставить код, а не Jev. Удар: оригінальний пост після ракетної тривоги з ймовірністю від 0.7; загроза і дрони: пост з ймовірністю від 0.8 (або пост офіційного каналу від 0.5). За цим правилом приклад дає удар і загрозу, але не дрони, і година 03:00 за Києвом (00:00 UTC) 7 жовтня в таблиці справді має мітку удару (<code>docs/data/silver/<wbr>kyiv_threat_hourly.md</code>).</p>',
+      note: '<p>Мітку години (так чи ні: удар, загроза, дрони) ставить програма, а не Jev. Удар: оригінальний, не пересланий пост після ракетної тривоги з ймовірністю від 0.7; загроза і дрони: пост від 0.8 або пост офіційного каналу від 0.5. Тож приклад дає удар і загрозу, але не дрони, і в таблиці міток година 03:00 7 жовтня справді має мітку удару.</p>'
+        + SRC('docs/data/silver/kyiv_threat_hourly.md, розділ «Правило години»; 03:00 за Києвом це 00:00 UTC.'),
       prompts: [{
         title: 'Правило години',
         text: 'Година `missile_strike` = true, коли є хоч один пост-доказ: оригінальний пост (`originals`), що йде після ракетної тривоги (`fresh`) і має `p_strike` >= 0.7 ...\n...\nГодина true, коли є пост з ймовірністю >= 0.8 (`one`), або пост офіційного каналу (VA_Kyiv, vitaliy_klitschko) >= 0.5 (`official`), або ...',
-        source: 'docs/data/silver/kyiv_threat_hourly.md, розділ Правило години',
+        source: 'опис таблиці міток, розділ «Правило години»',
       }],
     },
     {
-      note: '<p>Чи можна вірити мітці? Агент прочитав пости 25 «дронових» годин розробки: правильні 20, тобто близько <span class="num">80%</span>. Хибні це здебільшого звіти про наслідки і дрони в області без тривоги в Києві (<code>docs/quiet/model.md</code>, розділ 2). Хвилі дронів S4 Jev перевіряє окремим питанням (<code>src/airalerts/silver/signals.py</code>).</p>',
+      note: '<p>Чи можна вірити мітці? Агент штучного інтелекту перечитав пости 25 годин з міткою дронів на навчальних даних: правильні 20, тобто <span class="num">80%</span>, хибні здебільшого звіти про наслідки і дрони в області без тривоги в Києві. Хвилі ударних дронів, що злетіли чи летять зараз, Jev перевіряє окремим питанням з картки.</p>'
+        + SRC('docs/quiet/model.md, розділ 2; питання про хвилю дронів (сигнал S4, drone_launch): src/airalerts/silver/signals.py.'),
       prompts: [{
-        title: 'Питання S4 про хвилю дронів',
+        title: 'Питання про хвилю дронів',
         text: 'Does post {pid} report attack drones (Shahed, Geran, jet drones, mopeds) that were launched or are flying now, one drone or many?',
-        source: 'src/airalerts/silver/signals.py, "drone_launch"',
+        source: 'програма сигналів підготовки, дослівно',
       }],
     },
   ],
-  prompts: [{ title: 'Питання до Jev про кожен пост', text: QUESTIONS, source: 'src/airalerts/silver/threat_hourly.py, _LEAD і _Q' }],
+  prompts: [],
 
   mount(stage) {
     stage.append(h('style', { text: CSS }))
@@ -171,11 +189,51 @@ export default {
       T(544, 347, 'хибні'))),
     (k) => (k === 4 ? {} : { o: 0 }), { delay: (k) => (k === 4 ? 800 : 0) })
 
+    // Tooltip: what is under the pointer at the current step (hover, or tap on a phone)
+    let cur = -1
+    const tip = h('div', { class: 'scene-jev tip', role: 'tooltip' })
+    stage.append(tip)
+    const hide = () => { tip.style.display = 'none' }
+    const NAMES = ['Ракетний удар по Києву', 'Ракетна загроза Києву', 'Дрони на Київ']
+    const ASK = ['чи був ракетний удар по Києву: вибухи, збиття, уламки?', 'чи летять ракети на Київ?', 'чи летять дрони на Київ або над ним?']
+    function describe(x, y) {
+      const i = Y.reduce((b, c, k) => (Math.abs(y - c) < Math.abs(y - Y[b]) ? k : b), 0)
+      const r = ROWS[i]
+      const p = r.p.toFixed(2)
+      if (cur === 0) return y > 305 ? 'Про цей удар пишуть 5 каналів, серед них КМВА і Віталій Кличко' : 'Пост каналу truexakyiv о 03:14 за Києвом, ніч на 7 жовтня 2026'
+      if (cur === 4) return x > 340 ? 'Квадрат це година з міткою дронів: заповнений правильна, порожній хибна' : 'Агент перечитав пости 25 годин з міткою дронів: правильні 20'
+      if (x < 240) return cur === 3 ? 'Година 03:00 за Києвом, 7 жовтня 2026: їй програма ставить мітки' : 'Пост «Гучно!»: Jev відповідає на питання про нього'
+      if (cur === 1) return `Питання до Jev: ${ASK[i]}`
+      if (cur === 2) return `${NAMES[i]}: Jev каже «так» з ймовірністю ${p}`
+      return r.p >= r.thr ? `${NAMES[i]}: ${p} не нижче порога ${r.thr}, мітка є` : `${NAMES[i]}: ${p} нижче порога ${r.thr}, мітки немає`
+    }
+    function say(e) {
+      const m = svg.getScreenCTM()
+      const p = m ? new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()) : { x: -1, y: -1 }
+      tip.textContent = describe(p.x, p.y)
+      tip.style.display = 'block'
+      const w = tip.offsetWidth
+      const ht = tip.offsetHeight
+      tip.style.left = `${Math.max(8, Math.min(e.clientX + 14, innerWidth - w - 8))}px`
+      tip.style.top = `${e.clientY + 18 + ht > innerHeight ? Math.max(8, e.clientY - ht - 12) : e.clientY + 18}px`
+    }
+    const EVENTS = ['mousemove', 'mouseover', 'pointerdown']
+    for (const ev of EVENTS) svg.addEventListener(ev, say)
+    svg.addEventListener('mouseleave', hide)
+
     d.apply(-1, true)
     svg.getBoundingClientRect()
     return {
-      show(step, { instant } = {}) { d.apply(step, instant) },
-      destroy() {},
+      show(step, { instant } = {}) {
+        cur = step
+        hide()
+        d.apply(step, instant)
+      },
+      destroy() {
+        for (const ev of EVENTS) svg.removeEventListener(ev, say)
+        svg.removeEventListener('mouseleave', hide)
+        tip.remove()
+      },
     }
   },
 }

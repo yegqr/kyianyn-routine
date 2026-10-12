@@ -1,6 +1,7 @@
-// Scene 1 of the methodology deck: why the project asks "will the next 3 hours be quiet".
+// Scene 1 of the methodology deck: why the site asks "will you cross the river in the next 3 hours".
 // Crossing facts: city announcements quoted by the media, checked 2026-10-11 (the same facts as ../crossing.js).
 // The tier thresholds are read at runtime from api/model.json (busy_at, high_at), now.json is the fallback.
+// The test shares of step 4 (17%, 5 of 29; 74%): docs/quiet/forecast.md, table 3, an official alert in the next 3 hours.
 // Colours: the metro lines in their official colours (--m1, --m2, --m3), states in status colours
 // (--go open, --risk limited, --stop closed), pink only for the brand accents: the river and the 3 hour window.
 import { h, s, canvas, put, stagger } from '../how.js'
@@ -28,7 +29,7 @@ const CSS = `
 .scene-question .pill-yellow { fill: var(--risk-soft); stroke: var(--risk-fill); stroke-width: 2; }
 .scene-question .pill-red { fill: var(--stop); }
 .scene-question .risk-text { fill: var(--risk); font-weight: 600; }
-.scene-question .train { fill: var(--card); stroke: var(--ink); stroke-width: 2.5; }
+.scene-question .q-train { fill: var(--card); stroke: var(--ink); stroke-width: 2.5; }
 .scene-question .stop circle { fill: var(--card); stroke: var(--stop); stroke-width: 3; }
 .scene-question .stop path { fill: none; stroke: var(--stop); stroke-width: 3; stroke-linecap: round; }
 .scene-question .cell { fill: var(--pink-soft); stroke: var(--pink); stroke-width: 2; }
@@ -55,7 +56,7 @@ const DECKS = [70, 115, 175, 230, 285, 345]
 const M2X = 94
 const ROAD_TIPS = [
   [70, 'Північний міст: авто без обмежень під час тривоги'],
-  [115, 'Подільсько-Воскресенський міст: під час тривоги стоп 15 хв на початку і після відбою'],
+  [115, 'Подільсько-Воскресенський міст: під час тривоги стоїть 15 хвилин на початку і після відбою'],
   [230, 'Міст Патона: авто без обмежень під час тривоги'],
   [285, 'Дарницький міст: авто без обмежень під час тривоги'],
 ]
@@ -64,7 +65,7 @@ const MAP_TIPS = [
   'Жовтий рівень, загроза дронів: M1 лише під землею, M3 їде мостом',
   'Червоний рівень, ракети або масована атака: метро через Дніпро не їде',
 ]
-const TIERS = ['швидше тихо', 'середній ризик', 'високий ризик']
+const TIERS = ['низький ризик', 'середній ризик', 'високий ризик']
 const X0 = 60
 const X1 = 580
 const PILL_W = 190
@@ -78,7 +79,7 @@ const badge = (y, label, cls, cx = 43) => s('g', {},
   s('rect', { x: cx - 23, y: y - 16, width: 46, height: 32, rx: 16, class: cls }), T(cx, y + 8, label, 'on-dark', 'middle'))
 const levelPill = (label, cls, tcls) => s('g', {},
   s('rect', { x: 200, y: 6, width: 240, height: 40, rx: 20, class: cls }), T(320, 34, label, tcls, 'middle'))
-const train = (cx, cy) => s('rect', { x: cx - 16, y: cy - 8, width: 32, height: 16, rx: 8, class: 'train' })
+const train = (cx, cy) => s('rect', { x: cx - 16, y: cy - 8, width: 32, height: 16, rx: 8, class: 'q-train' }) // not .train: the answer tab styles that class
 const stop = (cx, cy) => s('g', { class: 'stop' },
   s('circle', { cx, cy, r: 14 }), s('path', { d: `M${cx - 9} ${cy - 9}L${cx + 9} ${cy + 9}` }))
 const stations = (xs, y, cls) => xs.map((x) => s('circle', { cx: x, cy: y, r: 5, class: `station ${cls}` }))
@@ -86,43 +87,46 @@ const stations = (xs, y, cls) => xs.map((x) => s('circle', { cx: x, cy: y, r: 5,
 let TH = null // thresholds of the last mount, used by the note of step 4
 
 function thresholds() {
-  if (!TH) return 'Пороги рівнів беремо з api/model.json, зараз він не завантажився.'
-  return `Нижче ${fmt(TH.busy)} це «швидше тихо», від ${fmt(TH.high)} «високий ризик», між ними «середній ризик» (пороги з api/model.json).`
+  if (!TH) return 'Пороги рівнів ризику зараз не завантажились.'
+  return `Нижче ${fmt(TH.busy)} ризик низький, від ${fmt(TH.high)} високий, між ними середній.`
 }
+
+// Sources go into a folded block at the end of the note; file paths and code names live only there
+const SRC = (text) => `<details class="how-src"><summary>Джерела</summary><p>${text}</p></details>`
 
 const IDEA = {
   title: 'Ідея автора',
   text: 'Чи встигну я переїхати з одного берега на інший. І для цього закладається три години з моменту виїзду.',
-  source: 'бриф автора для Claude Code, 2026-10-11',
+  source: 'із завдання автора, 11.10.2026',
 }
 
 const QUESTION = {
   title: 'Питання до моделі',
   text: 'На початку кожної години t: чи прилетять у Київ дрони або ракети (або буде ракетна загроза) протягом наступних 3 годин, тобто в години t, t + 1, t + 2? Відповідь: ймовірність, вердикт «швидше тихо» чи «неспокійно» з рівнем ризику, і 3 головні причини.',
-  source: 'docs/quiet/model.md, розділ 1',
+  source: 'опис моделі, розділ 1',
 }
 
 export default {
   id: ID,
-  title: 'Питання: чи встигну перетнути Дніпро',
-  lead: 'Тривога забирає метро через річку, тому питання «чи встигну» стає прогнозом на 3 години.',
+  title: 'Чи встигнеш переїхати на інший берег?',
+  lead: 'Під час тривоги метро через Дніпро ходить менше або стоїть, тому ми прогнозуємо атаку на 3 години вперед.',
   steps: [
     {
-      note: '<p>Київ стоїть на двох берегах Дніпра, на схемі північ угорі. Метро перетинає річку двічі: червона лінія M1 мостом Метро і зелена M3 Південним мостом. Синя M2 лишається на правому березі, тож для переїзду під час тривоги важать лише M1 і M3. Для авто й автобусів шість мостів: Північний, Подільсько-Воскресенський, Метро, Патона, Дарницький і Південний.</p>'
-        + '<p><small>Схема, не мапа, кольори ліній як у метро. Джерела: УНІАН, 07.09.2026; Укрінформ, 03.10.2026.</small></p>',
+      note: '<p>Київ стоїть на двох берегах Дніпра. Річку перетинають дві лінії метро: червона M1 мостом Метро і зелена M3 Південним мостом. Синя M2 лишається на правому березі, а для авто є шість мостів.</p>'
+        + SRC('Схема, не мапа: північ угорі, кольори ліній як у метро. УНІАН, 07.09.2026; Укрінформ, 03.10.2026.'),
     },
     {
-      note: '<p>Жовтий рівень означає загрозу дронів. Будь-яка тривога зупиняє M1 над Дніпром: поїзди ходять лише під землею Академмістечко - Арсенальна, бо відкрита ділянка задовга. Зелена M3 і далі їде Південним мостом, у піки там по одному поїзду.</p>'
-        + '<p><small>КМДА через Знай.ua і DSnews, 17.09.2026; LB.ua, 04.10.2026; ZN.ua, 06.10.2026.</small></p>',
+      note: '<p>Тривога це офіційна повітряна тривога в Києві, жовтий рівень означає загрозу дронів. За будь-якої тривоги червона M1 ходить лише під землею, від Академмістечка до Арсенальної. Через Дніпро їде лише зелена M3, Південним мостом.</p>'
+        + SRC('КМДА через Знай.ua і DSnews, 17.09.2026; LB.ua, 04.10.2026; ZN.ua, 06.10.2026.'),
     },
     {
-      note: '<p>Червоний рівень: ракети або масована атака дронів, треба одразу в укриття. M3 ділиться на дві ділянки, Сирець - Видубичі і Осокорки - Червоний хутір, тож метро через Дніпро не їде зовсім. Мости для авто відкриті: лише Південний з правого берега на лівий стоїть 15 хв від початку тривоги, а Подільсько-Воскресенський 15 хв на початку і після відбою.</p>'
-        + '<p><small>Kyiv.news, 03.09.2026; LB.ua, 04.10.2026; КМВА через Укрінформ, 03.10.2026.</small></p>',
+      note: '<p>Червоний рівень означає ракети або масовану атаку дронів: одразу в укриття. Метро через Дніпро не їде, M3 ходить двома ділянками: Сирець - Видубичі і Осокорки - Червоний хутір. Мости для авто відкриті, лише Південний (з правого берега на лівий) стоїть 15 хвилин від початку тривоги, а Подільсько-Воскресенський 15 хвилин на початку і після відбою.</p>'
+        + SRC('Kyiv.news, 03.09.2026; LB.ua, 04.10.2026; КМВА через Укрінформ, 03.10.2026.'),
     },
     {
       get note() {
-        return `<p>Тому питання стає прогнозом: чи буде тихо 3 години від виїзду, тобто в години t, t + 1 і t + 2. Модель дає ймовірність, що за цей час прилетять дрони чи ракети або буде ракетна загроза. ${thresholds()} На тесті після «швидше тихо» тривога за 3 години була у 17% випадків (5 з 29), після «високого ризику» у 74%.</p>`
-          + '<p><small>Питання: docs/quiet/model.md, розділ 1. Частки: README.md, docs/quiet/forecast.md.</small></p>'
+        return `<p>Тому модель щогодини дає ймовірність атаки на Київ у наступні 3 години: дрони летять на Київ, ракетна загроза або удар; 28% це приблизно 3 рази з 10. ${thresholds()} На тестових даних (з 29.08, відкладені до кінця) після низького ризику тривога в наступні 3 години була у 17% випадків (5 з 29), після високого у 74%.</p>`
+          + SRC('Питання: docs/quiet/model.md, розділ 1. Пороги: api/model.json (busy_at, high_at). Частки: docs/quiet/forecast.md, таблиця 3, там рівень низького ризику ще зветься «швидше тихо»; README.md.')
       },
       prompts: [QUESTION],
     },
@@ -143,12 +147,14 @@ export default {
     const decks = DECKS.map((y) => s('path', { d: `M256 ${y}H404`, class: 'deck' }))
     const banks = s('g', {}, T(20, 36, 'Правий берег', 'soft'), T(620, 36, 'Лівий берег', 'soft', 'end'))
     const dnipro = T(333, 262, 'Дніпро', 'soft', 'middle')
-    const m1Out = s('g', {}, s('path', { d: 'M235 175H612', class: 'line m1' }), stations([262, 330, 420, 480, 540, 600], 175, 'm1'))
+    const m1Out = s('g', {}, s('path', { d: 'M235 175H576', class: 'line m1' }), stations([262, 330, 418, 470, 522], 175, 'm1'),
+      s('circle', { cx: 576, cy: 175, r: 7, class: 'station m1' }), T(584, 155, 'Лісова', 'soft', 'end'))
     const m1Under = s('g', {}, s('path', { d: 'M70 175H235', class: 'line m1' }), s('circle', { cx: 235, cy: 175, r: 6, class: 'station m1' }))
     const m3West = s('g', {}, s('path', { d: 'M70 345H245', class: 'line m3' }), s('circle', { cx: 245, cy: 345, r: 6, class: 'station m3' }))
     const m3Bridge = s('g', {}, s('path', { d: 'M245 345H465', class: 'line m3' }), stations([420], 345, 'm3'))
-    const m3East = s('g', {}, s('path', { d: 'M465 345H612', class: 'line m3' }),
-      s('circle', { cx: 465, cy: 345, r: 6, class: 'station m3' }), stations([515, 565, 612], 345, 'm3'))
+    const m3East = s('g', {}, s('path', { d: 'M465 345H576', class: 'line m3' }),
+      s('circle', { cx: 465, cy: 345, r: 6, class: 'station m3' }), stations([502, 539], 345, 'm3'),
+      s('circle', { cx: 576, cy: 345, r: 7, class: 'station m3' }), T(584, 380, 'Червоний хутір', 'soft', 'end'))
     const m2 = s('g', {}, s('path', { d: `M${M2X} 100V382`, class: 'line m2' }),
       s('circle', { cx: M2X, cy: 128, r: 5, class: 'station m2' }), s('circle', { cx: M2X, cy: 382, r: 6, class: 'station m2' }))
     const m2Hubs = s('g', {}, [175, 345].map((cy) => s('circle', { cx: M2X, cy, r: 6, class: 'station m2' })))
@@ -168,14 +174,14 @@ export default {
     const red = levelPill('Червоний рівень', 'pill-red', 'on-dark')
 
     // Step 4: the 3 hour window and the probability scale with the two thresholds
-    const fq = T(320, 34, 'Чи буде тихо 3 години?', 'bold', 'middle')
+    const fq = T(320, 34, 'Чи буде атака в ці 3 години?', 'bold', 'middle')
     const fTicks = s('g', {},
       s('path', { d: 'M100 84V136', class: 'tick' }), T(100, 74, 'виїзд', 'soft', 'middle'),
-      s('path', { d: 'M520 84V136', class: 'tick' }), T(520, 74, '+3 год', 'soft', 'middle'))
-    const fCells = ['t', 't + 1', 't + 2'].map((lab, i) => s('g', {},
+      s('path', { d: 'M520 84V136', class: 'tick' }), T(520, 74, '04:00', 'soft', 'middle'))
+    const fCells = ['01:00', '02:00', '03:00'].map((lab, i) => s('g', {},
       s('rect', { x: 102 + i * 140, y: 90, width: 136, height: 40, rx: 8, class: 'cell' }),
       T(170 + i * 140, 117, lab, '', 'middle')))
-    const fCap = T(320, 168, 'ймовірність, що прилетить', 'soft', 'middle')
+    const fCap = T(320, 168, 'ймовірність атаки', 'soft', 'middle')
     const xs = (TH ? [0, TH.busy, TH.high, 1] : [0, 1]).map((e) => X0 + (X1 - X0) * e)
     const fBar = s('g', {}, xs.slice(1).map((b, i) => s('rect', {
       x: xs[i] + 1, y: 202, width: Math.max(1, b - xs[i] - 2), height: 16, rx: 3, class: TH ? `bar-${i}` : 'bar-none',
@@ -185,7 +191,7 @@ export default {
         s('path', { d: `M${xs[1]} 196V224`, class: 'tick' }), s('path', { d: `M${xs[2]} 196V224`, class: 'tick' }),
         T(xs[1] - 6, 192, fmt(TH.busy), 'bold', 'end'), T(xs[2] + 6, 192, fmt(TH.high), 'bold'),
       ] : null)
-    const ranges = TH ? [`нижче ${fmt(TH.busy)}`, `${fmt(TH.busy)} до ${fmt(TH.high)}`, `від ${fmt(TH.high)}`] : []
+    const ranges = TH ? [`нижче ${fmt(TH.busy)}`, `від ${fmt(TH.busy)} до ${fmt(TH.high)}`, `від ${fmt(TH.high)}`] : []
     const fTier = TIERS.map((name, i) => {
       const cx = PILL_X[i] + PILL_W / 2
       return s('g', {},
@@ -204,25 +210,25 @@ export default {
     const hide = () => { tip.style.display = 'none' }
     function describe(x, y) {
       if (cur === 3) {
-        if (y < 145) return 'Вікно прогнозу: години t, t + 1 і t + 2 від виїзду'
+        if (y < 145) return 'Вікно прогнозу: 3 години від виїзду, наприклад з 01:00 до 04:00'
         if (TH && y > 180 && y < 360) {
           const p = (x - X0) / (X1 - X0)
           const i = y < 260 ? (p < TH.busy ? 0 : p < TH.high ? 1 : 2) : x < 217 ? 0 : x < 422 ? 1 : 2
-          return [`швидше тихо: ймовірність нижче ${fmt(TH.busy)}`, `середній ризик: від ${fmt(TH.busy)} до ${fmt(TH.high)}`,
-            `високий ризик: ${fmt(TH.high)} і вище`][i]
+          return [`низький ризик: ймовірність нижче ${fmt(TH.busy)}`, `середній ризик: від ${fmt(TH.busy)} до ${fmt(TH.high)}`,
+            `високий ризик: від ${fmt(TH.high)}`][i]
         }
-        return 'Ймовірність, що за 3 години прилетять дрони чи ракети або буде ракетна загроза'
+        return 'Ймовірність атаки на Київ за 3 години: дрони летять на Київ, ракетна загроза або удар'
       }
       const onBridge = x > 240 && x < 420
       if (Math.abs(y - 175) < 20) {
         if (cur === 0) return 'M1, міст Метро: поїзди їдуть через Дніпро'
-        return 'M1 за будь-якої тривоги: лише під землею Академмістечко - Арсенальна'
+        return 'M1 за будь-якої тривоги: лише під землею, від Академмістечка до Арсенальної'
           + (cur === 2 && onBridge ? '. Авто мостом Метро їдуть без обмежень' : '')
       }
       if (Math.abs(y - 345) < 20) {
         if (cur < 2) return 'M3, Південний міст: їде через Дніпро, у піки по одному поїзду на мосту'
         return 'M3 за червоного рівня: Сирець - Видубичі і Осокорки - Червоний хутір, через Дніпро не їде'
-          + (onBridge ? '. Авто Південним мостом з правого берега на лівий стоять 15 хв від початку тривоги' : '')
+          + (onBridge ? '. Авто Південним мостом з правого берега на лівий стоять 15 хвилин від початку тривоги' : '')
       }
       if (Math.abs(x - M2X) < 18 && y > 60) return 'M2, синя лінія: лише правий берег, через Дніпро не йде'
       const road = ROAD_TIPS.find(([by]) => Math.abs(y - by) < 16 && onBridge)
