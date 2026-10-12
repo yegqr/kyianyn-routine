@@ -9,8 +9,9 @@ Usage:
 
 Writes site/data/kyiv_map.json in SVG coordinates (viewBox width 1000): the city boundary, the Dnipro water
 with islands, the river centreline, the 'west' (right bank) and 'east' (left bank) clip regions, the bridges
-over the Dnipro from north to south, the M1 and M3 river crossings,
-the metro lines M1, M2 and M3 along their routes, landmark points and label anchors.
+over the Dnipro from north to south (each one line from the right bank to the left bank across the islands,
+with the name BRIDGES gives it), the M1 and M3 river crossings, the metro lines M1, M2 and M3 along their
+routes, landmark points and label anchors.
 Projection: equirectangular, x = (lon - lon_min) * cos_lat * scale, y = (lat_max - lat) * scale.
 Paths are simplified with Douglas-Peucker (the tolerance grows until the file is under 160 KB) and rounded
 to 1 decimal; fill them with fill-rule nonzero. Data: (c) OpenStreetMap contributors, ODbL.
@@ -196,6 +197,20 @@ def inside(pt, rings):
     return c
 
 
+def winding(pt, rings):
+    """Nonzero winding number of a point over all rings, as SVG fills them with fill-rule nonzero."""
+    x, y = pt
+    w = 0
+    for r in rings:
+        for (ax, ay), (bx, by) in zip(r[-1:] + r[:-1], r):
+            side = (bx - ax) * (y - ay) - (x - ax) * (by - ay)
+            if ay <= y < by and side > 0:
+                w += 1
+            elif by <= y < ay and side < 0:
+                w -= 1
+    return w
+
+
 def clip_ring(ring, w, h):
     """Sutherland-Hodgman clip of a ring to the frame [0, w] x [0, h]."""
     def ix(a, b, x):
@@ -300,6 +315,31 @@ def length(pts):
     return sum(math.dist(a, b) for a, b in zip(pts, pts[1:]))
 
 
+def along(pts, step):
+    """(path length, point) about every `step` along a polyline."""
+    out, acc = [], 0.0
+    for p, q in zip(pts, pts[1:]):
+        d = math.dist(p, q)
+        n = max(1, int(d / step))
+        out += [(acc + d * k / n, (p[0] + (q[0] - p[0]) * k / n, p[1] + (q[1] - p[1]) * k / n)) for k in range(n)]
+        acc += d
+    return out + [(acc, pts[-1])]
+
+
+def cut(pts, a, b):
+    """The part of a polyline between path lengths a and b."""
+    out, acc = [], 0.0
+    for p, q in zip(pts, pts[1:]):
+        d = math.dist(p, q)
+        if d and acc + d > a and acc < b:
+            ta, tb = max(0.0, (a - acc) / d), min(1.0, (b - acc) / d)
+            if not out:
+                out.append((p[0] + ta * (q[0] - p[0]), p[1] + ta * (q[1] - p[1])))
+            out.append((p[0] + tb * (q[0] - p[0]), p[1] + tb * (q[1] - p[1])))
+        acc += d
+    return out
+
+
 def join_lines(lines):
     """Join open polylines that share an end point, so a metro line draws as few strokes as possible."""
     key = lambda p: (round(p[0], 1), round(p[1], 1))
@@ -389,9 +429,17 @@ def polygon(el, wgeo=None):
 
 # ---------- build ----------
 
-BRIDGE_IDS = (('Північн', 'pivnichnyi'), ('Подільськ', 'podilskyi'), ('Петрівськ', 'petrivskyi'),
-              ('Петровськ', 'petrivskyi'), ('Рибальськ', 'rybalskyi'), ('Метро', 'metro'), ('Патона', 'patona'),
-              ('Дарницьк', 'darnytskyi'), ('Південн', 'pivdennyi'))
+# a part of the OSM name, the id and the name the site shows. One rule: the name КМВА uses in its bridge rules
+# (t.me/VA_Kyiv/21404, 03.10.2026: Північний, Подільсько-Воскресенський, Метро, Патона, Дарницький, Південний), the
+# same as crossing.js; a bridge КМВА does not name keeps its official name. OSM calls two of them Подільський
+# мостовий перехід and Дарницький залізнично-автомобільний міст. The one-track rail bridge from Рибальський острів
+# over the Dnipro and the Desenka (freight and the city electric train) is Рибальський залізничний міст since
+# 18 January 2024, before that Петрівський (uk.wikipedia.org).
+BRIDGES = (('Північн', 'pivnichnyi', 'Північний міст'), ('Рибальськ', 'rybalskyi', 'Рибальський залізничний міст'),
+           ('Петрівськ', 'rybalskyi', 'Рибальський залізничний міст'),
+           ('Подільськ', 'podilskyi', 'Подільсько-Воскресенський міст'), ('Метро', 'metro', 'міст Метро'),
+           ('Патона', 'patona', 'міст Патона'), ('Дарницьк', 'darnytskyi', 'Дарницький міст'),
+           ('Південн', 'pivdennyi', 'Південний міст'))
 LANDMARKS = (
     ('motherland', 'Батьківщина-мати', r'Батьківщина-[Мм]ати'),
     ('lavra', 'Києво-Печерська лавра', r'Велика [Лл]аврська дзвіниця|Києво-Печерська лавра'),
@@ -684,6 +732,55 @@ def build():
             pts.reverse()
         return pts
 
+    # a point on a bank: outside the water and every island
+    boxes = [[(bbox(r), r) for r in water], [(bbox(r), r) for r in islands]]
+
+    def bank(p):
+        return not any(winding(p, [r for b, r in rs if b[0] <= p[0] <= b[2] and b[1] <= p[1] <= b[3]]) for rs in boxes)
+
+    def span(w0, pool, on_land):
+        """Way w0 grown into the whole crossing: (length of its straight parts, points). It joins the way at its end
+        with the least turn: any way of the pool off the bank (in the water or on an island), on a bank only if
+        on_land (the road and rail pools hold bridge ways only, the subway pool whole lines). A road across an
+        island is no bridge, so it is not in the data: where nothing joins off the bank, the line runs straight
+        to the nearest way of the pool ahead."""
+        ways = {x['id']: x for xs in pool.values() for x in xs}
+        nodes, pts, used, straight = list(w0['nodes']), list(geo[w0['id']]), {w0['id']}, 0.0
+
+        def turn(a, b, h):
+            d = abs(math.atan2(b[1] - a[1], b[0] - a[0]) - h) % (2 * math.pi)
+            return min(d, 2 * math.pi - d)
+        for _ in range(2):
+            start = length(pts)
+            while length(pts) - start < 100:
+                end, off = pts[-1], not bank(pts[-1])
+                back = next((p for p in reversed(pts) if math.dist(p, end) >= 3), pts[0])
+                h = math.atan2(end[1] - back[1], end[0] - back[0])
+                joined = [((x['nodes'], geo[x['id']]) if x['nodes'][0] == nodes[-1] else
+                           (x['nodes'][::-1], geo[x['id']][::-1]), x)
+                          for x in pool.get(nodes[-1], []) if x['id'] not in used] if off or on_land else []
+                if joined:
+                    (ns, g), x = min(joined, key=lambda j: turn(j[0][1][0], j[0][1][1], h))
+                    ns, g = ns[1:], g[1:]
+                elif off:
+                    ahead = [(math.dist(end, g[0]), ns, g, x) for x in ways.values() if x['id'] not in used
+                             for ns, g in ((x['nodes'], geo[x['id']]), (x['nodes'][::-1], geo[x['id']][::-1]))
+                             if math.dist(end, g[0]) < 40 and turn(g[0], g[-1], h) < 0.8
+                             and (math.dist(end, g[0]) < 0.5 or turn(end, g[0], h) < 0.6)]
+                    if not ahead:
+                        break
+                    d, ns, g, x = min(ahead, key=lambda a: a[0])
+                    straight += d
+                else:
+                    break
+                used.add(x['id'])
+                nodes += ns
+                pts += g
+            nodes.reverse()
+            pts.reverse()
+        return straight, pts
+
+    west0, east0 = regions(dp(line, 2))
     bridges, metro, used_ids = [], {}, set()
     for c in clusters:
         votes = defaultdict(int)
@@ -698,17 +795,29 @@ def build():
             elif 'міст' in t.get('name', '').lower():
                 votes[t['name']] += 1
         name = max(votes, key=votes.get) if votes else 'міст без назви'
+        bid, name = next(((v, shown) for k, v, shown in BRIDGES if k in name), ('bridge', name))
         modes = {mode(x['tags']) for _, x in c}
         road = [x for _, x in c if mode(x['tags']) == 'road']
         kind = 'metro' if 'Метро' in name else 'rail' if modes == {'rail'} else 'road'
-        rep = max(road or [x for _, x in c], key=lambda x: length(geo[x['id']]))
         mid = (sum(p[0] for p, _ in c) / len(c), sum(p[1] for p, _ in c) / len(c))
-        bid = next((v for k, v in BRIDGE_IDS if k in name), 'bridge')
         while bid in used_ids:
             bid += '_2'
         used_ids.add(bid)
-        item = {'id': bid, 'name': name, 'kind': kind, 'carries': sorted(modes),
-                'pts': grow(rep, pools[mode(rep['tags'])], 100), 'mid': mid, 'lat': round(P.lat(mid[1]), 4)}
+        # the whole crossing of each mode on it, then the one with the shortest straight parts, the road first
+        # (the road across Hidropark is no bridge, the metro track of the Metro bridge runs on to the left bank)
+        spans = []
+        for m in sorted(modes, key=('road', 'rail', 'metro').index):
+            w0 = max((x for _, x in c if mode(x['tags']) == m), key=lambda x: length(geo[x['id']]))
+            straight, pts = span(w0, subway, False) if m == 'metro' else span(w0, pools[m], True)
+            spans.append((straight, len(spans), pts))
+        straight, _, pts = min(spans)
+        if not inside(pts[0], [west0]):  # from the right bank to the left bank
+            pts = pts[::-1]
+        # the part over the river and its islands, landing 4 units (about 180 m) on each bank
+        off = [k for k, p in along(pts, 1) if not bank(p)]
+        pts = cut(pts, off[0] - 4, off[-1] + 4) if off else pts
+        item = {'id': bid, 'name': name, 'kind': kind, 'carries': sorted(modes), 'pts': pts, 'straight': straight,
+                'banks': bank(pts[0]) and bank(pts[-1]), 'mid': mid, 'lat': round(P.lat(mid[1]), 4)}
         if road and all(x['tags'].get('highway') == 'construction' for x in road):
             item['construction'] = True
         bridges.append(item)
@@ -725,7 +834,6 @@ def build():
 
     # label anchors: the middle of each bank inside the city, and a spot on the river
     coarse_city = [dp_ring(r, 4) for r in city_outer]
-    west0, east0 = regions(dp(line, 2))
 
     obstacles = [(m['x'], m['y']) for m in marks]  # city edge, river and landmarks, every 10 units
     for r, closed in [(r, True) for r in coarse_city] + [(dp(line, 2), False)]:
@@ -793,9 +901,11 @@ def build():
     print(f"city: {ps['city'].count('M')} rings, {pc(ps['city'])} points; water: {ps['water'].count('M')} rings, "
           f"{pc(ps['water'])} points; islands: {ps['islands'].count('M')}; centreline: {pc(ps['centreline'])} points")
     print(f'bridges over the Dnipro from north to south: {len(bridges)}')
-    for b in doc['bridges']:
+    for b, item in zip(doc['bridges'], bridges):
         print(f"  {b['order']}. {b['name']} ({b['id']}): {b['kind']}, carries {'+'.join(b['carries'])}, "
-              f"lat {b['lat']}{', construction' if b.get('construction') else ''}")
+              f"lat {b['lat']}{', construction' if b.get('construction') else ''}, "
+              f"{'from bank to bank' if item['banks'] else 'AN END OFF THE BANK'}, "
+              f"straight parts {item['straight']:.1f}")
     for k2, m in doc['metro'].items():
         print(f"metro {k2}: crosses on {m['bridge']} (line from {m['line_from']})")
     print('metro lines: ' + ', '.join(f"{k2} {v.count('M')} strokes, {pc(v)} points" for k2, v in doc['lines'].items()))
