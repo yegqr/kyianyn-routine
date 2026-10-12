@@ -1,4 +1,4 @@
-/* Taken from mindset.mylovanov.media and ba26.mylovanov.media */
+/* Colours, fonts, radii and motion of the whole site; every other stylesheet uses only these names */
 @import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap');
 
 /* The light theme. The dark one below gives the same names other values, so no other file changes with the theme. */
